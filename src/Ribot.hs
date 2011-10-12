@@ -9,8 +9,8 @@ import           System.IO
 
 server = "irc.freenode.org"
 port   = 6667
-chan   = "#slab"
-nick   = "ribot"
+chan   = "#err1234567890"
+nick   = "ribot-bot"
 
 main :: IO ()
 main = bracket (connect server port chan nick) disconnect loop
