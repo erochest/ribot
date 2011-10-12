@@ -62,7 +62,7 @@ listen :: Handle -> Net ()
 listen h = forever $ do
     s <- init `fmap` io (hGetLine h)
     io $ putStrLn s
-    if ping s then pong s else eval (clean s)
+    eval (clean s)
     where
         forever a = a >> forever a
         ping x = "PING:" `L.isPrefixOf` x
