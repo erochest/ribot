@@ -28,13 +28,17 @@ Executable ribot
   
   Build-depends:       
     base >= 4.3 && < 5,
+    directory >= 1.1 && < 2,
+    filepath >= 1.2 && < 2,
     network >=2.3 && < 3,
     mtl >=2.0 && < 3,
     time >=1.2 && < 2,
     HDBC >=2.3.0.0 && < 3,
     HDBC-sqlite3 >=2.3.0.0 && < 3
   
-  -- Other-modules:	  
+  Other-modules:	  
+    Network.Ribot.Core,
+    Network.Ribot.Db
   
   -- Build-tools:	  
 

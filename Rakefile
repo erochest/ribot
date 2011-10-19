@@ -1,4 +1,6 @@
 
+require 'fileutils'
+
 task :default => :usage
 
 task :usage do
@@ -28,6 +30,12 @@ end
 desc 'Cleans up everything.'
 task :clean do
   sh %{cabal clean}
+end
+
+desc 'Removes the logging database.'
+task :nukedb do
+  dirname = File.expand_path('~/.ribot')
+  FileUtils::rmtree dirname, :verbose => true
 end
 
 desc 'Builds everything.'

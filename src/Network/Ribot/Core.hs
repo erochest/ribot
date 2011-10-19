@@ -14,6 +14,7 @@ import           Control.Monad.Reader
 import qualified Data.List as L
 import           Data.Time
 import           Network
+import           Network.Ribot.Db
 import           System.Exit
 import           System.IO
 import           Text.Printf
@@ -24,6 +25,7 @@ data Ribot = Ribot { botSocket    :: Handle
                    , botChan      :: String
                    , botNick      :: String
                    , botStartTime :: UTCTime
+                   , botDbHandle  :: ConnWrapper
                    }
 
 type Net = ReaderT Ribot IO
@@ -33,7 +35,8 @@ connect server port chan nick = notify $ do
     h <- connectTo server . PortNumber $ fromIntegral port
     t <- getCurrentTime
     hSetBuffering h NoBuffering
-    return $ Ribot h server port chan nick t
+    db <- connectDb
+    return $ Ribot h server port chan nick t db
     where
         notify a = bracket_
             (printf "Connecting to %s ..." server >> hFlush stdout)
