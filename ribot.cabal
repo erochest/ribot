@@ -30,7 +30,9 @@ Executable ribot
     base >= 4.3 && < 5,
     network >=2.3 && < 3,
     mtl >=2.0 && < 3,
-    time >=1.4 && < 2
+    time >=1.2 && < 2,
+    HDBC >=2.3.0.0 && < 3,
+    HDBC-sqlite3 >=2.3.0.0 && < 3
   
   -- Other-modules:	  
   
@@ -42,10 +44,10 @@ Executable ribot
   else
     if impl(ghc >= 6.12.0)
       ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields -O2
-                   -fno-warn-orphans -fno-warn-unused-do-bind
+                   -fno-warn-orphans -fno-warn-unused-do-bind -fstatic
     else
       ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields -O2
-                   -fno-warn-orphans
+                   -fno-warn-orphans -fstatic
 
 -- Test-Suite test-ribot
 --   type:	      exitcode-stdio-1.0
