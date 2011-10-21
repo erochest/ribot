@@ -18,8 +18,10 @@ import qualified Data.List as L
 import           Data.Time
 import           Network
 import           Network.Ribot.Db
+import           Network.Ribot.Utils (split)
 import           System.Exit
 import           System.IO
+import           Text.ParserCombinators.Parsec
 import           Text.Printf
 
 -- This is the main data structure for the bot. It has connection information,
@@ -37,6 +39,14 @@ data Ribot = Ribot { botSocket    :: Handle
 -- This is the monad the bot runs under. The `ReaderT` holds the state (a
 -- `Ribot`) and silently threads it through the computation.
 type Net = ReaderT Ribot IO
+
+-- This is a storage for incoming messages.
+data Message = Message { msgUser :: Maybe String
+                       , msgChan :: Maybe String
+                       , msgTime :: UTCTime
+                       , msgText :: String
+                       }
+    deriving (Show)
 
 -- This connects to IRC, to the database, notes the current time, and returns a
 -- ready-to-go `Ribot`.
@@ -84,10 +94,13 @@ listen h = forever $ do
     s <- init `fmap` io (hGetLine h)
     io $ putStrLn s
     case s of
-        ping | "PING" `L.isPrefixOf` ping ->
-            write "PONG" "" >> return ()
-        otherwise ->
-            eval (clean s)
+        ping | "PING" `L.isPrefixOf` ping -> do
+            write "PONG" ""
+            return ()
+        otherwise -> do
+            msg <- io (parseMessage s)
+            io (putStrLn $ show msg)
+            eval msg
     where
         -- `forever` executes a and then recursively executes it again. Only
         -- Chunk Norris can stop it. (And Ctrl-C, which may stand for
@@ -101,6 +114,39 @@ listen h = forever $ do
 clean :: String -> String
 clean = drop 1 . dropWhile (/= ':') . drop 1
 
+-- This parses an incoming string into a Message.
+parseMessage :: String -> IO Message
+parseMessage input =
+    case (parseMsg input) of
+        Right [user, chan, msg] -> do
+            now <- getCurrentTime
+            return $ Message (Just user) (Just chan) now msg
+        Left _ -> do
+            now <- getCurrentTime
+            return $ Message Nothing Nothing now input
+    where
+        -- ":erochester!~erocheste@137.54.2.108 PRIVMSG #err1234567890 :this is a message"
+        -- ":USER!.*#CHAN :MSG"
+        parseMsg :: String -> Either ParseError [String]
+        parseMsg = parse ircLine "(unknown)"
+
+        ircLine = do
+            char ':'
+            user <- ircUser
+            skipHost
+            chan <- ircChan
+            spaces
+            char ':'
+            msg <- ircMsg
+            return [user, '#':chan, msg]
+        ircUser = many (noneOf "!")
+        ircChan = do
+            char '#'
+            many (noneOf " !#")
+        ircMsg = many anyChar
+        skipHost = skipMany (noneOf "#")
+
+
 -- This evaluates the input and runs commands based on it. This is also where
 -- you'd add new commands.
 --
@@ -109,11 +155,11 @@ clean = drop 1 . dropWhile (/= ':') . drop 1
 -- * `!quit` — stop the bot.
 -- * `!uptime` — print how long the bot has been running.
 -- * `!echo NAME` — echo back.
-eval :: String -> Net ()
-eval "!quit"                      = write "QUIT" ":Exiting" >> io (exitWith ExitSuccess)
-eval "!uptime"                    = uptime >>= privmsg
-eval x | "!echo" `L.isPrefixOf` x = privmsg (drop 6 x)
-eval _                            = return ()
+eval :: Message -> Net ()
+eval (Message _ _ _ "!quit")                      = write "QUIT" ":Exiting" >> io (exitWith ExitSuccess)
+eval (Message _ _ _ "!uptime")                    = uptime >>= privmsg
+eval (Message _ _ _ x) | "!echo" `L.isPrefixOf` x = privmsg (drop 6 x)
+eval msg                                          = io (putStrLn . ("!!!" ++) $ show msg) >> return ()
 
 -- This gets how long the bot has been running and returns it as a string.
 uptime :: Net String
