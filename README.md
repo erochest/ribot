@@ -3,6 +3,8 @@
 
 This is a toy IRC bot written using Haskell.
 
+The site for this is on [my site](http://www.ericrochester.com/ribot).
+
 # Features
 
 * <del>Chat logging</del>;
