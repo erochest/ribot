@@ -83,11 +83,18 @@ listen :: Handle -> Net ()
 listen h = forever $ do
     s <- init `fmap` io (hGetLine h)
     io $ putStrLn s
-    eval (clean s)
+    case s of
+        ping | "PING" `L.isPrefixOf` ping ->
+            write "PONG" "" >> return ()
+        otherwise ->
+            eval (clean s)
     where
         -- `forever` executes a and then recursively executes it again. Only
         -- Chunk Norris can stop it. (And Ctrl-C, which may stand for
         -- Ctrl-Chuck Norris, although nothing can control Chunk Norris.)
+        --
+        -- I should probably use the one from Control.Monad, but I've already
+        -- written the comment above.
         forever a = a >> forever a
 
 -- This cleans up a string send by IRC by removing the prefix.
@@ -103,10 +110,10 @@ clean = drop 1 . dropWhile (/= ':') . drop 1
 -- * `!uptime` — print how long the bot has been running.
 -- * `!echo NAME` — echo back.
 eval :: String -> Net ()
-eval "!quit"                    = write "QUIT" ":Exiting" >> io (exitWith ExitSuccess)
-eval "!uptime"                  = uptime >>= privmsg
+eval "!quit"                      = write "QUIT" ":Exiting" >> io (exitWith ExitSuccess)
+eval "!uptime"                    = uptime >>= privmsg
 eval x | "!echo" `L.isPrefixOf` x = privmsg (drop 6 x)
-eval _                          = return ()
+eval _                            = return ()
 
 -- This gets how long the bot has been running and returns it as a string.
 uptime :: Net String
