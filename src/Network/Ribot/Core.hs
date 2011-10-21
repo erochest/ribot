@@ -101,11 +101,11 @@ clean = drop 1 . dropWhile (/= ':') . drop 1
 --
 -- * `!quit` — stop the bot.
 -- * `!uptime` — print how long the bot has been running.
--- * `!id NAME` — echo back.
+-- * `!echo NAME` — echo back.
 eval :: String -> Net ()
 eval "!quit"                    = write "QUIT" ":Exiting" >> io (exitWith ExitSuccess)
 eval "!uptime"                  = uptime >>= privmsg
-eval x | "!id" `L.isPrefixOf` x = privmsg (drop 4 x)
+eval x | "!echo" `L.isPrefixOf` x = privmsg (drop 6 x)
 eval _                          = return ()
 
 -- This gets how long the bot has been running and returns it as a string.
