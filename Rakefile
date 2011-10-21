@@ -37,6 +37,24 @@ task :docs do
   sh %{find src -name '*.hs' -exec docco \\{\\} \\;}
 end
 
+desc 'Creates the docs and commits onto the gh-pages branch.'
+task :ghpages, [:msg] => [:docs] do |t, args|
+  msg = args[:msg] || 'Updated docs.'
+
+  FileUtils.rmtree("/tmp/ribot-docs", :verbose => true) if File.exists?("/tmp/ribot-docs")
+  FileUtils.cp_r("docs", "/tmp/ribot-docs", :verbose => true)
+
+  sh %{git stash}
+  sh %{git checkout gh-pages}
+
+  FileUtils.rmtree("docs", :verbose => true) if File.exists?("docs")
+  FileUtils.mv("/tmp/ribot-docs", "docs", :verbose => true)
+
+  sh %{git add --all docs}
+  sh %{git commit -m "#{msg}"}
+  # sh %{git checkout master}
+end
+
 desc 'Removes the logging database.'
 task :nukedb do
   dirname = File.expand_path('~/.ribot')
