@@ -43,7 +43,7 @@ task :ghpages, [:msg] => [:docs] do |t, args|
   msg = args[:msg] || 'Updated docs.'
 
   FileUtils.rmtree("/tmp/ribot-docs", :verbose => true) if File.exists?("/tmp/ribot-docs")
-  FileUtils.cp_r("docs", "/tmp/ribot-docs", :verbose => true)
+  FileUtils.mv("docs", "/tmp/ribot-docs", :verbose => true)
 
   sh %{git stash}
   sh %{git checkout gh-pages}
