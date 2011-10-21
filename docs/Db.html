@@ -10,13 +10,60 @@ I expect to run Ribot on.)</p>             </td>             <td class="code">  
     <span class="p">,</span> <span class="kt">ConnWrapper</span>
     <span class="p">)</span> <span class="kr">where</span>
 
+<span class="kr">import</span>           <span class="nn">Control.Monad</span> <span class="p">(</span><span class="nf">forM</span><span class="p">,</span> <span class="nf">forM_</span><span class="p">,</span> <span class="nf">mapM</span><span class="p">,</span> <span class="nf">mapM_</span><span class="p">)</span>
 <span class="kr">import</span>           <span class="nn">Database.HDBC</span>
 <span class="kr">import</span>           <span class="nn">Database.HDBC.Types</span> <span class="p">(</span><span class="kt">IConnection</span><span class="p">(</span><span class="o">..</span><span class="p">),</span> <span class="kt">ConnWrapper</span><span class="p">)</span>
 <span class="kr">import</span>           <span class="nn">Database.HDBC.Sqlite3</span> <span class="p">(</span><span class="nf">connectSqlite3</span><span class="p">)</span>
 <span class="kr">import</span>           <span class="nn">System.Directory</span>
 <span class="kr">import</span>           <span class="nn">System.FilePath</span> <span class="p">((</span><span class="o">&lt;/&gt;</span><span class="p">))</span></pre></div>             </td>           </tr>                               <tr id="section-3">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-3">&#182;</a>               </div>               <p>This connects to the database. It returns a ConnWrapper in order to provide
 some flexibility in what database engine I use.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nf">connectDb</span> <span class="ow">::</span> <span class="kt">IO</span> <span class="kt">ConnWrapper</span>
-<span class="nf">connectDb</span> <span class="ow">=</span> <span class="n">findDbFile</span> <span class="o">&gt;&gt;=</span> <span class="n">connectSqlite3</span> <span class="o">&gt;&gt;=</span> <span class="n">return</span> <span class="o">.</span> <span class="kt">ConnWrapper</span></pre></div>             </td>           </tr>                               <tr id="section-4">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-4">&#182;</a>               </div>               <p>This finds the database filename. It looks in the user application
+<span class="nf">connectDb</span> <span class="ow">=</span>   <span class="n">findDbFile</span>
+          <span class="o">&gt;&gt;=</span> <span class="n">connectSqlite3</span>
+          <span class="o">&gt;&gt;=</span> <span class="n">initDb</span>
+          <span class="o">&gt;&gt;=</span> <span class="n">createDb</span>
+          <span class="o">&gt;&gt;=</span> <span class="n">return</span> <span class="o">.</span> <span class="kt">ConnWrapper</span></pre></div>             </td>           </tr>                               <tr id="section-4">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-4">&#182;</a>               </div>               <p>This initializes the database by turning on appropriate pragmas.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nf">initDb</span> <span class="ow">::</span> <span class="kt">IConnection</span> <span class="n">c</span> <span class="ow">=&gt;</span> <span class="n">c</span> <span class="ow">-&gt;</span> <span class="kt">IO</span> <span class="n">c</span>
+<span class="nf">initDb</span> <span class="n">cxn</span> <span class="ow">=</span> <span class="kr">do</span>
+    <span class="n">runRaw</span> <span class="n">cxn</span> <span class="s">&quot;PRAGMA foreign_keys = ON;&quot;</span>
+    <span class="n">return</span> <span class="n">cxn</span></pre></div>             </td>           </tr>                               <tr id="section-5">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-5">&#182;</a>               </div>               <p>This creates the database schema and returns the database connection so it
+can be used for piping.</p>
+
+<p>(I'm almost certain there's a one-liner for the main definition of this
+function, but it's eluding me. I'll have to re-visit this once I have more
+Haskell-fu.)</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nf">createDb</span> <span class="ow">::</span> <span class="kt">IConnection</span> <span class="n">c</span> <span class="ow">=&gt;</span> <span class="n">c</span> <span class="ow">-&gt;</span> <span class="kt">IO</span> <span class="n">c</span>
+<span class="nf">createDb</span> <span class="ow">=</span>
+    <span class="p">(</span><span class="n">flip</span> <span class="n">withTransaction</span><span class="p">)</span> <span class="o">$</span> <span class="nf">\</span><span class="n">cxn</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+        <span class="n">forM_</span> <span class="n">sql</span> <span class="o">$</span> <span class="p">(</span><span class="n">runRaw</span> <span class="n">cxn</span><span class="p">)</span>
+        <span class="n">return</span> <span class="n">cxn</span>
+    <span class="kr">where</span></pre></div>             </td>           </tr>                               <tr id="section-6">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-6">&#182;</a>               </div>               <p>Here are the statements, packaged up so run by create.</p>             </td>             <td class="code">               <div class="highlight"><pre>        <span class="n">sql</span> <span class="ow">=</span> <span class="p">[</span> <span class="s">&quot;CREATE TABLE IF NOT EXISTS user ( </span><span class="se">\</span>
+<span class="se">                        \</span><span class="s"> id INTEGER PRIMARY KEY, </span><span class="se">\</span>
+<span class="se">                        \</span><span class="s"> user TEXT, </span><span class="se">\</span>
+<span class="se">                        \</span><span class="s"> last_seen DATETIME </span><span class="se">\</span>
+<span class="se">                        \</span><span class="s"> );&quot;</span>
+              <span class="p">,</span> <span class="s">&quot;CREATE TABLE IF NOT EXISTS message ( </span><span class="se">\</span>
+<span class="se">                        \</span><span class="s"> id INTEGER PRIMARY KEY, </span><span class="se">\</span>
+<span class="se">                        \</span><span class="s"> user_id INTEGER, </span><span class="se">\</span>
+<span class="se">                        \</span><span class="s"> posted DATETIME, </span><span class="se">\</span>
+<span class="se">                        \</span><span class="s"> FOREIGN KEY (user_id) REFERENCES user(id) </span><span class="se">\</span>
+<span class="se">                        \</span><span class="s"> );&quot;</span>
+              <span class="p">,</span> <span class="s">&quot;CREATE TABLE IF NOT EXISTS token ( </span><span class="se">\</span>
+<span class="se">                        \</span><span class="s"> id INTEGER PRIMARY KEY, </span><span class="se">\</span>
+<span class="se">                        \</span><span class="s"> text TEXT </span><span class="se">\</span>
+<span class="se">                        \</span><span class="s"> );&quot;</span>
+              <span class="p">,</span> <span class="s">&quot;CREATE TABLE IF NOT EXISTS position ( </span><span class="se">\</span>
+<span class="se">                        \</span><span class="s"> id INTEGER PRIMARY KEY, </span><span class="se">\</span>
+<span class="se">                        \</span><span class="s"> token_id INTEGER, </span><span class="se">\</span>
+<span class="se">                        \</span><span class="s"> message_id INTEGER, </span><span class="se">\</span>
+<span class="se">                        \</span><span class="s"> offset INTEGER, </span><span class="se">\</span>
+<span class="se">                        \</span><span class="s"> length INTEGER, </span><span class="se">\</span>
+<span class="se">                        \</span><span class="s"> FOREIGN KEY (token_id) REFERENCES token(id), </span><span class="se">\</span>
+<span class="se">                        \</span><span class="s"> FOREIGN KEY (message_id) REFERENCES message(id) </span><span class="se">\</span>
+<span class="se">                        \</span><span class="s"> );&quot;</span>
+              <span class="p">,</span> <span class="s">&quot;CREATE INDEX IF NOT EXISTS idx_message ON message </span><span class="se">\</span>
+<span class="se">                        \</span><span class="s"> (id, user_id, posted);&quot;</span>
+              <span class="p">,</span> <span class="s">&quot;CREATE INDEX IF NOT EXISTS idx_token ON token (id, text);&quot;</span>
+              <span class="p">,</span> <span class="s">&quot;CREATE INDEX IF NOT EXISTS idx_position ON position </span><span class="se">\</span>
+<span class="se">                        \</span><span class="s"> (id, token_id, message_id);&quot;</span>
+              <span class="p">]</span></pre></div>             </td>           </tr>                               <tr id="section-7">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-7">&#182;</a>               </div>               <p>This finds the database filename. It looks in the user application
 directory.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nf">findDbFile</span> <span class="ow">::</span> <span class="kt">IO</span> <span class="kt">FilePath</span>
 <span class="nf">findDbFile</span> <span class="ow">=</span> <span class="kr">do</span>
     <span class="n">appDir</span> <span class="ow">&lt;-</span> <span class="n">getAppUserDataDirectory</span> <span class="s">&quot;ribot&quot;</span>
