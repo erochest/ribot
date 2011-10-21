@@ -32,6 +32,11 @@ task :clean do
   sh %{cabal clean}
 end
 
+desc 'Creates docs using docco (must be on path).'
+task :docs do
+  sh %{find src -name '*.hs' -exec docco \\{\\} \\;}
+end
+
 desc 'Removes the logging database.'
 task :nukedb do
   dirname = File.expand_path('~/.ribot')
