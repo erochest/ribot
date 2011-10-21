@@ -5,8 +5,9 @@ This is a toy IRC bot written using Haskell.
 
 # Features
 
-* <span style='color:silver';>Chat logging;</span>
-* <span style='color:silver';>Log searches.</span>
+* <del>Chat logging</del>;
+* <del>Log searches</del>;
+* <del>Mimicking</del>.
 
 # Architecture
 
@@ -20,8 +21,8 @@ For future reference, the IRC is defined by [RFC 1459][2].
 
 ## TODOs
 
-* add a database connection to the monad;
-* figure out how to location the database;
+* <del>add a database connection to the monad</del>;
+* <del>figure out how to locate the database</del>;
 * open the database, creating the schema if needed;
 * log to the database;
 * search the database.
