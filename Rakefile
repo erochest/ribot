@@ -52,7 +52,10 @@ task :ghpages, [:msg] => [:docs] do |t, args|
 
   sh %{git add --all docs}
   sh %{git commit -m "#{msg}"}
-  # sh %{git checkout master}
+
+  puts "Don't forget to run these commands:"
+  puts "    git checkout master"
+  puts "    git stash pop"
 end
 
 desc 'Removes the logging database.'
