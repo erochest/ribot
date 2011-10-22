@@ -125,11 +125,13 @@ parseMessage input =
             now <- getCurrentTime
             return $ Message Nothing Nothing now input
     where
+        -- And example line would be:
         -- ":erochester!~erocheste@137.54.2.108 PRIVMSG #err1234567890 :this is a message"
-        -- ":USER!.*#CHAN :MSG"
+        -- Which parses as something like this: `:USER!.*#CHAN :MSG`.
         parseMsg :: String -> Either ParseError [String]
         parseMsg = parse ircLine "(unknown)"
 
+        -- This represents one line from the IRC server.
         ircLine = do
             char ':'
             user <- ircUser
@@ -139,11 +141,15 @@ parseMessage input =
             char ':'
             msg <- ircMsg
             return [user, '#':chan, msg]
+        -- An IRC username is everything up to the `!`.
         ircUser = many (noneOf "!")
+        -- An IRC channel is everything from `#` up to a `#` or `!`.
         ircChan = do
             char '#'
             many (noneOf " !#")
+        -- An IRC message is everything until the end of the string.
         ircMsg = many anyChar
+        -- This skeps everything to `#`.
         skipHost = skipMany (noneOf "#")
 
 
