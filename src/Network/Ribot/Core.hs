@@ -14,6 +14,7 @@ module Network.Ribot.Core
 
 import           Control.Exception (bracket_)
 import           Control.Monad.Reader
+import           Database.HDBC (withTransaction)
 import qualified Data.List as L
 import           Data.Time
 import           Network
@@ -91,7 +92,7 @@ listen h = forever $ do
             return ()
         otherwise -> do
             msg <- io (parseMessage s)
-            io (putStrLn $ show msg)
+            -- io (putStrLn $ show msg)
             eval msg
     where
         -- `forever` executes a and then recursively executes it again. Only
@@ -118,7 +119,7 @@ eval :: Message -> Net ()
 eval (Message _ _ _ "!quit")                      = write "QUIT" ":Exiting" >> io (exitWith ExitSuccess)
 eval (Message _ _ _ "!uptime")                    = uptime >>= privmsg
 eval (Message _ _ _ x) | "!echo" `L.isPrefixOf` x = privmsg (drop 6 x)
-eval msg                                          = io (putStrLn . ("!!!" ++) $ show msg) >> return ()
+eval msg                                          = processMessage msg
 
 -- This gets how long the bot has been running and returns it as a string.
 uptime :: Net String
@@ -132,4 +133,13 @@ privmsg :: String -> Net ()
 privmsg s = do
     asks botChan >>= \c ->
         write "PRIVMSG" $ c ++ " :" ++ s
+
+-- This processes an incoming message.
+--
+-- Currently, this means that we log it to the database.
+--
+-- At some point, this should spin off a new thread.
+processMessage :: Message -> Net ()
+processMessage msg = asks botDbHandle >>= io . (flip withTransaction) process
+    where process = logMessage msg
 

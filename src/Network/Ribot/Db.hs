@@ -11,12 +11,14 @@ module Network.Ribot.Db
     ( connectDb
     , IConnection(..)
     , ConnWrapper
+    , logMessage
     ) where
 
 import           Control.Monad (forM, forM_, mapM, mapM_)
 import           Database.HDBC
 import           Database.HDBC.Types (IConnection(..), ConnWrapper)
 import           Database.HDBC.Sqlite3 (connectSqlite3)
+import           Network.Ribot.Message
 import           System.Directory
 import           System.FilePath ((</>))
 
@@ -51,12 +53,13 @@ createDb =
         -- Here are the statements, packaged up so run by create.
         sql = [ "CREATE TABLE IF NOT EXISTS user ( \
                         \ id INTEGER PRIMARY KEY, \
-                        \ user TEXT, \
+                        \ username TEXT, \
                         \ last_seen DATETIME \
                         \ );"
               , "CREATE TABLE IF NOT EXISTS message ( \
                         \ id INTEGER PRIMARY KEY, \
                         \ user_id INTEGER, \
+                        \ text TEXT, \
                         \ posted DATETIME, \
                         \ FOREIGN KEY (user_id) REFERENCES user(id) \
                         \ );"
@@ -87,4 +90,34 @@ findDbFile = do
     appDir <- getAppUserDataDirectory "ribot"
     createDirectoryIfMissing True appDir
     return $ appDir </> "ribot.db"
+
+-- This saves a message to the database. This doesn't handle the transaction.
+-- You probably want to do that at a higher level.
+logMessage :: IConnection c => Message -> c -> IO ()
+logMessage msg cxn = do
+    -- If there's no user, move on.
+    case (msgUser msg) of
+        Just userName -> addMsg userName $ msgText msg
+        Nothing -> return ()
+
+    where
+        addMsg :: String -> String -> IO ()
+        addMsg userName msgStr = do
+            -- First, let's fetch the user ID from the database.
+            ids <- quickQuery' cxn "SELECT id FROM user WHERE username=?;" [toSql userName]
+
+            -- Second, if there isn't one, create it and get its ID.
+            userId <- case ids of
+                    [] -> do
+                        run cxn "INSERT INTO user (username) VALUES (?);" [toSql userName]
+                        [[id']] <- quickQuery' cxn "SELECT last_insert_rowid();" []
+                        return $ fromSql id'
+                    [[id']] -> return $ fromSql id'
+
+            -- Third, add the message to the database.
+            run cxn "INSERT INTO message (user_id, posted, text) VALUES (?, DATETIME('NOW'), ?);"
+                [iToSql userId, toSql msgStr]
+
+            return ()
+
 
