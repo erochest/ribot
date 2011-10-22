@@ -18,10 +18,10 @@ import qualified Data.List as L
 import           Data.Time
 import           Network
 import           Network.Ribot.Db
+import           Network.Ribot.Message
 import           Network.Ribot.Utils (split)
 import           System.Exit
 import           System.IO
-import           Text.ParserCombinators.Parsec
 import           Text.Printf
 
 -- This is the main data structure for the bot. It has connection information,
@@ -39,14 +39,6 @@ data Ribot = Ribot { botSocket    :: Handle
 -- This is the monad the bot runs under. The `ReaderT` holds the state (a
 -- `Ribot`) and silently threads it through the computation.
 type Net = ReaderT Ribot IO
-
--- This is a storage for incoming messages.
-data Message = Message { msgUser :: Maybe String
-                       , msgChan :: Maybe String
-                       , msgTime :: UTCTime
-                       , msgText :: String
-                       }
-    deriving (Show)
 
 -- This connects to IRC, to the database, notes the current time, and returns a
 -- ready-to-go `Ribot`.
@@ -113,45 +105,6 @@ listen h = forever $ do
 -- This cleans up a string send by IRC by removing the prefix.
 clean :: String -> String
 clean = drop 1 . dropWhile (/= ':') . drop 1
-
--- This parses an incoming string into a Message.
-parseMessage :: String -> IO Message
-parseMessage input =
-    case (parseMsg input) of
-        Right [user, chan, msg] -> do
-            now <- getCurrentTime
-            return $ Message (Just user) (Just chan) now msg
-        Left _ -> do
-            now <- getCurrentTime
-            return $ Message Nothing Nothing now input
-    where
-        -- And example line would be:
-        -- ":erochester!~erocheste@137.54.2.108 PRIVMSG #err1234567890 :this is a message"
-        -- Which parses as something like this: `:USER!.*#CHAN :MSG`.
-        parseMsg :: String -> Either ParseError [String]
-        parseMsg = parse ircLine "(unknown)"
-
-        -- This represents one line from the IRC server.
-        ircLine = do
-            char ':'
-            user <- ircUser
-            skipHost
-            chan <- ircChan
-            spaces
-            char ':'
-            msg <- ircMsg
-            return [user, '#':chan, msg]
-        -- An IRC username is everything up to the `!`.
-        ircUser = many (noneOf "!")
-        -- An IRC channel is everything from `#` up to a `#` or `!`.
-        ircChan = do
-            char '#'
-            many (noneOf " !#")
-        -- An IRC message is everything until the end of the string.
-        ircMsg = many anyChar
-        -- This skeps everything to `#`.
-        skipHost = skipMany (noneOf "#")
-
 
 -- This evaluates the input and runs commands based on it. This is also where
 -- you'd add new commands.
