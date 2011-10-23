@@ -52,7 +52,6 @@ ribotModes =
 main :: IO ()
 main = do
     mode <- cmdArgs ribotModes
-    putStrLn $ show mode
     case mode of
         Listen server port chan nick -> 
             bracket (connect server port chan nick) disconnect loop
