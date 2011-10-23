@@ -45,7 +45,7 @@ ribotModes =
       , nick = defaultNick &= name "n" &= typ "NICKNAME"
                            &= help ("The IRC nick name (default is " ++ defaultNick ++ ").")
       } &= details ["This listens on an IRC channel."]
-    &= summary "ribot v0.1"
+    &= summary ("ribot v" ++ ribotVersion)
     &= program "ribot"
 
 -- The main function.

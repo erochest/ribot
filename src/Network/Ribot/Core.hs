@@ -10,6 +10,7 @@ module Network.Ribot.Core
     , write
     , clean
     , privmsg
+    , ribotVersion
     ) where
 
 import           Control.Exception (bracket_)
@@ -24,6 +25,10 @@ import           Network.Ribot.Utils (split)
 import           System.Exit
 import           System.IO
 import           Text.Printf
+
+-- This is the version, for the command line and the !version command.
+ribotVersion :: String
+ribotVersion =  "0.1"
 
 -- This is the main data structure for the bot. It has connection information,
 -- connection handles for IRC and the database, and the time the bot started
@@ -115,6 +120,7 @@ clean = drop 1 . dropWhile (/= ':') . drop 1
 -- * `!uptime` — print how long the bot has been running.
 -- * `!echo NAME` — echo back.
 eval :: Message -> Net ()
+eval (Message _ _ _ "!version")                   = privmsg $ "version " ++ ribotVersion
 eval (Message _ _ _ "!uptime")                    = uptime >>= privmsg
 eval (Message _ _ _ x) | "!echo" `L.isPrefixOf` x = privmsg (drop 6 x)
 eval msg                                          = processMessage msg
