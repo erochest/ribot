@@ -104,20 +104,13 @@ logMessage msg cxn = do
     where
         addMsg :: String -> String -> IO ()
         addMsg userName msgStr = do
-            -- First, let's fetch the user ID from the database.
-            ids <- quickQuery' cxn "SELECT id FROM user WHERE username=?;" [toSql userName]
-
-            -- Second, if there isn't one, create it and get its ID.
-            userId <- case ids of
-                    [] -> do
-                        run cxn "INSERT INTO user (username) VALUES (?);" [toSql userName]
-                        [[id']] <- quickQuery' cxn "SELECT last_insert_rowid();" []
-                        return $ fromSql id'
-                    [[id']] -> return $ fromSql id'
-
-            -- Third, add the message to the database.
-            run cxn "INSERT INTO message (user_id, posted, text) VALUES (?, DATETIME('NOW'), ?);"
-                [iToSql userId, toSql msgStr]
+            -- First, try to create the user, if the name isn't already in the db.
+            run cxn "INSERT OR IGNORE INTO user (username) VALUES (?);" [toSql userName]
+            -- Second, add the message to the database.
+            run cxn "INSERT INTO message (user_id, text, posted) \
+                \ SELECT id, DATETIME('NOW'), ? \
+                \ FROM user WHERE username=?;"
+                [toSql msgStr, toSql userName]
 
             return ()
 
