@@ -7,7 +7,7 @@ The site for this is on [my site](http://www.ericrochester.com/ribot).
 
 # Features
 
-* <del>Chat logging</del>;
+* Chat logging;
 * <del>Log searches</del>;
 * <del>Mimicking</del>.
 
@@ -25,9 +25,12 @@ For future reference, the IRC is defined by [RFC 1459][2].
 
 * <del>add a database connection to the monad</del>;
 * <del>figure out how to locate the database</del>;
-* open the database, creating the schema if needed;
-* log to the database;
-* search the database.
+* <del>open the database, creating the schema if needed</del>;
+* <del>log to the database</del>;
+* `!logoff` and `!logon`;
+* `!search TERMS`;
+* `!mimic NICK`;
+* automatically reconnect after network outages.
 
 ## Schema
 
