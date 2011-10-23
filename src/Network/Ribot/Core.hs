@@ -112,11 +112,9 @@ clean = drop 1 . dropWhile (/= ':') . drop 1
 --
 -- Commands it recognizes now are:
 --
--- * `!quit` — stop the bot.
 -- * `!uptime` — print how long the bot has been running.
 -- * `!echo NAME` — echo back.
 eval :: Message -> Net ()
-eval (Message _ _ _ "!quit")                      = write "QUIT" ":Exiting" >> io (exitWith ExitSuccess)
 eval (Message _ _ _ "!uptime")                    = uptime >>= privmsg
 eval (Message _ _ _ x) | "!echo" `L.isPrefixOf` x = privmsg (drop 6 x)
 eval msg                                          = processMessage msg
