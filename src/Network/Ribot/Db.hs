@@ -53,8 +53,7 @@ createDb =
         -- Here are the statements, packaged up so run by create.
         sql = [ "CREATE TABLE IF NOT EXISTS user ( \
                         \ id INTEGER PRIMARY KEY, \
-                        \ username TEXT, \
-                        \ last_seen DATETIME \
+                        \ username TEXT \
                         \ );"
               , "CREATE TABLE IF NOT EXISTS message ( \
                         \ id INTEGER PRIMARY KEY, \
@@ -76,6 +75,8 @@ createDb =
                         \ FOREIGN KEY (token_id) REFERENCES token(id), \
                         \ FOREIGN KEY (message_id) REFERENCES message(id) \
                         \ );"
+              , "CREATE UNIQUE INDEX IF NOT EXISTS idx_user ON user \
+                        \ (username);"
               , "CREATE INDEX IF NOT EXISTS idx_message ON message \
                         \ (id, user_id, posted);"
               , "CREATE INDEX IF NOT EXISTS idx_token ON token (id, text);"
