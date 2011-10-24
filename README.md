@@ -11,6 +11,14 @@ The site for this is on [my site](http://www.ericrochester.com/ribot).
 * <del>Log searches</del>;
 * <del>Mimicking</del>.
 
+# Commands
+
+* `!version` — print out the version of the bot.
+* `!uptime` — print how long the bot has been running.
+* `!log off` — turn off logging for the user.
+* `!log on` — turn on logging for the user.
+* `!echo NAME` — echo back.
+
 # TODOs
 
 * <del>add a database connection to the monad</del>;
