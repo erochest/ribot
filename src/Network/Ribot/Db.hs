@@ -119,7 +119,7 @@ logMessage msg cxn = do
             checkUser cxn userName
             -- Second, add the message to the database.
             run cxn "INSERT INTO message (user_id, text, posted) \
-                \ SELECT id, DATETIME('NOW'), ? \
+                \ SELECT id, ?, DATETIME('NOW') \
                 \ FROM user WHERE username=? AND logging_on=1;"
                 [toSql msgStr, toSql userName]
 
