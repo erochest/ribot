@@ -136,6 +136,7 @@ eval (Message (Just usr) _ _ log) | "!log " `L.isPrefixOf` log = do
           logMsg = if logFlag then "on" else "off"
 eval (Message _ _ _ x) | "!echo" `L.isPrefixOf` x =
     privmsg (drop 6 x)
+eval (Message _ _ _ ('!':_)) = return ()
 eval msg = processMessage msg
 
 -- This gets how long the bot has been running and returns it as a string.
