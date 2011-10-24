@@ -53,7 +53,8 @@ createDb =
         -- Here are the statements, packaged up so run by create.
         sql = [ "CREATE TABLE IF NOT EXISTS user ( \
                         \ id INTEGER PRIMARY KEY, \
-                        \ username TEXT \
+                        \ username TEXT, \
+                        \ logging_on BOOL \
                         \ );"
               , "CREATE TABLE IF NOT EXISTS message ( \
                         \ id INTEGER PRIMARY KEY, \
@@ -105,11 +106,13 @@ logMessage msg cxn = do
         addMsg :: String -> String -> IO ()
         addMsg userName msgStr = do
             -- First, try to create the user, if the name isn't already in the db.
-            run cxn "INSERT OR IGNORE INTO user (username) VALUES (?);" [toSql userName]
+            run cxn "INSERT OR IGNORE INTO user \
+                    \ (username, logging_on) VALUES \
+                    \ (?, 1);" [toSql userName]
             -- Second, add the message to the database.
             run cxn "INSERT INTO message (user_id, text, posted) \
                 \ SELECT id, DATETIME('NOW'), ? \
-                \ FROM user WHERE username=?;"
+                \ FROM user WHERE username=? AND logging_on=1;"
                 [toSql msgStr, toSql userName]
 
             return ()
