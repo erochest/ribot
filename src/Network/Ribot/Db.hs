@@ -12,6 +12,7 @@ module Network.Ribot.Db
     , IConnection(..)
     , ConnWrapper
     , logMessage
+    , setUserLogging
     ) where
 
 import           Control.Monad (forM, forM_, mapM, mapM_)
@@ -93,6 +94,15 @@ findDbFile = do
     createDirectoryIfMissing True appDir
     return $ appDir </> "ribot.db"
 
+-- This checks that a user exists in the database, and inserts it if necessary.
+checkUser :: IConnection c => c -> String -> IO ()
+checkUser cxn nick =
+    run cxn "INSERT OR IGNORE INTO user \
+            \ (username, logging_on) VALUES \
+            \ (?, 1);"
+            [toSql nick] >>
+    return ()
+
 -- This saves a message to the database. This doesn't handle the transaction.
 -- You probably want to do that at a higher level.
 logMessage :: IConnection c => Message -> c -> IO ()
@@ -106,9 +116,7 @@ logMessage msg cxn = do
         addMsg :: String -> String -> IO ()
         addMsg userName msgStr = do
             -- First, try to create the user, if the name isn't already in the db.
-            run cxn "INSERT OR IGNORE INTO user \
-                    \ (username, logging_on) VALUES \
-                    \ (?, 1);" [toSql userName]
+            checkUser cxn userName
             -- Second, add the message to the database.
             run cxn "INSERT INTO message (user_id, text, posted) \
                 \ SELECT id, DATETIME('NOW'), ? \
@@ -117,4 +125,14 @@ logMessage msg cxn = do
 
             return ()
 
+-- This sets the user.logging_on value for the given user.
+setUserLogging :: IConnection c => c -> String -> Bool -> IO ()
+setUserLogging cxn nick loggingOn = do
+    checkUser cxn nick
+    run cxn "UPDATE user \
+            \ SET logging_on=? \
+            \ WHERE username=?;"
+        [iToSql loggingInt, toSql nick]
+    return ()
+    where loggingInt = if loggingOn then 1 else 0
 

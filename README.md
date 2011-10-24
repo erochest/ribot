@@ -17,7 +17,7 @@ The site for this is on [my site](http://www.ericrochester.com/ribot).
 * <del>figure out how to locate the database</del>;
 * <del>open the database, creating the schema if needed</del>;
 * <del>log to the database</del>;
-* `!logoff` and `!logon`;
+* <del>`!log off` and `!log on`</del>;
 * `!search TERMS`;
 * `!mimic NICK`;
 * automatically reconnect after network outages.

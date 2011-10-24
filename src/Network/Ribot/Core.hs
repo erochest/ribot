@@ -117,13 +117,26 @@ clean = drop 1 . dropWhile (/= ':') . drop 1
 --
 -- Commands it recognizes now are:
 --
+-- * `!version` — print out the version of the bot.
 -- * `!uptime` — print how long the bot has been running.
+-- * `!log off` — turn off logging for the user.
+-- * `!log on` — turn on logging for the user.
 -- * `!echo NAME` — echo back.
 eval :: Message -> Net ()
-eval (Message _ _ _ "!version")                   = privmsg $ "version " ++ ribotVersion
-eval (Message _ _ _ "!uptime")                    = uptime >>= privmsg
-eval (Message _ _ _ x) | "!echo" `L.isPrefixOf` x = privmsg (drop 6 x)
-eval msg                                          = processMessage msg
+eval (Message _ _ _ "!version") =
+    privmsg $ "version " ++ ribotVersion
+eval (Message _ _ _ "!uptime") =
+    uptime >>= privmsg
+eval (Message (Just usr) _ _ log) | "!log " `L.isPrefixOf` log = do
+    db <- asks botDbHandle
+    io . withTransaction db $ \cxn ->
+        setUserLogging cxn usr logFlag
+    privmsg $ "Logging turned " ++ logMsg ++ " for " ++ usr ++ "."
+    where logFlag = log == "!log on"
+          logMsg = if logFlag then "on" else "off"
+eval (Message _ _ _ x) | "!echo" `L.isPrefixOf` x =
+    privmsg (drop 6 x)
+eval msg = processMessage msg
 
 -- This gets how long the bot has been running and returns it as a string.
 uptime :: Net String
