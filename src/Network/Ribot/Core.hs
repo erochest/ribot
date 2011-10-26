@@ -24,6 +24,7 @@ import           Network.Ribot.Message
 import           Network.Ribot.Utils (split)
 import           System.Exit
 import           System.IO
+import           System.Locale
 import           Text.Printf
 
 -- This is the version, for the command line and the !version command.
@@ -85,12 +86,19 @@ write s t = do
     io $ hPrintf h "%s %s\r\n" s t
     io $ printf    "> %s %s\n" s t
 
+-- This writes the input line to the screen with a timestamp.
+logInput :: String -> IO ()
+logInput input = do
+    dt <- getCurrentTime
+    let time = formatTime defaultTimeLocale "%c" dt
+    printf "[%s] %s\n" time input
+
 -- This listens forever. It pulls a line from IRC, prints it, cleans it up, and
 -- evaluates it.
 listen :: Handle -> Net ()
 listen h = forever $ do
     s <- init `fmap` io (hGetLine h)
-    io $ putStrLn s
+    io $ logInput s
     case s of
         ping | "PING" `L.isPrefixOf` ping -> do
             write "PONG" ""
