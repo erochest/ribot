@@ -21,6 +21,8 @@ defaultChan   :: String
 defaultChan   = "#err1234567890"
 defaultNick   :: String
 defaultNick   = "ribot-bot"
+defaultDbFile :: Maybe String
+defaultDbFile = Nothing
 
 -- These are the command line options.
 data Modes
@@ -29,6 +31,7 @@ data Modes
         , port    :: Int
         , channel :: String
         , nick    :: String
+        , dbFile  :: Maybe String
         }
     deriving (Show, Data, Typeable)
 
@@ -44,6 +47,8 @@ ribotModes =
                               &= help ("The channel on the server (default is " ++ defaultChan ++ ").")
       , nick = defaultNick &= name "n" &= typ "NICKNAME"
                            &= help ("The IRC nick name (default is " ++ defaultNick ++ ").")
+      , dbFile = defaultDbFile &= name "d" &= typ "DATABASE-FILE"
+                               &= help "The database file to use for logging."
       } &= details ["This listens on an IRC channel."]
     &= summary ("ribot v" ++ ribotVersion)
     &= program "ribot"
@@ -53,8 +58,8 @@ main :: IO ()
 main = do
     mode <- cmdArgs ribotModes
     case mode of
-        Listen server port chan nick -> 
-            bracket (connect server port chan nick) disconnect loop
+        Listen server port chan nick dbFile -> 
+            bracket (connect server port chan nick dbFile) disconnect loop
     where
         -- Compose functions to get the bot's socket and close it.
         disconnect = hClose . botSocket

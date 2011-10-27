@@ -26,12 +26,16 @@ import           System.FilePath ((</>))
 
 -- This connects to the database. It returns a ConnWrapper in order to provide
 -- some flexibility in what database engine I use.
-connectDb :: IO ConnWrapper
-connectDb =   findDbFile
+connectDb :: Maybe String -> IO ConnWrapper
+connectDb dbFile = getDbFile
           >>= connectSqlite3
           >>= initDb
           >>= createDb
           >>= return . ConnWrapper
+    where getDbFile = case dbFile of
+                        Nothing  -> findDbFile
+                        Just ""  -> findDbFile
+                        Just dbf -> return dbf
 
 -- This initializes the database by turning on appropriate pragmas.
 initDb :: IConnection c => c -> IO c

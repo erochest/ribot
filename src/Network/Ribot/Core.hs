@@ -49,12 +49,12 @@ type Net = ReaderT Ribot IO
 
 -- This connects to IRC, to the database, notes the current time, and returns a
 -- ready-to-go `Ribot`.
-connect :: String -> Int -> String -> String -> IO Ribot
-connect server port chan nick = notify $ do
+connect :: String -> Int -> String -> String -> Maybe String -> IO Ribot
+connect server port chan nick dbFile = notify $ do
     h <- connectTo server . PortNumber $ fromIntegral port
     t <- getCurrentTime
     hSetBuffering h NoBuffering
-    db <- connectDb
+    db <- connectDb dbFile
     return $ Ribot h server port chan nick t db
     where
         -- This prints some information to the screen about what we're doing.
