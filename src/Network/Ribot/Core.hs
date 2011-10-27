@@ -29,7 +29,7 @@ import           Text.Printf
 
 -- This is the version, for the command line and the !version command.
 ribotVersion :: String
-ribotVersion =  "0.1"
+ribotVersion =  "0.1.1"
 
 -- This is the main data structure for the bot. It has connection information,
 -- connection handles for IRC and the database, and the time the bot started
