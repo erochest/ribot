@@ -42,8 +42,9 @@ Executable ribot
   extensions: DeriveDataTypeable
   
   Other-modules:	  
-    Network.Ribot.Core,
-    Network.Ribot.Db
+      Network.Ribot.Core
+    , Network.Ribot.Db
+    , Text.Ribot.Tokenizer
   
   -- Build-tools:	  
 
