@@ -76,8 +76,6 @@ createDb =
                         \ id INTEGER PRIMARY KEY, \
                         \ token_id INTEGER, \
                         \ message_id INTEGER, \
-                        \ offset INTEGER, \
-                        \ length INTEGER, \
                         \ FOREIGN KEY (token_id) REFERENCES token(id), \
                         \ FOREIGN KEY (message_id) REFERENCES message(id) \
                         \ );"
