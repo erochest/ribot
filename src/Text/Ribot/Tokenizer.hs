@@ -46,9 +46,10 @@ word :: GenParser Char st String
 word = do
     base <- many1 alphaNum
     rest <- optionMaybe suffix
+    let normBase = map C.toLower base
     return $ case rest of
-        Just rest' -> base ++ rest'
-        Nothing    -> base
+        Just rest' -> normBase ++ rest'
+        Nothing    -> normBase
 
 suffix :: GenParser Char st String
 suffix = do
