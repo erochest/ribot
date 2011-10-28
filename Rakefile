@@ -79,6 +79,17 @@ task :run, [:args] => :build do |t, args|
   sh %{./dist/build/ribot/ribot #{args[:args]}}
 end
 
+desc 'Runs ribot connecting to a test channel and using a test db.'
+task :runtest => :build do
+  Rake::Task['run'].invoke("-n ribot-test -c '#err1234567890' -d test.db")
+end
+
+desc 'Copies the binary to ~/bin.'
+task :tobin => :build do
+  FileUtils.cp('dist/build/ribot/ribot', File.expand_path('~/bin/ribot'),
+               :verbose => true)
+end
+
 namespace :hs do
   desc 'This builds the Haskell part of the project.'
   task :build do
