@@ -59,21 +59,21 @@ Executable ribot
       ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields -O2
                    -fno-warn-orphans -fstatic
 
--- Test-Suite test-ribot
---   type:	      exitcode-stdio-1.0
---   hs-source-dirs:  tests
---   main-is:	      TestRibot.hs
---   build-depends:
---     base >= 4.3 && < 5,
---     test-framework >= 0.3.3 && < 0.5,
---     test-framework-quickcheck2 >= 0.2.9 && < 0.3,
---     test-framework-hunit >= 0.2.6 && < 0.3,
---     QuickCheck >= 2.4.0.1,
---     HUnit >= 1.2 && < 2,
---     text >= 0.11 && < 0.12,
---     containers >= 0.4.0.0 && < 1,
---     bakers12
---   ghc-options:		 -Wall -rtsopts
+Test-Suite test-ribot
+  type:	      exitcode-stdio-1.0
+  hs-source-dirs:  tests
+  main-is:	      TestRibot.hs
+  build-depends:
+    base >= 4.3 && < 5,
+    test-framework >= 0.3.3 && < 0.5,
+    test-framework-quickcheck2 >= 0.2.9 && < 0.3,
+    test-framework-hunit >= 0.2.6 && < 0.3,
+    QuickCheck >= 2.4.0.1,
+    HUnit >= 1.2 && < 2,
+    text >= 0.11 && < 0.12,
+    containers >= 0.4.0.0 && < 1,
+    ribot
+  ghc-options:		 -Wall -rtsopts
 
 source-repository head
   type:      git
