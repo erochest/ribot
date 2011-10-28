@@ -14,6 +14,7 @@ module Network.Ribot.Core
     ) where
 
 import           Control.Exception (bracket_)
+import           Control.Monad (mapM_)
 import           Control.Monad.Reader
 import           Database.HDBC (withTransaction)
 import qualified Data.List as L
@@ -29,7 +30,19 @@ import           Text.Printf
 
 -- This is the version, for the command line and the !version command.
 ribotVersion :: String
-ribotVersion =  "0.1.1"
+ribotVersion =  "0.1.2"
+
+-- This is the help message for the bot.
+helpMessage :: [String]
+helpMessage =
+    [ "I understand these commands:"
+    , "!help: Print out this information."
+    , "!version: Print out my version."
+    , "!uptime: Print out how many seconds I've been running without taking a break."
+    , "!log off: Stop logging your messages."
+    , "!log on: Start logging your messages."
+    , "!echo STRING: Right back at'cha."
+    ]
 
 -- This is the main data structure for the bot. It has connection information,
 -- connection handles for IRC and the database, and the time the bot started
@@ -131,6 +144,8 @@ clean = drop 1 . dropWhile (/= ':') . drop 1
 -- * `!log on` — turn on logging for the user.
 -- * `!echo NAME` — echo back.
 eval :: Message -> Net ()
+eval (Message _ _ _ "!help") =
+    mapM_ privmsg helpMessage
 eval (Message _ _ _ "!version") =
     privmsg $ "version " ++ ribotVersion
 eval (Message _ _ _ "!uptime") =
