@@ -44,6 +44,8 @@ Executable ribot
   Other-modules:	  
       Network.Ribot.Core
     , Network.Ribot.Db
+    , Network.Ribot.Message
+    , Network.Ribot.Utils
     , Text.Ribot.Tokenizer
   
   -- Build-tools:	  
