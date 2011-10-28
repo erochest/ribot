@@ -22,32 +22,57 @@ Flag development
   Default:	False
 
 
-Executable ribot
+Library
   hs-source-dirs:     src
-  Main-is:	      Ribot.hs
-  
-  Build-depends:       
-    base >= 4.3 && < 5,
-    directory >= 1.1 && < 2,
-    filepath >= 1.2 && < 2,
-    cmdargs >= 0.8,
-    network >=2.3 && < 3,
-    mtl >=2.0 && < 3,
-    time >=1.2 && < 2,
-    HDBC >=2.3.0.0 && < 3,
-    HDBC-sqlite3 >=2.3.0.0 && < 3,
-    parsec >=3.1 && < 3.2,
-    old-locale >=1.0.0.2 && < 2
-
-  extensions: DeriveDataTypeable
-  
-  Other-modules:	  
+  exposed-modules:
       Network.Ribot.Core
     , Network.Ribot.Db
     , Network.Ribot.Message
     , Network.Ribot.Utils
     , Text.Ribot.Tokenizer
+  extensions: DeriveDataTypeable
+  Build-depends:       
+      base >= 4.3 && < 5
+    , directory >= 1.1 && < 2
+    , filepath >= 1.2 && < 2
+    , network >=2.3 && < 3
+    , mtl >=2.0 && < 3
+    , time >=1.2 && < 2
+    , HDBC >=2.3.0.0 && < 3
+    , HDBC-sqlite3 >=2.3.0.0 && < 3
+    , parsec >=3.1 && < 3.2
+    , old-locale >=1.0.0.2 && < 2
+  if flag(development)
+    cpp-options: -DDEVELOPMENT
+    ghc-options: -DEVELOPMENT -threaded -w
+  else
+    if impl(ghc >= 6.12.0)
+      ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields -O2
+                   -fno-warn-orphans -fno-warn-unused-do-bind -fstatic
+    else
+      ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields -O2
+                   -fno-warn-orphans -fstatic
+
+Executable ribot
+  hs-source-dirs:     src
+  Main-is:	      Ribot.hs
   
+  Build-depends:       
+      base >= 4.3 && < 5
+    , cmdargs >= 0.8
+    , directory >= 1.1 && < 2
+    , filepath >= 1.2 && < 2
+    , network >=2.3 && < 3
+    , mtl >=2.0 && < 3
+    , time >=1.2 && < 2
+    , HDBC >=2.3.0.0 && < 3
+    , HDBC-sqlite3 >=2.3.0.0 && < 3
+    , parsec >=3.1 && < 3.2
+    , old-locale >=1.0.0.2 && < 2
+    , ribot
+
+  extensions: DeriveDataTypeable
+
   -- Build-tools:	  
 
   if flag(development)
