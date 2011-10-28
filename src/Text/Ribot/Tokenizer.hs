@@ -36,7 +36,7 @@ tokenList = spaces >> singleToken `sepEndBy` (skipMany1 space <|> eof)
 
 -- A `singleToken` is a punctuation character or a `word`.
 singleToken :: GenParser Char st String
-singleToken =   (satisfy C.isPunctuation >>= \c -> return [c])
+singleToken =   (satisfy isPunctuation >>= \c -> return [c])
             <|> word
 
 -- A `word` is one or more alpha-numeric characters, optionally followed by a
@@ -53,7 +53,13 @@ word = do
 
 suffix :: GenParser Char st String
 suffix = do
-    p <- satisfy C.isPunctuation
+    p <- satisfy isPunctuation
     rest <- word
     return (p:rest)
+
+-- This is my re-definition of `C.isPunctuation` so that it includes symbols.
+isPunctuation :: Char -> Bool
+isPunctuation c | C.isPunctuation c = True
+isPunctuation c | C.isSymbol c      = True
+isPunctuation _                     = False
 
