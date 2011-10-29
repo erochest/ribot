@@ -3,15 +3,25 @@
 
 module Text.Ribot.Tokenizer
     ( tokenize
-    -- , isWord
-    -- , removeWords
+    , isWord
+    , removePunctuation
     -- , stopList
     -- , removeStopList
     ) where
 
 import qualified Data.Char as C
+import qualified Data.List as L
 import           Text.ParserCombinators.Parsec
 
+
+-- This tests whether a string is a word by looking at its first character.
+isWord :: String -> Bool
+isWord (c:_) | C.isAlphaNum c = True
+isWord _                      = False
+
+-- This removes all punctuation tokens from a list of tokens.
+removePunctuation :: [String] -> [String]
+removePunctuation = L.filter isWord
 
 -- This is the main function. It breaks a `String` into a `[String]`. It uses
 -- a Parsec parser combinator to do this. The input should be very short, so we

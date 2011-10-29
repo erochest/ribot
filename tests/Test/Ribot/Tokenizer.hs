@@ -92,6 +92,21 @@ assertUrl =
                 tokens)
     where tokens = onlyRight [] $ tokenize "<assertUrl>" "http://www.google.com www.scholarslab.org/ erochest@gmail.com"
 
+assertIsWord :: Assertion
+assertIsWord = do
+    assertBool "Alpha-numeric are words." $ isWord "Hi"
+    assertBool "Numeric are words." $ isWord "42"
+    assertBool "Punctuation aren't words." $ not (isWord ".")
+    assertBool "Empty isn't a word." $ not (isWord "")
+
+assertRemovePunctuation :: Assertion
+assertRemovePunctuation =
+    assertBool ("Non-word tokens are removed: " ++ (show tokens))
+               (["this", "is", "a", "quote"] == tokens)
+    where tokens = removePunctuation
+                 . onlyRight []
+                 $ tokenize "<assertTrailingPunctuation>" "This, is: a- quote.'\""
+
 
 tokenizerTests :: [Test]
 tokenizerTests =
@@ -108,6 +123,9 @@ tokenizerTests =
                             , testCase "contraction" assertContraction
                             , testCase "numbers" assertNumbers
                             , testCase "url" assertUrl
+                            ]
+    , testGroup "clean-up"  [ testCase "is-word" assertIsWord
+                            , testCase "remove-punctuation" assertRemovePunctuation
                             ]
     ]
 
