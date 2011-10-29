@@ -61,8 +61,6 @@ Haskell-fu.)</p>             </td>             <td class="code">               <
 <span class="se">                        \</span><span class="s"> id INTEGER PRIMARY KEY, </span><span class="se">\</span>
 <span class="se">                        \</span><span class="s"> token_id INTEGER, </span><span class="se">\</span>
 <span class="se">                        \</span><span class="s"> message_id INTEGER, </span><span class="se">\</span>
-<span class="se">                        \</span><span class="s"> offset INTEGER, </span><span class="se">\</span>
-<span class="se">                        \</span><span class="s"> length INTEGER, </span><span class="se">\</span>
 <span class="se">                        \</span><span class="s"> FOREIGN KEY (token_id) REFERENCES token(id), </span><span class="se">\</span>
 <span class="se">                        \</span><span class="s"> FOREIGN KEY (message_id) REFERENCES message(id) </span><span class="se">\</span>
 <span class="se">                        \</span><span class="s"> );&quot;</span>
