@@ -36,6 +36,8 @@ tokenList = do
     spaces
     (eof >> return []) <|> tokenRest
 
+-- This is a token (immediate, no leading whitespace) and the rest of the
+-- tokens.
 tokenRest :: GenParser Char st [String]
 tokenRest = do
     t <- singleToken
@@ -59,6 +61,8 @@ word = do
         Just rest' -> normBase ++ rest'
         Nothing    -> normBase
 
+-- This is a suffix of a word. It contains one or more punctuation marks
+-- followed by another word.
 suffix :: GenParser Char st String
 suffix = do
     p <- many1 $ satisfy isPunctuation
