@@ -61,9 +61,9 @@ word = do
 
 suffix :: GenParser Char st String
 suffix = do
-    p <- satisfy isPunctuation
+    p <- many1 $ satisfy isPunctuation
     rest <- word
-    return (p:rest)
+    return $ p ++ rest
 
 -- This is my re-definition of `C.isPunctuation` so that it includes symbols.
 isPunctuation :: Char -> Bool
