@@ -55,7 +55,7 @@ singleToken =   (satisfy isPunctuation >>= \c -> return [c])
 word :: GenParser Char st String
 word = do
     base <- many1 alphaNum
-    rest <- optionMaybe suffix
+    rest <- optionMaybe $ try suffix
     let normBase = map C.toLower base
     return $ case rest of
         Just rest' -> normBase ++ rest'
