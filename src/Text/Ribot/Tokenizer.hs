@@ -2,9 +2,7 @@
 -- This contains the tokenizer for search and generating the MM.
 
 module Text.Ribot.Tokenizer
-    ( -- String
-    -- , [String]
-      tokenize
+    ( tokenize
     -- , isWord
     -- , removeWords
     -- , stopList
@@ -14,10 +12,6 @@ module Text.Ribot.Tokenizer
 import qualified Data.Char as C
 import           Text.ParserCombinators.Parsec
 
-
--- First, let's define some type aliases to make things more clear below.
--- type Token     = String
--- type TokenList = [String]
 
 -- This is the main function. It breaks a `String` into a `[String]`. It uses
 -- a Parsec parser combinator to do this. The input should be very short, so we
