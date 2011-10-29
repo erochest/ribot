@@ -32,7 +32,15 @@ tokenize = parse tokenList
 -- A `tokenList` is optional whitespace followed by a list of tokens, separated
 -- by and optionally ended by whitespace.
 tokenList :: GenParser Char st [String]
-tokenList = spaces >> singleToken `sepEndBy` (skipMany1 space <|> eof)
+tokenList = do
+    spaces
+    (eof >> return []) <|> tokenRest
+
+tokenRest :: GenParser Char st [String]
+tokenRest = do
+    t <- singleToken
+    ts <- tokenList
+    return $ t:ts
 
 -- A `singleToken` is a punctuation character or a `word`.
 singleToken :: GenParser Char st String
