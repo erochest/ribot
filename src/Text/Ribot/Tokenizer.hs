@@ -46,7 +46,7 @@ tokenRest = do
 
 -- A `singleToken` is a punctuation character or a `word`.
 singleToken :: GenParser Char st String
-singleToken =   (satisfy isPunctuation >>= \c -> return [c])
+singleToken =   (punctuation >>= \c -> return [c])
             <|> word
 
 -- A `word` is one or more alpha-numeric characters, optionally followed by a
@@ -65,9 +65,13 @@ word = do
 -- followed by another word.
 suffix :: GenParser Char st String
 suffix = do
-    p <- many1 $ satisfy isPunctuation
+    p <- many1 punctuation
     rest <- word
     return $ p ++ rest
+
+-- This is a single punctuation character.
+punctuation :: GenParser Char st Char
+punctuation = satisfy isPunctuation
 
 -- This is my re-definition of `C.isPunctuation` so that it includes symbols.
 isPunctuation :: Char -> Bool
