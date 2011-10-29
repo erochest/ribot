@@ -18,6 +18,12 @@ assertWhiteSpace =
                ([] == tokens)
     where tokens = onlyRight [] $ tokenize "<assertWhiteSpace>" "   \t\n \t"
 
+assertSingleWord :: Assertion
+assertSingleWord =
+    assertBool ("Single word: " ++ (show tokens))
+               (["word"] == tokens)
+    where tokens = onlyRight [] $ tokenize "<assertSingleWord>" "word"
+
 assertAlphaNum :: Assertion
 assertAlphaNum =
     assertBool ("Alpha-numeric tokens are returned.: " ++ (show tokens))
@@ -90,6 +96,7 @@ assertUrl =
 tokenizerTests :: [Test]
 tokenizerTests =
     [ testGroup "tokenizer" [ testCase "whitespace" assertWhiteSpace
+                            , testCase "single-word" assertSingleWord
                             , testCase "alpha-numeric" assertAlphaNum
                             , testCase "normalized" assertNormalized
                             , testCase "leading-whitespace" assertLeadingWhiteSpace
