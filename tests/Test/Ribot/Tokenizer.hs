@@ -108,6 +108,20 @@ assertRemovePunctuation =
                  $ tokenize "<assertTrailingPunctuation>" "This, is: a- quote.'\""
 
 
+assertInStopList :: Assertion
+assertInStopList = do
+    assertBool "'the' is in the stoplist." $ inStopList "the"
+    assertBool "'into' is in the stoplist." $ inStopList "into"
+    assertBool "'assertion' is not in the stoplist. " $ not (inStopList "assertion")
+
+assertRemoveStopWords :: Assertion
+assertRemoveStopWords = do
+    assertBool ("'the' is in the stoplist. => " ++ (show tokens))
+               (["'", "'", "stoplist", "."] == tokens)
+    where tokens = removeStopWords
+                 . onlyRight []
+                 $ tokenize "<assertRemoveStopWords>" "'the' is in the stoplist."
+
 tokenizerTests :: [Test]
 tokenizerTests =
     [ testGroup "tokenizer" [ testCase "whitespace" assertWhiteSpace
@@ -126,6 +140,9 @@ tokenizerTests =
                             ]
     , testGroup "clean-up"  [ testCase "is-word" assertIsWord
                             , testCase "remove-punctuation" assertRemovePunctuation
+                            ]
+    , testGroup "stop-list" [ testCase "in-stoplist" assertInStopList
+                            , testCase "remove-stopwords" assertRemoveStopWords
                             ]
     ]
 
