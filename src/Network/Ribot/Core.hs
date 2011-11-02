@@ -182,5 +182,5 @@ privmsg s = do
 -- At some point, this should spin off a new thread.
 processMessage :: Message -> Net ()
 processMessage msg = asks botDbHandle >>= io . (flip withTransaction) process
-    where process = logMessage msg
+    where process cxn = logMessage msg cxn >> return ()
 

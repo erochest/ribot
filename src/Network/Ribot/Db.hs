@@ -107,15 +107,17 @@ checkUser cxn nick =
 
 -- This saves a message to the database. This doesn't handle the transaction.
 -- You probably want to do that at a higher level.
-logMessage :: IConnection c => Message -> c -> IO ()
+--
+-- This returns the ID of the message in the `message` database or Nothing.
+logMessage :: IConnection c => Message -> c -> IO (Maybe Int)
 logMessage msg cxn = do
     -- If there's no user, move on.
     case (msgUser msg) of
         Just userName -> addMsg userName $ msgText msg
-        Nothing -> return ()
+        Nothing       -> return Nothing
 
     where
-        addMsg :: String -> String -> IO ()
+        addMsg :: String -> String -> IO (Maybe Int)
         addMsg userName msgStr = do
             -- First, try to create the user, if the name isn't already in the db.
             checkUser cxn userName
@@ -124,8 +126,10 @@ logMessage msg cxn = do
                 \ SELECT id, ?, DATETIME('NOW') \
                 \ FROM user WHERE username=? AND logging_on=1;"
                 [toSql msgStr, toSql userName]
-
-            return ()
+            msgId <- quickQuery' cxn "SELECT last_insert_rowid();" []
+            return $ case msgId of
+                [[sqlId]] -> Just $ fromSql sqlId
+                _         -> Nothing
 
 -- This sets the user.logging_on value for the given user.
 setUserLogging :: IConnection c => c -> String -> Bool -> IO ()
