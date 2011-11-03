@@ -56,11 +56,16 @@ createDb =
         return cxn
     where
         -- Here are the statements, packaged up so run by create.
+        --
+        -- `user` has an index of the nicks seen on the channels this bot has
+        -- been on.
         sql = [ "CREATE TABLE IF NOT EXISTS user ( \
                         \ id INTEGER PRIMARY KEY, \
                         \ username TEXT, \
                         \ logging_on BOOL \
                         \ );"
+              -- `message` are the messages and dates, linked to the nicks that
+              -- sent them.
               , "CREATE TABLE IF NOT EXISTS message ( \
                         \ id INTEGER PRIMARY KEY, \
                         \ user_id INTEGER, \
@@ -68,11 +73,16 @@ createDb =
                         \ posted DATETIME, \
                         \ FOREIGN KEY (user_id) REFERENCES user(id) \
                         \ );"
+              -- `token` is an index of the token types in the inverted index.
               , "CREATE TABLE IF NOT EXISTS token ( \
                         \ id INTEGER PRIMARY KEY, \
                         \ text TEXT, \
                         \ CONSTRAINT text UNIQUE ON CONFLICT IGNORE \
                         \ );"
+              -- `position` links the token types seen (in `token`) to the
+              -- messages they were seen in. At some point in the future, this
+              -- may include the token's positions in the message, but it
+              -- doesn't now.
               , "CREATE TABLE IF NOT EXISTS position ( \
                         \ id INTEGER PRIMARY KEY, \
                         \ token_id INTEGER, \
@@ -80,11 +90,15 @@ createDb =
                         \ FOREIGN KEY (token_id) REFERENCES token(id), \
                         \ FOREIGN KEY (message_id) REFERENCES message(id) \
                         \ );"
+              -- `idx_user` makes sure that the nicks are unique.
               , "CREATE UNIQUE INDEX IF NOT EXISTS idx_user ON user \
                         \ (username);"
+              -- `idx_message` indexes messages by user and date posted.
               , "CREATE INDEX IF NOT EXISTS idx_message ON message \
                         \ (id, user_id, posted);"
+              -- `idx_token` indexes tokens on text.
               , "CREATE INDEX IF NOT EXISTS idx_token ON token (id, text);"
+              -- `idx_position` indexes position by token and message.
               , "CREATE INDEX IF NOT EXISTS idx_position ON position \
                         \ (id, token_id, message_id);"
               ]
