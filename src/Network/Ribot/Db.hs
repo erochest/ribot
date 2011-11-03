@@ -70,7 +70,8 @@ createDb =
                         \ );"
               , "CREATE TABLE IF NOT EXISTS token ( \
                         \ id INTEGER PRIMARY KEY, \
-                        \ text TEXT \
+                        \ text TEXT, \
+                        \ CONSTRAINT text UNIQUE ON CONFLICT IGNORE \
                         \ );"
               , "CREATE TABLE IF NOT EXISTS position ( \
                         \ id INTEGER PRIMARY KEY, \

@@ -22,6 +22,7 @@ import           Data.Time
 import           Network
 import           Network.Ribot.Db
 import           Network.Ribot.Message
+import           Network.Ribot.Search (index)
 import           Network.Ribot.Utils (split)
 import           System.Exit
 import           System.IO
@@ -182,5 +183,11 @@ privmsg s = do
 -- At some point, this should spin off a new thread.
 processMessage :: Message -> Net ()
 processMessage msg = asks botDbHandle >>= io . (flip withTransaction) process
-    where process cxn = logMessage msg cxn >> return ()
+    where
+        process cxn = do
+            mId <- logMessage msg cxn
+            case mId of
+                Just mId' -> index cxn mId' $ msgText msg
+                Nothing   -> return []
+            return ()
 
