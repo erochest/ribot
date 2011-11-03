@@ -76,8 +76,7 @@ createDb =
               -- `token` is an index of the token types in the inverted index.
               , "CREATE TABLE IF NOT EXISTS token ( \
                         \ id INTEGER PRIMARY KEY, \
-                        \ text TEXT, \
-                        \ CONSTRAINT text UNIQUE ON CONFLICT IGNORE \
+                        \ text TEXT UNIQUE ON CONFLICT IGNORE \
                         \ );"
               -- `position` links the token types seen (in `token`) to the
               -- messages they were seen in. At some point in the future, this
