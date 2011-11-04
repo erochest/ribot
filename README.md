@@ -19,6 +19,21 @@ The site for this is on [my site](http://www.ericrochester.com/ribot).
 * `!log off` — turn off logging for the user.
 * `!log on` — turn on logging for the user.
 * `!echo STRING` — echo back.
+* `!search QUERY` — search the log of messages.
+
+# Search Queries
+
+The search queries are at the moment intentionally simple. At some point in the
+future, I may add one or two facets (`nick` or `date` come to mind), but at the
+moment, it simply allows you to include a list of terms, possibly with
+wild-cards, to search for.
+
+For example, here are some queries and what they would search for:
+
+* `youtube` — any messages with the term *youtube*;
+* `youtube video` — any messages with both terms *youtube* and *video*;
+* `youtube video*` — any messages with both the term *youtube* and any terms
+  beginning with *video*.
 
 # TODOs
 
@@ -27,7 +42,7 @@ The site for this is on [my site](http://www.ericrochester.com/ribot).
 * <del>open the database, creating the schema if needed</del>;
 * <del>log to the database</del>;
 * <del>`!log off` and `!log on`</del>;
-* `!search TERMS`;
+* `!search QUERY`;
 * `!mimic NICK`;
 * automatically reconnect after network outages.
 
