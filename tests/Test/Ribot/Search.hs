@@ -206,7 +206,9 @@ assertQuerySingle =
                 \ JOIN user u ON u.id=m.user_id\
                 \ JOIN position p0 ON p0.message_id=m.id\
                 \ JOIN token t0 ON t0.id=p0.token_id\
-                \ WHERE t0.text=?;"
+                \ WHERE t0.text=?\
+                \ ORDER BY m.posted DESC\
+                \ LIMIT 25;"
           params = [toSql "message"]
 
 assertQueryMulti :: Assertion
@@ -222,20 +224,24 @@ assertQueryMulti =
                 \ JOIN position p1 ON p1.message_id=m.id\
                 \ JOIN token t1 ON t1.id=p1.token_id\
                 \ WHERE t0.text=?\
-                \ AND t1.text=?;"
+                \ AND t1.text=?\
+                \ ORDER BY m.posted DESC\
+                \ LIMIT 25;"
           params = [toSql "important", toSql "message"]
 
 assertQueryWildSingle :: Assertion
 assertQueryWildSingle = 
     assertQuery' query sql params
     where assertQuery' = assertQuery "assertQueryWildSingle"
-          query = "messag%"
+          query = "messag*"
           sql = "SELECT m.id, u.username, m.posted, t.text, m.text\
                 \ FROM message m\
                 \ JOIN user u ON u.id=m.user_id\
                 \ JOIN position p0 ON p0.message_id=m.id\
                 \ JOIN token t0 ON t0.id=p0.token_id\
-                \ WHERE t0.text LIKE ?;"
+                \ WHERE t0.text LIKE ?\
+                \ ORDER BY m.posted DESC\
+                \ LIMIT 25;"
           params = [toSql "messag%"]
 
 assertQueryWildMulti :: Assertion
@@ -251,8 +257,22 @@ assertQueryWildMulti =
                 \ JOIN position p1 ON p1.message_id=m.id\
                 \ JOIN token t1 ON t1.id=p1.token_id\
                 \ WHERE t0.text=?\
-                \ AND t1.text LIKE ?;"
+                \ AND t1.text LIKE ?\
+                \ ORDER BY m.posted DESC\
+                \ LIMIT 25;"
           params = [toSql "important", toSql "messag%"]
+
+assertQueryEmpty :: Assertion
+assertQueryEmpty = 
+    assertQuery' query sql params
+    where assertQuery' = assertQuery "assertQueryEmpty"
+          query = ""
+          sql = "SELECT m.id, u.username, m.posted, t.text, m.text\
+                \ FROM message m\
+                \ JOIN user u ON u.id=m.user_id\
+                \ ORDER BY m.posted DESC\
+                \ LIMIT 25;"
+          params = []
 
 testMessages :: [String]
 testMessages = [ "This is a small message to test multiple indexing message."
@@ -310,6 +330,7 @@ searchTests =
                            , testCase "query-multiple" assertQueryMulti
                            , testCase "query-wildcard" assertQueryWildSingle
                            , testCase "query-wildcards" assertQueryWildMulti
+                           , testCase "query-empty" assertQueryEmpty
                            , testCase "search-single" assertSearchSingle
                            , testCase "search-multiple" assertSearchMulti
                            , testCase "search-wild" assertSearchWild

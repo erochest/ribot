@@ -251,5 +251,43 @@ parseSearch input =
 -- returns a SQL statement that takes those terms and returns the parameters
 -- contained in `SearchResult`. It also returns the terms as `SqlValue`s.
 buildQuery :: [String] -> (String, [SqlValue])
-buildQuery _ = ("", [])
+buildQuery queryTerms =
+    (L.concat . L.reverse . (suffix:) $ wheres ++ sqlList, L.reverse params)
+    where
+        -- The initial state for the fold
+        init = ([prefix], [], [])
+
+        -- The results of the folding the query terms to accumulate the
+        -- intermediate output.
+        (sqlList, wheres, params) = L.foldl' foldTerm init . zip [0..] $ queryTerms
+
+        -- This is the prefix for all queries.
+        prefix = "SELECT m.id, u.username, m.posted, t.text, m.text\
+                 \ FROM message m\
+                 \ JOIN user u ON u.id=m.user_id"
+        -- This is the suffix for all queries.
+        suffix = " ORDER BY m.posted DESC LIMIT 25;"
+
+        -- This creates a join clause for a given item in the term list.
+        join :: Int -> String
+        join n = " JOIN position p" ++ n' ++ " ON p" ++ n' ++ ".message_id=m.id\
+                 \ JOIN token t" ++ n' ++ " ON t" ++ n' ++ ".id=p" ++ n' ++ ".token_id"
+            where n' = show n
+
+        -- This creates a where clause for a given item in the term list.
+        where_ :: Int -> String -> String
+        where_ n term = intro ++ " t" ++ n' ++ ".text" ++ op ++ "?"
+            where intro = case n of
+                            0 -> " WHERE"
+                            _ -> " AND"
+                  op    = case ('%' `elem` term) of
+                            True  -> " LIKE "
+                            False -> "="
+                  n' = show n
+
+        foldTerm :: ([String], [String], [SqlValue])
+                 -> (Int, String)
+                 -> ([String], [String], [SqlValue])
+        foldTerm (sql, wheres, params) (n, term) =
+            ((join n : sql), (where_ n term : wheres), (toSql term) : params)
 
