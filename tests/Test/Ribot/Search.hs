@@ -1,9 +1,7 @@
 
 module Test.Ribot.Search (searchTests) where
 
-import qualified Data.List as L
 import           Database.HDBC
-import           Control.Monad (mapM_)
 import           Network.Ribot.Search
 import           Test.HUnit (Assertion, assertBool)
 import           Test.Framework (Test, testGroup)
@@ -157,11 +155,11 @@ assertReindex =
 assertSearch :: String -> String -> [String] -> Assertion
 assertSearch title input expected =
     assertBool (title ++ ": " ++ (show tokens))
-               expected == tokens
+               (expected == tokens)
     where tokens = parseSearch input
 
 assertParseSearchSingle :: Assertion
-assertParseSearchSingle =
+assertParseSearchSingle = do
     assertSearch' "message" ["message"]
     assertSearch' "42" ["42"]
     assertSearch' "the" []
@@ -170,7 +168,7 @@ assertParseSearchSingle =
     where assertSearch' = assertSearch "assertParseSearchSingle"
 
 assertParseSearchMulti :: Assertion
-assertParseSearchMulti =
+assertParseSearchMulti = do
     assertSearch' "some message" ["message"]
     assertSearch' "important message" ["important", "message"]
     assertSearch' "42 + 3" ["42", "3"]
@@ -179,7 +177,7 @@ assertParseSearchMulti =
     where assertSearch' = assertSearch "assertParseSearchMulti"
 
 assertParseSearchWild :: Assertion
-assertParseSearchWild =
+assertParseSearchWild = do
     assertSearch' "message*" ["message%"]
     assertSearch' "*Message" ["%message"]
     assertSearch' "mes*age" ["mes%age"]
@@ -256,6 +254,7 @@ assertQueryWildMulti =
                 \ AND t1.text LIKE ?;"
           params = [toSql "important", toSql "messag%"]
 
+testMessages :: [String]
 testMessages = [ "This is a small message to test multiple indexing message."
                , "This is another message for testing indexing multiple messages."
                ]
@@ -268,27 +267,30 @@ assertSearchResults title query expected =
         _ <- reindex cxn
 
         results <- search cxn query
-        mIds = map L.head results
+        let mIds = map resultMessageId results
 
         assertBool (title ++ ": " ++ (show mIds))
                    (expected == mIds)
 
+    where resultMessageId :: SearchResult -> Int
+          resultMessageId (mId, _, _, _, _) = mId
+
 assertSearchSingle :: Assertion
-assertSearchSingle =
+assertSearchSingle = do
     assertResults' "message" [1, 2]
     assertResults' "messages" [2]
     assertResults' "messaging" []
     where assertResults' = assertSearchResults "assertSearchSingle"
 
 assertSearchMulti :: Assertion
-assertSearchMulti =
+assertSearchMulti = do
     assertResults' "multiple message" [1, 2]
     assertResults' "small multiple message" [1]
     assertResults' "another small multiple message" []
     where assertResults' = assertSearchResults "assertSearchMulti"
 
 assertSearchWild :: Assertion
-assertSearchWild =
+assertSearchWild = do
     assertResults' "messag*" [1, 2]
     assertResults' "t* messag*" [1, 2]
     assertResults' "*ing t* messag*" [1, 2]

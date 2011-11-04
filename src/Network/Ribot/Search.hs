@@ -15,6 +15,8 @@ module Network.Ribot.Search
     , reindex
     , search
     , parseSearch
+    , buildQuery
+    , SearchResult
     ) where
 
 import           Control.Monad (mapM_)
@@ -186,6 +188,14 @@ reindex cxn = do
             runRaw cxn "DELETE FROM msg_token;"
 
 
-search = ()
-parseSearch = ()
+type SearchResult = (Int, String, String, String, String)
+
+search :: IConnection c => c -> String -> IO [SearchResult]
+search _ _ = return []
+
+parseSearch :: String -> [String]
+parseSearch _ = []
+
+buildQuery :: [String] -> (String, [SqlValue])
+buildQuery _ = ("", [])
 
