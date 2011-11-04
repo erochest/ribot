@@ -25,14 +25,15 @@ import           Database.HDBC.Types (IConnection)
 --
 -- The index is populated using these steps:
 index :: IConnection a => a -> Int -> String -> IO [String]
-index cxn msgId msg = do
-    createTable cxn
-    loadTokens cxn
-    updateTokenTable cxn
-    updateIds cxn
-    updateIndex cxn
-    dropTable cxn
-    return tokens
+index cxn msgId msg =
+    withTransaction cxn $ \cxn -> do
+        createTable cxn
+        loadTokens cxn
+        updateTokenTable cxn
+        updateIds cxn
+        updateIndex cxn
+        dropTable cxn
+        return tokens
     where
         tokens = tokenize msg
         tokenValues = map ((:[]) . toSql) tokens
