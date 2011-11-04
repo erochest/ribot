@@ -1,7 +1,9 @@
 
 module Test.Ribot.Search (searchTests) where
 
+import qualified Data.List as L
 import           Database.HDBC
+import           Control.Monad (mapM_)
 import           Network.Ribot.Search
 import           Test.HUnit (Assertion, assertBool)
 import           Test.Framework (Test, testGroup)
@@ -152,6 +154,145 @@ assertReindex =
             return [(fromSql text, fromSql user, fromSql mid) |
                     [text, user, mid] <- results]
 
+assertSearch :: String -> String -> [String] -> Assertion
+assertSearch title input expected =
+    assertBool (title ++ ": " ++ (show tokens))
+               expected == tokens
+    where tokens = parseSearch input
+
+assertParseSearchSingle :: Assertion
+assertParseSearchSingle =
+    assertSearch' "message" ["message"]
+    assertSearch' "42" ["42"]
+    assertSearch' "the" []
+    assertSearch' "." []
+    assertSearch' "messages" ["messages"]
+    where assertSearch' = assertSearch "assertParseSearchSingle"
+
+assertParseSearchMulti :: Assertion
+assertParseSearchMulti =
+    assertSearch' "some message" ["message"]
+    assertSearch' "important message" ["important", "message"]
+    assertSearch' "42 + 3" ["42", "3"]
+    assertSearch' "the messages" ["messages"]
+    assertSearch' "3.14159 2.71828183 13 42" ["3.14159", "2.71828183", "13", "42"]
+    where assertSearch' = assertSearch "assertParseSearchMulti"
+
+assertParseSearchWild :: Assertion
+assertParseSearchWild =
+    assertSearch' "message*" ["message%"]
+    assertSearch' "*Message" ["%message"]
+    assertSearch' "mes*age" ["mes%age"]
+    assertSearch' ".*" []
+    assertSearch' "pi 3.14*" ["pi", "3.14%"]
+    assertSearch' "pi* 3.14*" ["pi%", "3.14%"]
+    where assertSearch' = assertSearch "assertParseSearchWild"
+
+-- NOTE: These tests are a little more low-level than I'd like. There's
+-- multiple ways to express these in SQL, and I'd prefer to leave myself the
+-- flexibility to account for them.
+
+assertQuery :: String -> String -> String -> [SqlValue] -> Assertion
+assertQuery title input expected expectedParams =
+    assertBool (title ++ ": " ++ sql ++ " <- " ++ (show params))
+               (expected == sql && expectedParams == params)
+    where (sql, params) = buildQuery $ parseSearch input
+
+assertQuerySingle :: Assertion
+assertQuerySingle =
+    assertQuery' query sql params
+    where assertQuery' = assertQuery "assertQuerySingle"
+          query = "message"
+          sql = "SELECT m.id, u.username, m.posted, t.text, m.text\
+                \ FROM message m\
+                \ JOIN user u ON u.id=m.user_id\
+                \ JOIN position p0 ON p0.message_id=m.id\
+                \ JOIN token t0 ON t0.id=p0.token_id\
+                \ WHERE t0.text=?;"
+          params = [toSql "message"]
+
+assertQueryMulti :: Assertion
+assertQueryMulti = 
+    assertQuery' query sql params
+    where assertQuery' = assertQuery "assertQueryMulti"
+          query = "important message"
+          sql = "SELECT m.id, u.username, m.posted, t.text, m.text\
+                \ FROM message m\
+                \ JOIN user u ON u.id=m.user_id\
+                \ JOIN position p0 ON p0.message_id=m.id\
+                \ JOIN token t0 ON t0.id=p0.token_id\
+                \ JOIN position p1 ON p1.message_id=m.id\
+                \ JOIN token t1 ON t1.id=p1.token_id\
+                \ WHERE t0.text=?\
+                \ AND t1.text=?;"
+          params = [toSql "important", toSql "message"]
+
+assertQueryWildSingle :: Assertion
+assertQueryWildSingle = 
+    assertQuery' query sql params
+    where assertQuery' = assertQuery "assertQueryWildSingle"
+          query = "messag%"
+          sql = "SELECT m.id, u.username, m.posted, t.text, m.text\
+                \ FROM message m\
+                \ JOIN user u ON u.id=m.user_id\
+                \ JOIN position p0 ON p0.message_id=m.id\
+                \ JOIN token t0 ON t0.id=p0.token_id\
+                \ WHERE t0.text LIKE ?;"
+          params = [toSql "messag%"]
+
+assertQueryWildMulti :: Assertion
+assertQueryWildMulti = 
+    assertQuery' query sql params
+    where assertQuery' = assertQuery "assertQueryWildMulti"
+          query = "important messag*"
+          sql = "SELECT m.id, u.username, m.posted, t.text, m.text\
+                \ FROM message m\
+                \ JOIN user u ON u.id=m.user_id\
+                \ JOIN position p0 ON p0.message_id=m.id\
+                \ JOIN token t0 ON t0.id=p0.token_id\
+                \ JOIN position p1 ON p1.message_id=m.id\
+                \ JOIN token t1 ON t1.id=p1.token_id\
+                \ WHERE t0.text=?\
+                \ AND t1.text LIKE ?;"
+          params = [toSql "important", toSql "messag%"]
+
+testMessages = [ "This is a small message to test multiple indexing message."
+               , "This is another message for testing indexing multiple messages."
+               ]
+
+assertSearchResults :: String -> String -> [Int] -> Assertion
+assertSearchResults title query expected =
+    withTempDb $ \cxn -> do
+        aId <- insertUser cxn "a"
+        mapM_ (insertMsg cxn aId) testMessages
+        _ <- reindex cxn
+
+        results <- search cxn query
+        mIds = map L.head results
+
+        assertBool (title ++ ": " ++ (show mIds))
+                   (expected == mIds)
+
+assertSearchSingle :: Assertion
+assertSearchSingle =
+    assertResults' "message" [1, 2]
+    assertResults' "messages" [2]
+    assertResults' "messaging" []
+    where assertResults' = assertSearchResults "assertSearchSingle"
+
+assertSearchMulti :: Assertion
+assertSearchMulti =
+    assertResults' "multiple message" [1, 2]
+    assertResults' "small multiple message" [1]
+    assertResults' "another small multiple message" []
+    where assertResults' = assertSearchResults "assertSearchMulti"
+
+assertSearchWild :: Assertion
+assertSearchWild =
+    assertResults' "messag*" [1, 2]
+    assertResults' "t* messag*" [1, 2]
+    assertResults' "*ing t* messag*" [1, 2]
+    where assertResults' = assertSearchResults "assertSearchWild"
 
 searchTests :: [Test]
 searchTests =
@@ -159,6 +300,17 @@ searchTests =
                            , testCase "index-message" assertIndexMessage
                            , testCase "index-messages" assertIndexMessages
                            , testCase "reindex" assertReindex
+                           ]
+    , testGroup "search"   [ testCase "parse-single" assertParseSearchSingle
+                           , testCase "parse-multiple" assertParseSearchMulti
+                           , testCase "parse-wildcard" assertParseSearchWild
+                           , testCase "query-single" assertQuerySingle
+                           , testCase "query-multiple" assertQueryMulti
+                           , testCase "query-wildcard" assertQueryWildSingle
+                           , testCase "query-wildcards" assertQueryWildMulti
+                           , testCase "search-single" assertSearchSingle
+                           , testCase "search-multiple" assertSearchMulti
+                           , testCase "search-wild" assertSearchWild
                            ]
     ]
 
