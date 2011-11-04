@@ -1,5 +1,5 @@
 
-SELECT t.text, u.username, m.text
+SELECT t.text, u.username, m.id, m.text
 FROM position p
 JOIN token t ON t.id=p.token_id
 JOIN message m ON m.id=p.message_id
