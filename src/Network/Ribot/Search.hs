@@ -58,7 +58,7 @@ index cxn nick msgId msg =
             return ()
 
         -- 3. The IDs in the temporary table are filled in from the `token`
-        -- table; and
+        -- table;
         updateIds :: IConnection a => a -> IO ()
         updateIds cxn = do
             stmt <- prepare cxn "INSERT OR REPLACE INTO msg_token \
@@ -71,7 +71,7 @@ index cxn nick msgId msg =
             return ()
 
         -- 4. The tokens in the temporary table are inserted into the
-        -- `position` table.
+        -- `position` table; and
         updateIndex :: IConnection a => a -> IO ()
         updateIndex cxn = do
             stmt <- prepare cxn "INSERT INTO position (token_id, message_id) \
