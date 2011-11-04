@@ -43,13 +43,12 @@ index cxn msgId msg = do
         createTable =
             (flip runRaw) "CREATE TEMPORARY TABLE msg_tokens \
                           \ (id INTEGER DEFAULT NULL, \
-                          \  text TEXT, \
-                          \ CONSTRAINT text UNIQUE ON CONFLICT IGNORE;"
+                          \  text TEXT UNIQUE ON CONFLICT IGNORE);"
 
         -- 2. The tokens are loaded into the temporary table;
         loadTokens :: IConnection a => a -> IO ()
         loadTokens cxn = do
-            stmt <- prepare cxn "INSERT INTO msg_tokens (text) VALUES (?, ?);"
+            stmt <- prepare cxn "INSERT INTO msg_tokens (text) VALUES (?);"
             executeMany stmt tokenValues
 
         -- 3. `token` is updated with the tokens in the temporary table
