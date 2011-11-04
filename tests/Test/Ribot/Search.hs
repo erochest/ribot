@@ -201,7 +201,7 @@ assertQuerySingle =
     assertQuery' query sql params
     where assertQuery' = assertQuery "assertQuerySingle"
           query = "message"
-          sql = "SELECT m.id, u.username, m.posted, t.text, m.text\
+          sql = "SELECT DISTINCT m.id, u.username, m.posted, m.text\
                 \ FROM message m\
                 \ JOIN user u ON u.id=m.user_id\
                 \ JOIN position p0 ON p0.message_id=m.id\
@@ -216,7 +216,7 @@ assertQueryMulti =
     assertQuery' query sql params
     where assertQuery' = assertQuery "assertQueryMulti"
           query = "important message"
-          sql = "SELECT m.id, u.username, m.posted, t.text, m.text\
+          sql = "SELECT DISTINCT m.id, u.username, m.posted, m.text\
                 \ FROM message m\
                 \ JOIN user u ON u.id=m.user_id\
                 \ JOIN position p0 ON p0.message_id=m.id\
@@ -234,7 +234,7 @@ assertQueryWildSingle =
     assertQuery' query sql params
     where assertQuery' = assertQuery "assertQueryWildSingle"
           query = "messag*"
-          sql = "SELECT m.id, u.username, m.posted, t.text, m.text\
+          sql = "SELECT DISTINCT m.id, u.username, m.posted, m.text\
                 \ FROM message m\
                 \ JOIN user u ON u.id=m.user_id\
                 \ JOIN position p0 ON p0.message_id=m.id\
@@ -249,7 +249,7 @@ assertQueryWildMulti =
     assertQuery' query sql params
     where assertQuery' = assertQuery "assertQueryWildMulti"
           query = "important messag*"
-          sql = "SELECT m.id, u.username, m.posted, t.text, m.text\
+          sql = "SELECT DISTINCT m.id, u.username, m.posted, m.text\
                 \ FROM message m\
                 \ JOIN user u ON u.id=m.user_id\
                 \ JOIN position p0 ON p0.message_id=m.id\
@@ -267,7 +267,7 @@ assertQueryEmpty =
     assertQuery' query sql params
     where assertQuery' = assertQuery "assertQueryEmpty"
           query = ""
-          sql = "SELECT m.id, u.username, m.posted, t.text, m.text\
+          sql = "SELECT DISTINCT m.id, u.username, m.posted, m.text\
                 \ FROM message m\
                 \ JOIN user u ON u.id=m.user_id\
                 \ ORDER BY m.posted DESC\
@@ -293,7 +293,7 @@ assertSearchResults title query expected =
                    (expected == mIds)
 
     where resultMessageId :: SearchResult -> Int
-          resultMessageId (mId, _, _, _, _) = mId
+          resultMessageId (mId, _, _, _) = mId
 
 assertSearchSingle :: Assertion
 assertSearchSingle = do

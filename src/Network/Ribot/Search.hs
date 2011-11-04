@@ -196,12 +196,25 @@ reindex cxn = do
 -- 3. the date the message was sent,
 -- 4. the token that was hit, and
 -- 5. the message text.
-type SearchResult = (Int, String, String, String, String)
+type SearchResult = (Int, String, String, String)
 
 -- This parses a search query, turns it into SQL, passes it to the database,
 -- parses the results into a list of `SearchResult`s and returns them.
 search :: IConnection c => c -> String -> IO [SearchResult]
-search _ _ = return []
+search cxn query = do
+    fmap (map toSearchResult) $ quickQuery' cxn sql params
+    where
+        -- These are the SQL query to run and its parameters.
+        (sql, params) = buildQuery $ parseSearch query
+
+        -- This converts a result row to a `SearchResult`.
+        toSearchResult :: [SqlValue] -> SearchResult
+        toSearchResult [mId, userName, posted, mText] =
+            ( fromSql mId
+            , fromSql userName
+            , fromSql posted
+            , fromSql mText
+            )
 
 -- Parse search parses the search query according to these rules:
 -- * for the most part, tokenization follows `tokenize` above;
@@ -262,7 +275,7 @@ buildQuery queryTerms =
         (sqlList, wheres, params) = L.foldl' foldTerm init . zip [0..] $ queryTerms
 
         -- This is the prefix for all queries.
-        prefix = "SELECT m.id, u.username, m.posted, t.text, m.text\
+        prefix = "SELECT DISTINCT m.id, u.username, m.posted, m.text\
                  \ FROM message m\
                  \ JOIN user u ON u.id=m.user_id"
         -- This is the suffix for all queries.
