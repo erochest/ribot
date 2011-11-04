@@ -104,18 +104,19 @@ tokenize nick input =
 -- number of tokens indexed.
 reindex :: IConnection a => a -> IO (Int, Int)
 reindex cxn = do
-    clearExistingData cxn
+    withTransaction cxn $ \cxn -> do
+        clearExistingData cxn
 
-    msgs <- getMessages cxn
-    let tokens = tokenizeMessages msgs
+        msgs <- getMessages cxn
+        let tokens = tokenizeMessages msgs
 
-    populateMsgTokenTable cxn tokens
-    updateTokenTable cxn
-    updateIds cxn
-    updateIndex cxn
+        populateMsgTokenTable cxn tokens
+        updateTokenTable cxn
+        updateIds cxn
+        updateIndex cxn
 
-    cleanUp cxn
-    return (length msgs, length tokens)
+        cleanUp cxn
+        return (length msgs, length tokens)
 
     where
         -- 1. First, we have to clear out the existing data from the `token`
