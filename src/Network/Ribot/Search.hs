@@ -12,7 +12,7 @@
 module Network.Ribot.Search
     ( index
     , tokenize
-    , reIndex
+    , reindex
     ) where
 
 import qualified Data.List as L
@@ -102,6 +102,81 @@ tokenize nick input =
 -- This takes a database connection and it re-indexes the entire set of
 -- messages it contains. It returns the number of messages indexed and the
 -- number of tokens indexed.
-reIndex :: IConnection a => a -> IO (Int, Int)
-reIndex _ = return (-1, -1)
+reindex :: IConnection a => a -> IO (Int, Int)
+reindex cxn = do
+    clearExistingData cxn
+
+    msgs <- getMessages cxn
+    let tokens = tokenizeMessages msgs
+
+    populateMsgTokenTable cxn tokens
+    updateTokenTable cxn
+    updateIds cxn
+    updateIndex cxn
+
+    cleanUp cxn
+    return (length msgs, length tokens)
+
+    where
+        -- 1. First, we have to clear out the existing data from the `token`
+        -- and `position` tables;
+        clearExistingData :: IConnection a => a -> IO ()
+        clearExistingData cxn =
+            runRaw cxn " DELETE FROM token; \
+                       \ DELETE FROM position; \
+                       \ DELETE FROM msg_token; "
+
+        -- 2. Get all messages (Message ID, User Nick, Message Text);
+        getMessages :: IConnection a => a -> IO [(Int, String, String)]
+        getMessages cxn = do
+            results <- quickQuery' cxn
+                                   " SELECT m.id, u.username, m.text \
+                                   \ FROM message m \
+                                   \ JOIN user u ON u.id=m.user_id;"
+                                   []
+            return [(fromSql mId, fromSql userName, fromSql msgText) |
+                    [mId, userName, msgText] <- results]
+
+        -- 3. Tokenize them (output of `getMessages` -> (mId, tokenText));
+        tokenizeMessages :: [(Int, String, String)] -> [(Int, String)]
+        tokenizeMessages = L.concatMap tokenizeMessage
+
+        tokenizeMessage :: (Int, String, String) -> [(Int, String)]
+        tokenizeMessage (msgId, nick, msgText) =
+            map ((,) msgId) $ tokenize nick msgText
+
+        -- 4. Push the tokens into `msg_token`;
+        populateMsgTokenTable :: IConnection c => c -> [(Int, String)] -> IO ()
+        populateMsgTokenTable cxn tokens = do
+            stmt <- prepare cxn " INSERT OR IGNORE INTO msg_token \
+                                \ (message_id, text) VALUES (?, ?);"
+            executeMany stmt [[toSql msgId, toSql token] |
+                              (msgId, token) <- tokens]
+            return ()
+
+        -- 5. Fill in the `token` table;
+        updateTokenTable :: IConnection c => c -> IO ()
+        updateTokenTable cxn =
+            runRaw cxn " INSERT OR IGNORE INTO token (text) \
+                       \ SELECT text FROM msg_token;"
+
+        -- 6. Pull the token IDs back into `msg_token` (unfortunately, I can't
+        -- figure out a way to do this in SQL without `UPDATE ... SELECT`);
+        updateIds :: IConnection a => a -> IO ()
+        updateIds cxn = do
+            tokens <- quickQuery' cxn "SELECT id, text FROM token;" []
+            update <- prepare cxn " UPDATE msg_token \
+                                  \ SET token_id=? WHERE text=?;"
+            executeMany update tokens
+
+        -- 7. Push the token/message relationships into `position`; and
+        updateIndex :: IConnection a => a -> IO ()
+        updateIndex cxn =
+            runRaw cxn " INSERT INTO position (token_id, message_id) \
+                       \ SELECT token_id, message_id FROM msg_token; "
+
+        -- 8. Remove the working data from the `msg_token` table.
+        cleanUp :: IConnection a => a -> IO ()
+        cleanUp cxn =
+            runRaw cxn "DELETE FROM msg_token;"
 

@@ -79,8 +79,8 @@ assertIndexMessages =
                        , ("testing",  "b", mb1Id)
                        ]
 
-        index cxn "a" ma1Id ma1
-        index cxn "b" mb1Id mb1
+        _ <- index cxn "a" ma1Id ma1
+        _ <- index cxn "b" mb1Id mb1
 
         tokens <- getIndex cxn
 
@@ -103,11 +103,62 @@ assertIndexMessages =
             return [(fromSql text, fromSql user, fromSql mid) |
                     [text, user, mid] <- results]
 
+-- This tests re-indexing multiple messages with some overlapping tokens.
+assertReindex :: Assertion
+assertReindex =
+    withTempDb $ \cxn -> do
+        aId <- insertUser cxn "a"
+        bId <- insertUser cxn "b"
+        ma1Id <- insertMsg cxn aId ma1
+        mb1Id <- insertMsg cxn bId mb1
+
+        let expected = [ ("another",  "b", mb1Id)
+                       , ("indexing", "a", ma1Id)
+                       , ("indexing", "b", mb1Id)
+                       , ("message",  "a", ma1Id)
+                       , ("message",  "b", mb1Id)
+                       , ("messages", "b", mb1Id)
+                       , ("multiple", "a", ma1Id)
+                       , ("multiple", "b", mb1Id)
+                       , ("small",    "a", ma1Id)
+                       , ("test",     "a", ma1Id)
+                       , ("testing",  "b", mb1Id)
+                       ]
+
+        (msgCount, tknCount) <- reindex cxn
+
+        tokens <- getIndex cxn
+
+        assertBool ("assertReindex msgCount: " ++ (show msgCount))
+                   (2 == msgCount)
+        assertBool ("assertReindex tknCount: " ++ (show tknCount))
+                   (12 == tknCount)
+        assertBool "assertReindex index" (expected == tokens)
+
+    where
+        ma1 = "This is a small message to test multiple indexing message."
+        mb1 = "This is another message for testing indexing multiple messages."
+
+        getIndex :: IConnection c => c -> IO [(String, String, Int)]
+        getIndex cxn = do
+            results <- quickQuery' cxn
+                                   " SELECT t.text, u.username, m.id \
+                                   \ FROM position p \
+                                   \ JOIN message m ON p.message_id=m.id \
+                                   \ JOIN user u ON m.user_id=u.id \
+                                   \ JOIN token t ON p.token_id=t.id \
+                                   \ ORDER BY t.text, u.username, m.id;"
+                                   []
+            return [(fromSql text, fromSql user, fromSql mid) |
+                    [text, user, mid] <- results]
+
+
 searchTests :: [Test]
 searchTests =
-    [ testGroup "search" [ testCase "tokenize-message" assertTokenizeMessage
-                         , testCase "index-message" assertIndexMessage
-                         , testCase "index-messages" assertIndexMessages
-                         ]
+    [ testGroup "indexing" [ testCase "tokenize-message" assertTokenizeMessage
+                           , testCase "index-message" assertIndexMessage
+                           , testCase "index-messages" assertIndexMessages
+                           , testCase "reindex" assertReindex
+                           ]
     ]
 
