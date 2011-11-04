@@ -193,9 +193,8 @@ reindex cxn = do
 -- A `SearchResult` is one hit from a search query. It contains
 -- 1. the message ID,
 -- 2. the nick of the person who sent the message,
--- 3. the date the message was sent,
--- 4. the token that was hit, and
--- 5. the message text.
+-- 3. the date the message was sent, and
+-- 4. the message text.
 type SearchResult = (Int, String, String, String)
 
 -- This parses a search query, turns it into SQL, passes it to the database,

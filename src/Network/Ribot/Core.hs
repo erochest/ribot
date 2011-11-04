@@ -23,7 +23,7 @@ import           Data.Time
 import           Network
 import           Network.Ribot.Db
 import           Network.Ribot.Message
-import           Network.Ribot.Search (index)
+import           Network.Ribot.Search (index, search)
 import           Network.Ribot.Utils (split)
 import           System.Exit
 import           System.IO
@@ -44,6 +44,7 @@ helpMessage =
     , "!log off: Stop logging your messages."
     , "!log on: Start logging your messages."
     , "!echo STRING: Right back at'cha."
+    , "!search QUERY: Search the logs for one or more terms."
     ]
 
 -- This is the main data structure for the bot. It has connection information,
@@ -161,6 +162,13 @@ eval (Message (Just usr) _ _ log) | "!log " `L.isPrefixOf` log = do
           logMsg = if logFlag then "on" else "off"
 eval (Message _ _ _ x) | "!echo" `L.isPrefixOf` x =
     privmsg (drop 6 x)
+eval (Message _ _ _ x) | "!search" `L.isPrefixOf` x = do
+    db <- asks botDbHandle
+    results <- io $ search db query
+    mapM_ privmsg . map showSearchResult $ results
+    where query = drop 8 x
+          showSearchResult (_, nick, date, msg) =
+            "[" ++ date ++ "] " ++ nick ++ ": " ++ msg ++ "\n"
 eval (Message _ _ _ ('!':_)) = return ()
 eval msg = processMessage msg
 
