@@ -15,6 +15,7 @@ module Network.Ribot.Search
     , reindex
     ) where
 
+import           Control.Monad (mapM_)
 import qualified Data.List as L
 import           Database.HDBC
 import           Database.HDBC.Types (IConnection)
@@ -123,9 +124,10 @@ reindex cxn = do
         -- and `position` tables;
         clearExistingData :: IConnection a => a -> IO ()
         clearExistingData cxn =
-            runRaw cxn " DELETE FROM token; \
-                       \ DELETE FROM position; \
-                       \ DELETE FROM msg_token; "
+            mapM_ (runRaw cxn) [ "DELETE FROM token;"
+                               , "DELETE FROM position;"
+                               , "DELETE FROM msg_token;"
+                               ]
 
         -- 2. Get all messages (Message ID, User Nick, Message Text);
         getMessages :: IConnection a => a -> IO [(Int, String, String)]
