@@ -62,8 +62,8 @@ index cxn nick msgId msg =
         updateIds :: IConnection a => a -> IO ()
         updateIds cxn = do
             stmt <- prepare cxn "INSERT OR REPLACE INTO msg_token \
-                                \ (id, text) \
-                                \ SELECT t.id, t.text \
+                                \ (token_id, message_id, text) \
+                                \ SELECT t.id, mt.message_id, t.text \
                                 \ FROM token t \
                                 \ JOIN msg_token mt ON mt.text=t.text \
                                 \ WHERE mt.message_id=?;"
@@ -75,7 +75,7 @@ index cxn nick msgId msg =
         updateIndex :: IConnection a => a -> IO ()
         updateIndex cxn = do
             stmt <- prepare cxn "INSERT INTO position (token_id, message_id) \
-                                \ SELECT id, message_id FROM msg_token \
+                                \ SELECT token_id, message_id FROM msg_token \
                                 \ WHERE message_id=?;"
             execute stmt [msgIdSql]
             return ()

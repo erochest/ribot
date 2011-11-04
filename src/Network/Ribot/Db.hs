@@ -105,7 +105,7 @@ createDb =
               -- `msg_token` is a temporary scratch table for building the
               -- inverted index.
               , "CREATE TEMPORARY TABLE msg_token \
-                        \ (id INTEGER DEFAULT NULL, \
+                        \ (token_id INTEGER DEFAULT NULL, \
                         \  message_id INTEGER, \
                         \  text TEXT, \
                         \  UNIQUE (message_id, text) ON CONFLICT IGNORE, \
