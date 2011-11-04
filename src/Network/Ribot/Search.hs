@@ -13,6 +13,8 @@ module Network.Ribot.Search
     ( index
     , tokenize
     , reindex
+    , search
+    , parseSearch
     ) where
 
 import           Control.Monad (mapM_)
@@ -182,4 +184,8 @@ reindex cxn = do
         cleanUp :: IConnection a => a -> IO ()
         cleanUp cxn =
             runRaw cxn "DELETE FROM msg_token;"
+
+
+search = ()
+parseSearch = ()
 
