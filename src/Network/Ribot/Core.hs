@@ -32,7 +32,7 @@ import           Text.Printf
 
 -- This is the version, for the command line and the !version command.
 ribotVersion :: String
-ribotVersion =  "0.1.3"
+ribotVersion =  "0.2.0"
 
 -- This is the help message for the bot.
 helpMessage :: [String]
