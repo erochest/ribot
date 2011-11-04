@@ -102,6 +102,15 @@ createDb =
               -- `idx_position` indexes position by token and message.
               , "CREATE INDEX IF NOT EXISTS idx_position ON position \
                         \ (id, token_id, message_id);"
+              -- `msg_token` is a temporary scratch table for building the
+              -- inverted index.
+              , "CREATE TEMPORARY TABLE msg_token \
+                        \ (id INTEGER DEFAULT NULL, \
+                        \  message_id INTEGER, \
+                        \  text TEXT, \
+                        \  UNIQUE (message_id, text) ON CONFLICT IGNORE, \
+                        \  FOREIGN KEY (message_id) REFERENCES message(id) \
+                        \ );"
               ]
 
 -- This finds the database filename. It looks in the user application

@@ -27,60 +27,64 @@ import           Database.HDBC.Types (IConnection)
 index :: IConnection a => a -> Int -> String -> IO [String]
 index cxn msgId msg =
     withTransaction cxn $ \cxn -> do
-        createTable cxn
         loadTokens cxn
         updateTokenTable cxn
         updateIds cxn
         updateIndex cxn
-        dropTable cxn
+        cleanUp cxn
         return tokens
     where
         tokens = tokenize msg
-        tokenValues = map ((:[]) . toSql) tokens
+        tokenValues = [[msgIdSql, toSql tkn] | tkn <- tokens]
+        msgIdSql = toSql msgId
 
-        -- 1. A temporary table is created to hold the tokens types (unique
-        -- tokens) and their ID in `token` for the tokens in the message;
-        createTable :: IConnection a => a -> IO ()
-        createTable =
-            (flip runRaw) "CREATE TEMPORARY TABLE msg_tokens \
-                          \ (id INTEGER DEFAULT NULL, \
-                          \  text TEXT UNIQUE ON CONFLICT IGNORE);"
-
-        -- 2. The tokens are loaded into the temporary table;
+        -- 1. The tokens are loaded into the temporary table;
         loadTokens :: IConnection a => a -> IO ()
         loadTokens cxn = do
-            stmt <- prepare cxn "INSERT INTO msg_tokens (text) VALUES (?);"
+            stmt <- prepare cxn "INSERT OR IGNORE INTO msg_token \
+                                \ (message_id, text) VALUES (?, ?);"
             executeMany stmt tokenValues
+            return ()
 
-        -- 3. `token` is updated with the tokens in the temporary table
+        -- 2. `token` is updated with the tokens in the temporary table
         -- (`INSERT OR IGNORE`);
         updateTokenTable :: IConnection a => a -> IO ()
-        updateTokenTable =
-            (flip runRaw) "INSERT OR IGNORE INTO token (text) \
-                          \ SELECT text FROM msg_tokens;"
+        updateTokenTable cxn = do
+            stmt <- prepare cxn "INSERT OR IGNORE INTO token (text) \
+                                \ SELECT text FROM msg_token \
+                                \ WHERE message_id=?;"
+            execute stmt [msgIdSql]
+            return ()
 
-        -- 4. The IDs in the temporary table are filled in from the `token`
-        -- table;
+        -- 3. The IDs in the temporary table are filled in from the `token`
+        -- table; and
         updateIds :: IConnection a => a -> IO ()
-        updateIds =
-            (flip runRaw) "INSERT OR REPLACE INTO msg_tokens \
-                          \ (id, text) \
-                          \ SELECT t.id, t.text \
-                          \ FROM token t \
-                          \ JOIN msg_tokens mt ON mt.text=t.text;"
+        updateIds cxn = do
+            stmt <- prepare cxn "INSERT OR REPLACE INTO msg_token \
+                                \ (id, text) \
+                                \ SELECT t.id, t.text \
+                                \ FROM token t \
+                                \ JOIN msg_token mt ON mt.text=t.text \
+                                \ WHERE mt.message_id=?;"
+            execute stmt [msgIdSql]
+            return ()
 
-        -- 5. The `positions` in the temporary table are inserted from the
-        -- temporary table; and
+        -- 4. The tokens in the temporary table are inserted into the
+        -- `position` table.
         updateIndex :: IConnection a => a -> IO ()
         updateIndex cxn = do
             stmt <- prepare cxn "INSERT INTO position (token_id, message_id) \
-                                \ SELECT id, ? FROM msg_tokens;"
-            execute stmt [toSql msgId]
+                                \ SELECT id, message_id FROM msg_token \
+                                \ WHERE message_id=?;"
+            execute stmt [msgIdSql]
             return ()
 
-        -- 6. Clean up.
-        dropTable :: IConnection a => a -> IO ()
-        dropTable = (flip runRaw) "DROP TABLE msg_tokens;" 
+        -- 5. Remove the tokens from this message from the temporary table.
+        cleanUp :: IConnection a => a -> IO ()
+        cleanUp cxn = do
+            stmt <- prepare cxn "DELETE FROM msg_token WHERE message_id=?;"
+            execute stmt [msgIdSql]
+            return ()
 
 -- This takes an input string and tokenizes it and removes stop words and
 -- punctuation.
