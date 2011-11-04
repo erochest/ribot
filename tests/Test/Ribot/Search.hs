@@ -1,7 +1,10 @@
+{-# LANGUAGE FlexibleContexts #-}
 
 module Test.Ribot.Search (searchTests) where
 
 import           Control.Exception (bracket)
+import           Data.Convertible (Convertible)
+import qualified Data.List as L
 import           Database.HDBC
 import           Database.HDBC.Sqlite3 (connectSqlite3, Connection)
 -- import           Database.HDBC.Types (IConnection(..))
@@ -11,15 +14,59 @@ import           Test.HUnit (Assertion, assertBool)
 import           Test.Framework (Test, testGroup)
 import           Test.Framework.Providers.HUnit (testCase)
 
+assertTokenizeMessage :: Assertion
+assertTokenizeMessage = do
+    assertBool "assertTokenizeMessage plain"
+               ((tokenize "" "big important words") == expected)
+    assertBool "assertTokenizeMessage stop words"
+               ((tokenize "" "this has big important words") == expected)
+    assertBool "assertTokenizeMessage punctuation"
+               ((tokenize "" "this has big, important words!") == expected)
+    assertBool "assertTokenizeMessage normalize"
+               ((tokenize "" "This has BIG, important words!") == expected)
+    where expected = ["big", "important", "words"]
+
+-- This creates a temporary database with the schema for ribot and runs the
+-- test `Assertion` in it.
 withTempDb :: (Connection -> Assertion) -> Assertion
 withTempDb = bracket (connectSqlite3 ":memory:" >>= initDb >>= createDb)
                      disconnect
 
+-- This picks the scalar result from the returned query list.
+getScalar :: Convertible SqlValue a => [[SqlValue]] -> a
+getScalar = fromSql . L.head . L.head
+
+-- This gets the `LAST_INSERT_ROWID()`.
+lastInsertRowId :: IConnection c => c -> IO Int
+lastInsertRowId cxn =
+    quickQuery' cxn "SELECT LAST_INSERT_ROWID();" [] >>=
+    return . getScalar
+
+-- Insert a user into the database. Its returns the user's ID.
+insertUser :: IConnection c => c -> String -> IO Int
+insertUser cxn nick =
+    run cxn
+        "INSERT INTO user (username, logging_on) \
+        \ VALUES (?, 1);"
+        [toSql nick] >>
+    lastInsertRowId cxn
+
+-- Insert a message into the database. It returns the message's ID.
+insertMsg :: IConnection c => c -> Int -> String -> IO Int
+insertMsg cxn uId m =
+    run cxn
+        "INSERT INTO message (user_id, text, posted) \
+        \ VALUES (?, ?, DATETIME('NOW'));"
+        [toSql uId, toSql m] >>
+    lastInsertRowId cxn
+
+-- This tests indexing a single message.
 assertIndexMessage :: Assertion
 assertIndexMessage =
     withTempDb $ \cxn -> do
-        insertUser cxn userId "zaphod"
-        insertMsg cxn userId msgId msg
+        userId <- insertUser cxn "zaphod"
+        msgId  <- insertMsg cxn userId msg
+
         tokens <- index cxn "zaphod" msgId msg
         assertBool ("assertIndexMessage indexed tokens: " ++ (show tokens))
                    (tokens == ["aboard", "heart", "gold"])
@@ -31,25 +78,7 @@ assertIndexMessage =
                    (msgTokens == ["aboard", "gold", "heart"])
 
     where
-        userId = 3
-        msgId = 4
         msg = "Aboard the Heart of Gold!"
-
-        insertUser :: IConnection c => c -> Int -> String -> IO ()
-        insertUser cxn uId nick =
-            run cxn
-                "INSERT INTO user (id, username, logging_on) \
-                \ VALUES (?, ?, 0);"
-                [toSql uId, toSql nick] >>
-            return ()
-
-        insertMsg :: IConnection c => c -> Int -> Int -> String -> IO ()
-        insertMsg cxn uId mId m =
-            run cxn
-                "INSERT INTO message (id, user_id, text, posted) \
-                \ VALUES (?, ?, ?, DATETIME('NOW'));"
-                [toSql mId, toSql uId, toSql m] >>
-            return ()
 
         getDbTokens :: IConnection c => c -> IO [String]
         getDbTokens cxn = do
@@ -68,22 +97,17 @@ assertIndexMessage =
                                    [toSql mId]
             return [fromSql text | [text] <- results]
 
-assertTokenizeMessage :: Assertion
-assertTokenizeMessage = do
-    assertBool "assertTokenizeMessage plain"
-               ((tokenize "" "big important words") == expected)
-    assertBool "assertTokenizeMessage stop words"
-               ((tokenize "" "this has big important words") == expected)
-    assertBool "assertTokenizeMessage punctuation"
-               ((tokenize "" "this has big, important words!") == expected)
-    assertBool "assertTokenizeMessage normalize"
-               ((tokenize "" "This has BIG, important words!") == expected)
-    where expected = ["big", "important", "words"]
+-- This tests indexing multiple messages with some overlapping tokens.
+assertIndexMessages :: Assertion
+assertIndexMessages =
+    withTempDb $ \cxn -> do
+        assertBool "assertIndexMessages" False
 
 searchTests :: [Test]
 searchTests =
-    [ testGroup "search" [ testCase "index-message" assertIndexMessage
-                         , testCase "tokenize-message" assertTokenizeMessage
+    [ testGroup "search" [ testCase "tokenize-message" assertTokenizeMessage
+                         , testCase "index-message" assertIndexMessage
+                         , testCase "index-messages" assertIndexMessages
                          ]
     ]
 
