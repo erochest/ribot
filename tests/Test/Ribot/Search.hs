@@ -21,19 +21,19 @@ assertIndexMessage =
         insertUser cxn userId "zaphod"
         insertMsg cxn userId msgId msg
         tokens <- index cxn "zaphod" msgId msg
-        assertBool "assertIndexMessage indexed tokens"
-                   (tokens == ["all", "aboard", "heart", "gold"])
+        assertBool ("assertIndexMessage indexed tokens: " ++ (show tokens))
+                   (tokens == ["aboard", "heart", "gold"])
         dbTokens <- getDbTokens cxn
-        assertBool "assertIndexMessage tokens in db"
-                   (dbTokens == ["aboard", "all", "gold", "heart"])
+        assertBool ("assertIndexMessage tokens in db: " ++ (show dbTokens))
+                   (dbTokens == ["aboard", "gold", "heart"])
         msgTokens <- getMsgTokens cxn msgId
-        assertBool "assertIndexMessage tokens in msg"
-                   (msgTokens == ["aboard", "all", "gold", "heart"])
+        assertBool ("assertIndexMessage tokens in msg: " ++ (show msgTokens))
+                   (msgTokens == ["aboard", "gold", "heart"])
 
     where
         userId = 3
         msgId = 4
-        msg = "All aboard the Heart of Gold!"
+        msg = "Aboard the Heart of Gold!"
 
         insertUser :: IConnection c => c -> Int -> String -> IO ()
         insertUser cxn uId nick =
