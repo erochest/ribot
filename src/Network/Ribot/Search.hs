@@ -20,9 +20,11 @@ module Network.Ribot.Search
     ) where
 
 import           Control.Monad (mapM_)
+import qualified Data.Char as C
 import qualified Data.List as L
 import           Database.HDBC
 import           Database.HDBC.Types (IConnection)
+import           Text.ParserCombinators.Parsec
 import qualified Text.Ribot.Tokenizer as T
 
 -- This takes a database connection, message ID, and message string. It
@@ -188,14 +190,66 @@ reindex cxn = do
             runRaw cxn "DELETE FROM msg_token;"
 
 
+-- A `SearchResult` is one hit from a search query. It contains
+-- 1. the message ID,
+-- 2. the nick of the person who sent the message,
+-- 3. the date the message was sent,
+-- 4. the token that was hit, and
+-- 5. the message text.
 type SearchResult = (Int, String, String, String, String)
 
+-- This parses a search query, turns it into SQL, passes it to the database,
+-- parses the results into a list of `SearchResult`s and returns them.
 search :: IConnection c => c -> String -> IO [SearchResult]
 search _ _ = return []
 
+-- Parse search parses the search query according to these rules:
+-- * for the most part, tokenization follows `tokenize` above;
+-- * English stop words and punctuation are stripped out; and
+-- * wildcards (stars) are turned into SQL wildcards (*%*).
 parseSearch :: String -> [String]
-parseSearch _ = []
+parseSearch input =
+    case (tokenizeQuery "<query>" input) of
+        Left _    -> []
+        Right all -> map normalize $ L.filter keep all
+    where
+        -- This handles interacting with the parser.
+        tokenizeQuery :: String -> String -> Either ParseError [String]
+        tokenizeQuery = parse tokenList
 
+        -- This is a predicate defining the tokens that need to be kept.
+        keep :: String -> Bool
+        keep = not . T.inStopList
+
+        -- This fixes the wildcard characters in a string and lower-cases the
+        -- characters.
+        normalize :: String -> String
+        normalize []       = []
+        normalize ('*':xs) = '%' : normalize xs
+        normalize (x:xs)   = (C.toLower x) : (normalize xs)
+
+        -- This defines a list of tokens.
+        tokenList :: GenParser Char st [String]
+        tokenList = word `sepBy` many (satisfy isJunk)
+
+        -- A single token. This is where it differs from
+        -- `Text.Ribot.Tokenizer`.
+        word :: GenParser Char st String
+        word = do
+            first <- alphaNum <|> char '*'
+            rest <- many (alphaNum <|> char '*' <|> oneOf ".")
+            return (first:rest)
+
+        -- This is a predicate defining a junk character. It's basically a
+        -- predicate inverse of `word`.
+        isJunk :: Char -> Bool
+        isJunk '*'                = False
+        isJunk c | C.isAlphaNum c = False
+        isJunk _                  = True
+
+-- This takes a processed search query (the output of `parseSearch`) and it
+-- returns a SQL statement that takes those terms and returns the parameters
+-- contained in `SearchResult`. It also returns the terms as `SqlValue`s.
 buildQuery :: [String] -> (String, [SqlValue])
 buildQuery _ = ("", [])
 
