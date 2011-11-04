@@ -15,16 +15,18 @@ for the Ribot bot, as well as functions to make working with IRC easier.</p>    
 <span class="kr">import</span>           <span class="nn">Control.Monad.Reader</span>
 <span class="kr">import</span>           <span class="nn">Database.HDBC</span> <span class="p">(</span><span class="nf">withTransaction</span><span class="p">)</span>
 <span class="kr">import</span> <span class="k">qualified</span> <span class="nn">Data.List</span> <span class="k">as</span> <span class="n">L</span>
+<span class="kr">import</span> <span class="k">qualified</span> <span class="nn">Data.Maybe</span> <span class="k">as</span> <span class="n">M</span>
 <span class="kr">import</span>           <span class="nn">Data.Time</span>
 <span class="kr">import</span>           <span class="nn">Network</span>
 <span class="kr">import</span>           <span class="nn">Network.Ribot.Db</span>
 <span class="kr">import</span>           <span class="nn">Network.Ribot.Message</span>
+<span class="kr">import</span>           <span class="nn">Network.Ribot.Search</span> <span class="p">(</span><span class="nf">index</span><span class="p">,</span> <span class="nf">search</span><span class="p">)</span>
 <span class="kr">import</span>           <span class="nn">Network.Ribot.Utils</span> <span class="p">(</span><span class="nf">split</span><span class="p">)</span>
 <span class="kr">import</span>           <span class="nn">System.Exit</span>
 <span class="kr">import</span>           <span class="nn">System.IO</span>
 <span class="kr">import</span>           <span class="nn">System.Locale</span>
 <span class="kr">import</span>           <span class="nn">Text.Printf</span></pre></div>             </td>           </tr>                               <tr id="section-3">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-3">&#182;</a>               </div>               <p>This is the version, for the command line and the !version command.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nf">ribotVersion</span> <span class="ow">::</span> <span class="kt">String</span>
-<span class="nf">ribotVersion</span> <span class="ow">=</span>  <span class="s">&quot;0.1.2&quot;</span></pre></div>             </td>           </tr>                               <tr id="section-4">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-4">&#182;</a>               </div>               <p>This is the help message for the bot.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nf">helpMessage</span> <span class="ow">::</span> <span class="p">[</span><span class="kt">String</span><span class="p">]</span>
+<span class="nf">ribotVersion</span> <span class="ow">=</span>  <span class="s">&quot;0.2.0&quot;</span></pre></div>             </td>           </tr>                               <tr id="section-4">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-4">&#182;</a>               </div>               <p>This is the help message for the bot.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nf">helpMessage</span> <span class="ow">::</span> <span class="p">[</span><span class="kt">String</span><span class="p">]</span>
 <span class="nf">helpMessage</span> <span class="ow">=</span>
     <span class="p">[</span> <span class="s">&quot;I understand these commands:&quot;</span>
     <span class="p">,</span> <span class="s">&quot;!help: Print out this information.&quot;</span>
@@ -33,6 +35,7 @@ for the Ribot bot, as well as functions to make working with IRC easier.</p>    
     <span class="p">,</span> <span class="s">&quot;!log off: Stop logging your messages.&quot;</span>
     <span class="p">,</span> <span class="s">&quot;!log on: Start logging your messages.&quot;</span>
     <span class="p">,</span> <span class="s">&quot;!echo STRING: Right back at&#39;cha.&quot;</span>
+    <span class="p">,</span> <span class="s">&quot;!search QUERY: Search the logs for one or more terms.&quot;</span>
     <span class="p">]</span></pre></div>             </td>           </tr>                               <tr id="section-5">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-5">&#182;</a>               </div>               <p>This is the main data structure for the bot. It has connection information,
 connection handles for IRC and the database, and the time the bot started
 (for <code>!uptime</code>).</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="kr">data</span> <span class="kt">Ribot</span> <span class="ow">=</span> <span class="kt">Ribot</span> <span class="p">{</span> <span class="n">botSocket</span>    <span class="ow">::</span> <span class="kt">Handle</span>
@@ -116,6 +119,13 @@ you'd add new commands.</p>
           <span class="n">logMsg</span> <span class="ow">=</span> <span class="kr">if</span> <span class="n">logFlag</span> <span class="kr">then</span> <span class="s">&quot;on&quot;</span> <span class="kr">else</span> <span class="s">&quot;off&quot;</span>
 <span class="nf">eval</span> <span class="p">(</span><span class="kt">Message</span> <span class="kr">_</span> <span class="kr">_</span> <span class="kr">_</span> <span class="n">x</span><span class="p">)</span> <span class="o">|</span> <span class="s">&quot;!echo&quot;</span> <span class="p">`</span><span class="kt">L</span><span class="o">.</span><span class="n">isPrefixOf</span><span class="p">`</span> <span class="n">x</span> <span class="ow">=</span>
     <span class="n">privmsg</span> <span class="p">(</span><span class="n">drop</span> <span class="mi">6</span> <span class="n">x</span><span class="p">)</span>
+<span class="nf">eval</span> <span class="p">(</span><span class="kt">Message</span> <span class="kr">_</span> <span class="kr">_</span> <span class="kr">_</span> <span class="n">x</span><span class="p">)</span> <span class="o">|</span> <span class="s">&quot;!search&quot;</span> <span class="p">`</span><span class="kt">L</span><span class="o">.</span><span class="n">isPrefixOf</span><span class="p">`</span> <span class="n">x</span> <span class="ow">=</span> <span class="kr">do</span>
+    <span class="n">db</span> <span class="ow">&lt;-</span> <span class="n">asks</span> <span class="n">botDbHandle</span>
+    <span class="n">results</span> <span class="ow">&lt;-</span> <span class="n">io</span> <span class="o">$</span> <span class="n">search</span> <span class="n">db</span> <span class="n">query</span>
+    <span class="n">mapM_</span> <span class="n">privmsg</span> <span class="o">.</span> <span class="n">map</span> <span class="n">showSearchResult</span> <span class="o">$</span> <span class="n">results</span>
+    <span class="kr">where</span> <span class="n">query</span> <span class="ow">=</span> <span class="n">drop</span> <span class="mi">8</span> <span class="n">x</span>
+          <span class="n">showSearchResult</span> <span class="p">(</span><span class="kr">_</span><span class="p">,</span> <span class="n">nick</span><span class="p">,</span> <span class="n">date</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span> <span class="ow">=</span>
+            <span class="s">&quot;[&quot;</span> <span class="o">++</span> <span class="n">date</span> <span class="o">++</span> <span class="s">&quot;] &quot;</span> <span class="o">++</span> <span class="n">nick</span> <span class="o">++</span> <span class="s">&quot;: &quot;</span> <span class="o">++</span> <span class="n">msg</span> <span class="o">++</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span>
 <span class="nf">eval</span> <span class="p">(</span><span class="kt">Message</span> <span class="kr">_</span> <span class="kr">_</span> <span class="kr">_</span> <span class="p">(</span><span class="sc">&#39;!&#39;</span><span class="kt">:</span><span class="kr">_</span><span class="p">))</span> <span class="ow">=</span> <span class="n">return</span> <span class="nb">()</span>
 <span class="nf">eval</span> <span class="n">msg</span> <span class="ow">=</span> <span class="n">processMessage</span> <span class="n">msg</span></pre></div>             </td>           </tr>                               <tr id="section-18">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-18">&#182;</a>               </div>               <p>This gets how long the bot has been running and returns it as a string.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nf">uptime</span> <span class="ow">::</span> <span class="kt">Net</span> <span class="kt">String</span>
 <span class="nf">uptime</span> <span class="ow">=</span> <span class="kr">do</span>
@@ -130,6 +140,13 @@ you'd add new commands.</p>
 
 <p>At some point, this should spin off a new thread.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nf">processMessage</span> <span class="ow">::</span> <span class="kt">Message</span> <span class="ow">-&gt;</span> <span class="kt">Net</span> <span class="nb">()</span>
 <span class="nf">processMessage</span> <span class="n">msg</span> <span class="ow">=</span> <span class="n">asks</span> <span class="n">botDbHandle</span> <span class="o">&gt;&gt;=</span> <span class="n">io</span> <span class="o">.</span> <span class="p">(</span><span class="n">flip</span> <span class="n">withTransaction</span><span class="p">)</span> <span class="n">process</span>
-    <span class="kr">where</span> <span class="n">process</span> <span class="ow">=</span> <span class="n">logMessage</span> <span class="n">msg</span>
+    <span class="kr">where</span>
+        <span class="n">process</span> <span class="n">cxn</span> <span class="ow">=</span> <span class="kr">do</span>
+            <span class="n">mId</span> <span class="ow">&lt;-</span> <span class="n">logMessage</span> <span class="n">msg</span> <span class="n">cxn</span>
+            <span class="kr">case</span> <span class="n">mId</span> <span class="kr">of</span>
+                <span class="kt">Just</span> <span class="n">mId&#39;</span> <span class="ow">-&gt;</span>
+                    <span class="n">index</span> <span class="n">cxn</span> <span class="p">(</span><span class="kt">M</span><span class="o">.</span><span class="n">fromMaybe</span> <span class="s">&quot;&quot;</span> <span class="o">$</span> <span class="n">msgUser</span> <span class="n">msg</span><span class="p">)</span> <span class="n">mId&#39;</span> <span class="o">$</span> <span class="n">msgText</span> <span class="n">msg</span>
+                <span class="kt">Nothing</span>   <span class="ow">-&gt;</span> <span class="n">return</span> <span class="kt">[]</span>
+            <span class="n">return</span> <span class="nb">()</span>
 
 </pre></div>             </td>           </tr>                </tbody>     </table>   </div> </body> </html> 
