@@ -11,6 +11,8 @@ module Network.Ribot.Db
     ( connectDb
     , IConnection(..)
     , ConnWrapper
+    , createDb
+    , initDb
     , logMessage
     , setUserLogging
     ) where

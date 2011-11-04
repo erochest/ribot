@@ -28,6 +28,7 @@ Library
       Network.Ribot.Core
     , Network.Ribot.Db
     , Network.Ribot.Message
+    , Network.Ribot.Search
     , Network.Ribot.Utils
     , Text.Ribot.Tokenizer
   extensions: DeriveDataTypeable
@@ -93,15 +94,17 @@ Test-Suite test-ribot
   hs-source-dirs:  tests
   main-is:	      TestRibot.hs
   build-depends:
-    base >= 4.3 && < 5,
-    test-framework >= 0.3.3 && < 0.5,
-    test-framework-quickcheck2 >= 0.2.9 && < 0.3,
-    test-framework-hunit >= 0.2.6 && < 0.3,
-    QuickCheck >= 2.4.0.1,
-    HUnit >= 1.2 && < 2,
-    text >= 0.11 && < 0.12,
-    containers >= 0.4.0.0 && < 1,
-    ribot
+      base >= 4.3 && < 5
+    , test-framework >= 0.3.3 && < 0.5
+    , test-framework-quickcheck2 >= 0.2.9 && < 0.3
+    , test-framework-hunit >= 0.2.6 && < 0.3
+    , QuickCheck >= 2.4.0.1
+    , HUnit >= 1.2 && < 2
+    , text >= 0.11 && < 0.12
+    , containers >= 0.4.0.0 && < 1
+    , HDBC >=2.3.0.0 && < 3
+    , HDBC-sqlite3 >=2.3.0.0 && < 3
+    , ribot
   ghc-options:		 -Wall -rtsopts
 
 source-repository head
