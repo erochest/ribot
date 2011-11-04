@@ -20,7 +20,7 @@ assertIndexMessage =
     withTempDb $ \cxn -> do
         insertUser cxn userId "zaphod"
         insertMsg cxn userId msgId msg
-        tokens <- index cxn msgId msg
+        tokens <- index cxn "zaphod" msgId msg
         assertBool "assertIndexMessage indexed tokens"
                    (tokens == ["all", "aboard", "heart", "gold"])
         dbTokens <- getDbTokens cxn
@@ -71,13 +71,13 @@ assertIndexMessage =
 assertTokenizeMessage :: Assertion
 assertTokenizeMessage = do
     assertBool "assertTokenizeMessage plain"
-               (tokenize "big important words" == expected)
+               ((tokenize "" "big important words") == expected)
     assertBool "assertTokenizeMessage stop words"
-               (tokenize "this has big important words" == expected)
+               ((tokenize "" "this has big important words") == expected)
     assertBool "assertTokenizeMessage punctuation"
-               (tokenize "this has big, important words!" == expected)
+               ((tokenize "" "this has big, important words!") == expected)
     assertBool "assertTokenizeMessage normalize"
-               (tokenize "This has BIG, important words!" == expected)
+               ((tokenize "" "This has BIG, important words!") == expected)
     where expected = ["big", "important", "words"]
 
 searchTests :: [Test]

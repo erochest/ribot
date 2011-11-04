@@ -18,6 +18,7 @@ import           Control.Monad (mapM_)
 import           Control.Monad.Reader
 import           Database.HDBC (withTransaction)
 import qualified Data.List as L
+import qualified Data.Maybe as M
 import           Data.Time
 import           Network
 import           Network.Ribot.Db
@@ -187,7 +188,8 @@ processMessage msg = asks botDbHandle >>= io . (flip withTransaction) process
         process cxn = do
             mId <- logMessage msg cxn
             case mId of
-                Just mId' -> index cxn mId' $ msgText msg
+                Just mId' ->
+                    index cxn (M.fromMaybe "" $ msgUser msg) mId' $ msgText msg
                 Nothing   -> return []
             return ()
 

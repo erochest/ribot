@@ -18,14 +18,15 @@ module Network.Ribot.Search
 import qualified Data.List as L
 import           Database.HDBC
 import           Database.HDBC.Types (IConnection)
+import qualified Text.Ribot.Tokenizer as T
 
 -- This takes a database connection, message ID, and message string. It
 -- tokenizes and cleans up the string, and indexes the string. It returns the
 -- token ized, cleaned up message.
 --
 -- The index is populated using these steps:
-index :: IConnection a => a -> Int -> String -> IO [String]
-index cxn msgId msg =
+index :: IConnection a => a -> String -> Int -> String -> IO [String]
+index cxn nick msgId msg =
     withTransaction cxn $ \cxn -> do
         loadTokens cxn
         updateTokenTable cxn
@@ -34,7 +35,7 @@ index cxn msgId msg =
         cleanUp cxn
         return tokens
     where
-        tokens = tokenize msg
+        tokens = tokenize nick msg
         tokenValues = [[msgIdSql, toSql tkn] | tkn <- tokens]
         msgIdSql = toSql msgId
 
@@ -87,9 +88,16 @@ index cxn msgId msg =
             return ()
 
 -- This takes an input string and tokenizes it and removes stop words and
--- punctuation.
-tokenize :: String -> [String]
-tokenize _ = []
+-- punctuation. The parameters are the user's nick and the message.
+tokenize :: String -> String -> [String]
+tokenize nick input = 
+    case (T.tokenize nick input) of
+        Left _    -> []
+        Right all -> L.filter keep all
+    where
+        keep :: String -> Bool
+        keep word = T.isWord word && not (T.inStopList word)
+    
 
 -- This takes a database connection and it re-indexes the entire set of
 -- messages it contains. It returns the number of messages indexed and the
