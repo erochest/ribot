@@ -60,7 +60,6 @@ The annotated source is at these locations:
 
 * [Ribot](http://www.ericrochester.com/ribot/docs/Ribot.html)
 * [Ribot.Cli](http://www.ericrochester.com/ribot/docs/Cli.html)
-* [Control.Ribot](http://www.ericrochester.com/ribot/docs/Ribot.html)
 * [Database.Ribot](http://www.ericrochester.com/ribot/docs/Ribot.html)
 * [Network.Ribot.Irc](http://www.ericrochester.com/ribot/docs/Irc.html)
 * [Network.Ribot.Irc.Types](http://www.ericrochester.com/ribot/docs/Types.html)
