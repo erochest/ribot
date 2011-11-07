@@ -25,8 +25,8 @@ Flag development
 Library
   hs-source-dirs:     src
   exposed-modules:
-      Network.Ribot.Core
-    , Network.Ribot.Db
+      Database.Ribot
+    , Network.Ribot.Core
     , Network.Ribot.Message
     , Network.Ribot.Search
     , Network.Ribot.Utils

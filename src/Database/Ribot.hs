@@ -7,7 +7,7 @@
 -- problems making sure the extension is available on the thousands of machines
 -- I expect to run Ribot on.)
 
-module Network.Ribot.Db
+module Database.Ribot
     ( connectDb
     , IConnection(..)
     , ConnWrapper

@@ -21,7 +21,7 @@ import qualified Data.List as L
 import qualified Data.Maybe as M
 import           Data.Time
 import           Network
-import           Network.Ribot.Db
+import           Database.Ribot
 import           Network.Ribot.Message
 import           Network.Ribot.Search (index, search)
 import           Network.Ribot.Utils (split)

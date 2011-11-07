@@ -16,7 +16,7 @@ import           Data.Convertible (Convertible)
 import qualified Data.List as L
 import           Database.HDBC
 import           Database.HDBC.Sqlite3 (connectSqlite3, Connection)
-import           Network.Ribot.Db (createDb, initDb)
+import           Database.Ribot (createDb, initDb)
 import           Test.HUnit (Assertion)
 
 -- This creates a temporary database with the schema for ribot and runs the

@@ -10,7 +10,7 @@ import           Control.Monad.Reader
 import qualified Database.HDBC as Db
 import           Network
 import           Network.Ribot.Core
-import           Network.Ribot.Db (connectDb)
+import           Database.Ribot (connectDb)
 import           Network.Ribot.Search (reindex)
 import           Ribot.Cli
 import           System.IO
