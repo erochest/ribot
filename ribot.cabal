@@ -27,7 +27,7 @@ Library
   exposed-modules:
       Database.Ribot
     , Network.Ribot.Irc
-    , Network.Ribot.Message
+    , Network.Ribot.Types
     , Network.Ribot.Search
     , Network.Ribot.Utils
     , Text.Ribot.Tokenizer

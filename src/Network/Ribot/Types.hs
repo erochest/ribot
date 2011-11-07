@@ -1,7 +1,7 @@
 
 -- These are functions and data types related to messages.
 
-module Network.Ribot.Message
+module Network.Ribot.Types
     ( Message(..)
     , parseMessage
     ) where
