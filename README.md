@@ -42,7 +42,7 @@ For example, here are some queries and what they would search for:
 * <del>open the database, creating the schema if needed</del>;
 * <del>log to the database</del>;
 * <del>`!log off` and `!log on`</del>;
-* `!search QUERY`;
+* <del>`!search QUERY`</del>;
 * `!mimic NICK`;
 * automatically reconnect after network outages.
 
