@@ -7,7 +7,7 @@ module Ribot.Cli (
     , cmdArgs
     ) where
 
-import           Network.Ribot.Core (ribotVersion)
+import           Network.Ribot.Irc (ribotVersion)
 import           System.Console.CmdArgs
 
 -- These are the default command-line settings.

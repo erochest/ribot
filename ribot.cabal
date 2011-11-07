@@ -26,7 +26,7 @@ Library
   hs-source-dirs:     src
   exposed-modules:
       Database.Ribot
-    , Network.Ribot.Core
+    , Network.Ribot.Irc
     , Network.Ribot.Message
     , Network.Ribot.Search
     , Network.Ribot.Utils

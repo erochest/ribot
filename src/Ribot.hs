@@ -9,7 +9,7 @@ import           Control.Exception (bracket)
 import           Control.Monad.Reader
 import qualified Database.HDBC as Db
 import           Network
-import           Network.Ribot.Core
+import           Network.Ribot.Irc
 import           Database.Ribot (connectDb)
 import           Network.Ribot.Search (reindex)
 import           Ribot.Cli

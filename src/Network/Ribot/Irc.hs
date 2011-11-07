@@ -2,7 +2,7 @@
 -- These are the core Ribot functions. This also includes the data structure
 -- for the Ribot bot, as well as functions to make working with IRC easier.
 
-module Network.Ribot.Core
+module Network.Ribot.Irc
     ( Ribot (..)
     , Net
     , connect
