@@ -30,6 +30,7 @@ Library
     , Network.Ribot.Types
     , Network.Ribot.Search
     , Network.Ribot.Utils
+    , Text.Ribot.Search
     , Text.Ribot.Tokenizer
   extensions: DeriveDataTypeable
   Build-depends:       

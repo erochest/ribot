@@ -21,7 +21,7 @@ import           Control.Monad (forM, forM_, mapM, mapM_)
 import           Database.HDBC
 import           Database.HDBC.Types (IConnection(..), ConnWrapper)
 import           Database.HDBC.Sqlite3 (connectSqlite3)
-import           Network.Ribot.Message
+import           Network.Ribot.Types
 import           System.Directory
 import           System.FilePath ((</>))
 

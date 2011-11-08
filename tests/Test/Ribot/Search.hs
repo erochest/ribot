@@ -7,6 +7,7 @@ import           Test.HUnit (Assertion, assertBool)
 import           Test.Framework (Test, testGroup)
 import           Test.Framework.Providers.HUnit (testCase)
 import           Test.Ribot.Db
+import           Text.Ribot.Search
 
 assertTokenizeMessage :: Assertion
 assertTokenizeMessage = do

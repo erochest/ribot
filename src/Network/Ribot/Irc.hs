@@ -22,7 +22,7 @@ import qualified Data.Maybe as M
 import           Data.Time
 import           Network
 import           Database.Ribot
-import           Network.Ribot.Message
+import           Network.Ribot.Types
 import           Network.Ribot.Search (index, search)
 import           Network.Ribot.Utils (split)
 import           System.Exit
