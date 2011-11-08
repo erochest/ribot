@@ -1,7 +1,7 @@
 
 -- This is a collection of utility functions.
 
-module Network.Ribot.Utils
+module Text.Ribot.Utils
     ( split
     ) where
 
