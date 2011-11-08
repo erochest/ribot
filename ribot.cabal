@@ -29,9 +29,9 @@ Library
     , Network.Ribot.Irc
     , Network.Ribot.Types
     , Network.Ribot.Search
-    , Network.Ribot.Utils
     , Text.Ribot.Search
     , Text.Ribot.Tokenizer
+    , Text.Ribot.Utils
   extensions: DeriveDataTypeable
   Build-depends:       
       base >= 4.3 && < 5

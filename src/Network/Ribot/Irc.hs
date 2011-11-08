@@ -16,7 +16,7 @@ module Network.Ribot.Irc
 import           Control.Exception (bracket_)
 import           Control.Monad (mapM_)
 import           Control.Monad.Reader
-import           Database.HDBC (withTransaction)
+import           Database.HDBC
 import qualified Data.List as L
 import qualified Data.Maybe as M
 import           Data.Time
@@ -24,11 +24,11 @@ import           Network
 import           Database.Ribot
 import           Network.Ribot.Types
 import           Network.Ribot.Search (index, search)
-import           Network.Ribot.Utils (split)
 import           System.Exit
 import           System.IO
 import           System.Locale
 import           Text.Printf
+import           Text.Ribot.Utils (split)
 
 -- This is the version, for the command line and the !version command.
 ribotVersion :: String
@@ -184,4 +184,51 @@ processMessage msg = asks botDbHandle >>= io . (flip withTransaction) process
                     index cxn (M.fromMaybe "" $ msgUser msg) mId' $ msgText msg
                 Nothing   -> return []
             return ()
+
+-- This checks that a user exists in the database, and inserts it if necessary.
+checkUser :: IConnection c => c -> String -> IO ()
+checkUser cxn nick =
+    run cxn "INSERT OR IGNORE INTO user \
+            \ (username, logging_on) VALUES \
+            \ (?, 1);"
+            [toSql nick] >>
+    return ()
+
+-- This saves a message to the database. This doesn't handle the transaction.
+-- You probably want to do that at a higher level.
+--
+-- This returns the ID of the message in the `message` database or Nothing.
+logMessage :: IConnection c => Message -> c -> IO (Maybe Int)
+logMessage msg cxn = do
+    -- If there's no user, move on.
+    case (msgUser msg) of
+        Just userName -> addMsg userName $ msgText msg
+        Nothing       -> return Nothing
+
+    where
+        addMsg :: String -> String -> IO (Maybe Int)
+        addMsg userName msgStr = do
+            -- First, try to create the user, if the name isn't already in the db.
+            checkUser cxn userName
+            -- Second, add the message to the database.
+            run cxn "INSERT INTO message (user_id, text, posted) \
+                \ SELECT id, ?, DATETIME('NOW') \
+                \ FROM user WHERE username=? AND logging_on=1;"
+                [toSql msgStr, toSql userName]
+            msgId <- quickQuery' cxn "SELECT last_insert_rowid();" []
+            return $ case msgId of
+                [[sqlId]] -> Just $ fromSql sqlId
+                _         -> Nothing
+
+-- This sets the user.logging_on value for the given user.
+setUserLogging :: IConnection c => c -> String -> Bool -> IO ()
+setUserLogging cxn nick loggingOn = do
+    checkUser cxn nick
+    run cxn "UPDATE user \
+            \ SET logging_on=? \
+            \ WHERE username=?;"
+        [iToSql loggingInt, toSql nick]
+    return ()
+    where loggingInt = if loggingOn then 1 else 0
+
 
