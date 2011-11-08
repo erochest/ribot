@@ -63,7 +63,6 @@ The annotated source is at these locations:
 * [Database.Ribot](http://www.ericrochester.com/ribot/docs/Ribot.html)
 * [Network.Ribot.Irc](http://www.ericrochester.com/ribot/docs/Irc.html)
 * [Network.Ribot.Types](http://www.ericrochester.com/ribot/docs/Types.html)
-* [Text.Ribot.Message](http://www.ericrochester.com/ribot/docs/Message.html)
 * [Text.Ribot.Search](http://www.ericrochester.com/ribot/docs/Search.html)
 * [Text.Ribot.Tokenizer](http://www.ericrochester.com/ribot/docs/Tokenizer.html)
 * [Text.Ribot.Utils](http://www.ericrochester.com/ribot/docs/Utils.html)
