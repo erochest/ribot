@@ -24,6 +24,7 @@ data Ribot = Ribot { botSocket    :: Handle
                    , botNick      :: String
                    , botStartTime :: UTCTime
                    , botDbHandle  :: ConnWrapper
+                   , botOutput    :: String -> IO ()
                    }
 
 -- This is the monad the bot runs under. The `ReaderT` holds the state (a

@@ -13,8 +13,10 @@ module Network.Ribot.Irc
     , ribotVersion
     ) where
 
+import           Control.Concurrent (forkIO)
+import           Control.Concurrent.Chan
 import           Control.Exception (bracket_)
-import           Control.Monad (mapM_)
+import           Control.Monad (mapM_, forever)
 import           Control.Monad.Reader
 import           Database.HDBC
 import qualified Data.List as L
@@ -55,7 +57,13 @@ connect server port chan nick dbFile = notify $ do
     t <- getCurrentTime
     hSetBuffering h NoBuffering
     db <- connectDb dbFile
-    return $ Ribot h server port chan nick t db
+
+    -- Set up a channel to send output to and fork a thread to listen to the
+    -- channel and write everything sent across it to STDOUT and IRC.
+    out <- newChan
+    forkIO . forever $ write' h out
+
+    return . Ribot h server port chan nick t db $ writeChan out
     where
         -- This prints some information to the screen about what we're doing.
         -- This should probably refactored to make it more functional.
@@ -63,6 +71,14 @@ connect server port chan nick dbFile = notify $ do
             (printf "Connecting to %s ..." server >> hFlush stdout)
             (putStrLn "done.")
             a
+
+        -- This gets a string from the output channel and writes it to STDOUT
+        -- and IRC.
+        write' :: Handle -> Chan String -> IO ()
+        write' h c = do
+            output <- readChan c
+            hPrintf h "%s\r\n" output
+            printf "> %s\n" output
 
 -- Run in Net. This is actually executed by `runReaderT`.
 --
@@ -82,9 +98,8 @@ io = liftIO
 -- This writes a command and string to IRC. It also prints them to the screen.
 write :: String -> String -> Net ()
 write s t = do
-    h <- asks botSocket
-    io $ hPrintf h "%s %s\r\n" s t
-    io $ printf    "> %s %s\n" s t
+    output <- asks botOutput
+    io . output $ s ++ " " ++ t
 
 -- This writes the input line to the screen with a timestamp.
 logInput :: String -> IO ()
