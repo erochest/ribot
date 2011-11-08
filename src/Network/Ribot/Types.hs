@@ -2,12 +2,33 @@
 -- These are functions and data types related to messages.
 
 module Network.Ribot.Types
-    ( Message(..)
+    ( Ribot(..)
+    , Net
+    , Message(..)
     , parseMessage
     ) where
 
+import           Control.Monad.Reader
 import           Data.Time
+import           Database.HDBC (ConnWrapper)
+import           System.IO
 import           Text.ParserCombinators.Parsec
+
+-- This is the main data structure for the bot. It has connection information,
+-- connection handles for IRC and the database, and the time the bot started
+-- (for `!uptime`).
+data Ribot = Ribot { botSocket    :: Handle
+                   , botServer    :: String
+                   , botPort      :: Int
+                   , botChan      :: String
+                   , botNick      :: String
+                   , botStartTime :: UTCTime
+                   , botDbHandle  :: ConnWrapper
+                   }
+
+-- This is the monad the bot runs under. The `ReaderT` holds the state (a
+-- `Ribot`) and silently threads it through the computation.
+type Net = ReaderT Ribot IO
 
 -- This is a storage for incoming messages.
 data Message = Message { msgUser :: Maybe String

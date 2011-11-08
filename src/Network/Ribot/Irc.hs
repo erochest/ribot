@@ -47,22 +47,6 @@ helpMessage =
     , "!search QUERY: Search the logs for one or more terms."
     ]
 
--- This is the main data structure for the bot. It has connection information,
--- connection handles for IRC and the database, and the time the bot started
--- (for `!uptime`).
-data Ribot = Ribot { botSocket    :: Handle
-                   , botServer    :: String
-                   , botPort      :: Int
-                   , botChan      :: String
-                   , botNick      :: String
-                   , botStartTime :: UTCTime
-                   , botDbHandle  :: ConnWrapper
-                   }
-
--- This is the monad the bot runs under. The `ReaderT` holds the state (a
--- `Ribot`) and silently threads it through the computation.
-type Net = ReaderT Ribot IO
-
 -- This connects to IRC, to the database, notes the current time, and returns a
 -- ready-to-go `Ribot`.
 connect :: String -> Int -> String -> String -> Maybe String -> IO Ribot
