@@ -13,6 +13,7 @@ module Database.Ribot
     , ConnWrapper
     , createDb
     , initDb
+    , initTempTable
     ) where
 
 import           Control.Monad (forM, forM_, mapM, mapM_)
@@ -53,6 +54,7 @@ createDb :: IConnection c => c -> IO c
 createDb =
     (flip withTransaction) $ \cxn -> do
         forM_ sql $ (runRaw cxn)
+        initTempTable cxn
         return cxn
     where
         -- Here are the statements, packaged up so run by create.
@@ -100,16 +102,19 @@ createDb =
               -- `idx_position` indexes position by token and message.
               , "CREATE INDEX IF NOT EXISTS idx_position ON position \
                         \ (id, token_id, message_id);"
-              -- `msg_token` is a temporary scratch table for building the
-              -- inverted index.
-              , "CREATE TEMPORARY TABLE msg_token \
-                        \ (token_id INTEGER DEFAULT NULL, \
-                        \  message_id INTEGER, \
-                        \  text TEXT, \
-                        \  UNIQUE (message_id, text) ON CONFLICT IGNORE, \
-                        \  FOREIGN KEY (message_id) REFERENCES message(id) \
-                        \ );"
               ]
+
+-- This initializes `msg_token`, the temporary scratch table for building the
+-- inverted index.
+initTempTable :: IConnection c => c -> IO ()
+initTempTable cxn =
+    runRaw cxn " CREATE TEMPORARY TABLE IF NOT EXISTS msg_token \
+               \ (token_id INTEGER DEFAULT NULL, \
+               \  message_id INTEGER, \
+               \  text TEXT, \
+               \  UNIQUE (message_id, text) ON CONFLICT IGNORE, \
+               \  FOREIGN KEY (message_id) REFERENCES message(id) \
+               \ );"
 
 -- This finds the database filename. It looks in the user application
 -- directory.
