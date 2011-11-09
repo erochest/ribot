@@ -5,6 +5,7 @@
 module Network.Ribot.Irc
     ( Ribot (..)
     , Net
+    , NetState
     , connect
     , runRibot
     , write
@@ -18,6 +19,7 @@ import           Control.Concurrent.Chan
 import           Control.Exception (bracket_)
 import           Control.Monad (mapM_, forever, liftM)
 import           Control.Monad.Reader
+import           Control.Monad.Trans (lift)
 import           Database.HDBC
 import           Database.Ribot (initTempTable)
 import qualified Data.List as L
@@ -81,15 +83,15 @@ connect server port chan nick dbFile = notify $ do
             hPrintf h "%s\r\n" output
             printf "> %s\n" output
 
--- Run in Net. This is actually executed by `runReaderT`.
+-- Run in `NetState`.
 --
 -- First, `runRibot` logs onto the server and channel, then it listens.
-runRibot :: Net ()
+runRibot :: NetState ()
 runRibot = do
     n <- asks botNick
-    write "NICK" n
-    write "USER" (n ++ " 0 * :riBOT")
-    asks botChan >>= write "JOIN"
+    lift $ write "NICK" n
+    lift $ write "USER" (n ++ " 0 * :riBOT")
+    asks botChan >>= lift . write "JOIN"
     asks botSocket >>= listen
 
 -- This is a stripped-down version of `runRibot`. It doesn't log into the
@@ -103,7 +105,7 @@ evalRibot ribot input = do
     db <- clone $ botDbHandle ribot
     withTransaction db initTempTable
     initTempTable db
-    runReaderT (eval input) $ ribot { botDbHandle=db }
+    runNet (eval input) $ ribot { botDbHandle=db }
 
 -- This is a shortcut for `liftIO` in the context of a `Net` monad.
 io :: IO a -> Net a
@@ -124,18 +126,18 @@ logInput input = do
 
 -- This listens forever. It pulls a line from IRC, prints it, cleans it up, and
 -- evaluates it.
-listen :: Handle -> Net ()
+listen :: Handle -> NetState ()
 listen h = forever $ do
-    s <- init `fmap` io (hGetLine h)
-    io $ logInput s
-    case s of
+    s <- init `fmap` liftIO (hGetLine h)
+    liftIO $ logInput s
+    lift $ case s of
         ping | "PING" `L.isPrefixOf` ping -> do
             write "PONG" ""
             return ()
         otherwise -> do
-            msg <- io (parseMessage s)
+            msg <- liftIO (parseMessage s)
             ribot <- ask
-            _ <- io . forkIO $ evalRibot ribot msg
+            _ <- liftIO . forkIO $ evalRibot ribot msg
             return ()
     where
         -- `forever` executes a and then recursively executes it again. Only

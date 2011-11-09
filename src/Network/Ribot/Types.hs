@@ -3,12 +3,17 @@
 
 module Network.Ribot.Types
     ( Ribot(..)
+    , RibotState(..)
     , Net
+    , runNet
+    , NetState
+    , runNetState
     , Message(..)
     , parseMessage
     ) where
 
 import           Control.Monad.Reader
+import           Control.Monad.State
 import           Data.Time
 import           Database.HDBC (ConnWrapper)
 import           System.IO
@@ -27,9 +32,25 @@ data Ribot = Ribot { botSocket    :: Handle
                    , botOutput    :: String -> IO ()
                    }
 
+-- This adds a little state to the Ribot bot. Currently, that's just the time
+-- of the last data sent from the server.
+data RibotState = RibotState { botLastMessage :: UTCTime
+                             }
+
 -- This is the monad the bot runs under. The `ReaderT` holds the state (a
 -- `Ribot`) and silently threads it through the computation.
 type Net = ReaderT Ribot IO
+
+-- This is the primary execution function for the `Net` monad.
+runNet :: Net a -> Ribot -> IO a
+runNet = runReaderT
+
+-- This is the `Net` monad, plus `RibotState`.
+type NetState = StateT RibotState Net
+
+-- This is the primary execution function for the `NetState` monad.
+runNetState :: NetState a -> Ribot -> RibotState -> IO a
+runNetState ns r rs = runReaderT (evalStateT ns rs) r
 
 -- This is a storage for incoming messages.
 data Message = Message { msgUser :: Maybe String

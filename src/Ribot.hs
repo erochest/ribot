@@ -6,12 +6,13 @@
 module Main where
 
 import           Control.Exception (bracket)
-import           Control.Monad.Reader
 import qualified Database.HDBC as Db
+import           Data.Time
 import           Network
 import           Network.Ribot.Irc
 import           Database.Ribot (connectDb)
 import           Network.Ribot.Search (reindex)
+import           Network.Ribot.Types (runNetState, RibotState(..))
 import           Ribot.Cli
 import           System.IO
 import           Text.Printf
@@ -21,8 +22,10 @@ main :: IO ()
 main = do
     mode <- cmdArgs ribotModes
     case mode of
-        Listen server port chan nick dbFile -> 
-            bracket (connect server port chan nick dbFile) disconnect loop
+        Listen server port chan nick dbFile -> do
+            t <- getCurrentTime
+            bracket (connect server port chan nick dbFile) disconnect
+                    (loop (RibotState t))
         Reindex dbFile -> do
             putStrLn "reindexing database."
             (msgCount, tknCount) <- bracket (connectDb dbFile)
@@ -35,5 +38,5 @@ main = do
 
         -- This runs an infinite loop listening for a line from the IRC channel
         -- and processing it.
-        loop st = catch (runReaderT runRibot st) (const $ return ())
+        loop st cfg = catch (runNetState runRibot cfg st) (const $ return ())
 
