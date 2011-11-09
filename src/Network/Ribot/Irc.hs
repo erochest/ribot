@@ -16,9 +16,10 @@ module Network.Ribot.Irc
 import           Control.Concurrent (forkIO)
 import           Control.Concurrent.Chan
 import           Control.Exception (bracket_)
-import           Control.Monad (mapM_, forever)
+import           Control.Monad (mapM_, forever, liftM)
 import           Control.Monad.Reader
 import           Database.HDBC
+import           Database.Ribot (initTempTable)
 import qualified Data.List as L
 import qualified Data.Maybe as M
 import           Data.Time
@@ -91,6 +92,19 @@ runRibot = do
     asks botChan >>= write "JOIN"
     asks botSocket >>= listen
 
+-- This is a stripped-down version of `runRibot`. It doesn't log into the
+-- server or listen to anything. It just evaluates a string in the context of
+-- some `Ribot` data.
+--
+-- Because this assumes that it's being run in another thread, possibly another
+-- OS thread, it creates a new database connection.
+evalRibot :: Ribot -> Message -> IO ()
+evalRibot ribot input = do
+    db <- clone $ botDbHandle ribot
+    withTransaction db initTempTable
+    initTempTable db
+    runReaderT (eval input) $ ribot { botDbHandle=db }
+
 -- This is a shortcut for `liftIO` in the context of a `Net` monad.
 io :: IO a -> Net a
 io = liftIO
@@ -120,8 +134,9 @@ listen h = forever $ do
             return ()
         otherwise -> do
             msg <- io (parseMessage s)
-            -- io (putStrLn $ show msg)
-            eval msg
+            ribot <- ask
+            _ <- io . forkIO $ evalRibot ribot msg
+            return ()
     where
         -- `forever` executes a and then recursively executes it again. Only
         -- Chunk Norris can stop it. (And Ctrl-C, which may stand for
