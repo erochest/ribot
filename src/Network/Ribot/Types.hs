@@ -20,19 +20,18 @@ import           Text.ParserCombinators.Parsec
 -- This is the main data structure for the bot. It has connection information,
 -- connection handles for IRC and the database, and the time the bot started
 -- (for `!uptime`).
-data Ribot = Ribot { botSocket    :: Handle
-                   , botServer    :: String
-                   , botPort      :: Int
-                   , botChan      :: String
-                   , botNick      :: String
-                   , botStartTime :: UTCTime
-                   , botDbHandle  :: ConnWrapper
-                   , botOutput    :: String -> IO ()
+data Ribot = Ribot { botServer :: String
+                   , botPort   :: Int
+                   , botChan   :: String
+                   , botNick   :: String
                    }
 
 -- This adds a little state to the Ribot bot. Currently, that's just the time
 -- of the last data sent from the server.
-data RibotState = RibotState { botLastMessage :: UTCTime
+data RibotState = RibotState { botSocket    :: Handle
+                             , botStartTime :: UTCTime
+                             , botDbHandle  :: ConnWrapper
+                             , botOutput    :: String -> IO ()
                              }
 
 -- This is the monad the bot runs under. The `ReaderT` holds the state (a

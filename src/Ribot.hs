@@ -12,7 +12,7 @@ import           Network
 import           Network.Ribot.Irc
 import           Database.Ribot (connectDb)
 import           Network.Ribot.Search (reindex)
-import           Network.Ribot.Types (runNet)
+import           Network.Ribot.Types
 import           Ribot.Cli
 import           System.IO
 import           Text.Printf
@@ -33,7 +33,7 @@ main = do
             printf "indexed %d messages; %d tokens.\n" msgCount tknCount
     where
         -- Compose functions to get the bot's socket and close it.
-        disconnect = hClose . botSocket . fst
+        disconnect = hClose . botSocket . snd
 
         -- This runs an infinite loop listening for a line from the IRC channel
         -- and processing it.

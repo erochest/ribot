@@ -52,25 +52,38 @@ helpMessage =
     , "!search QUERY: Search the logs for one or more terms."
     ]
 
--- This connects to IRC, to the database, notes the current time, and returns a
--- ready-to-go `Ribot`.
-connect :: String -> Int -> String -> String -> Maybe String -> IO (Ribot, RibotState)
-connect server port chan nick dbFile = notify $ do
-    h <- connectTo server . PortNumber $ fromIntegral port
+-- This takes the ribot and fills in the state by connecting to IRC,
+-- the database, etc.
+connectState :: Ribot -> Maybe FilePath -> IO RibotState
+connectState (Ribot server port chan nick) dbFile = do
     t <- getCurrentTime
+    -- First, connect to IRC and set the buffering.
+    printf "Connecting to %s:%d..." server port
+    h <- connectTo server . PortNumber $ fromIntegral port
     hSetBuffering h NoBuffering
+    -- Second, connect to the database.
     db <- connectDb dbFile
-
     -- Set up a channel to send output to and fork a thread to listen to the
     -- channel and write everything sent across it to STDOUT and IRC.
     out <- newChan
-    forkIO . forever $ write' h out
+    forkIO . forever $ do
+        output <- readChan out
+        hPrintf h "%s\r\n" output
+        printf "> %s\n" output
+    return $ RibotState h t db $ writeChan out
 
-    return ( Ribot h server port chan nick t db $ writeChan out
-           , RibotState t
-           )
-
+-- This connects to IRC, to the database, notes the current time, and returns a
+-- ready-to-go `Ribot`.
+connect :: String -> Int -> String -> String -> Maybe FilePath -> IO (Ribot, RibotState)
+connect server port chan nick dbFile =
+    notify $ do
+        state <- connectState ribot dbFile
+        return (ribot, state)
     where
+        -- This is the initial `Reader`/`Ribot` data.
+        ribot :: Ribot
+        ribot =  Ribot server (fromIntegral port) chan nick
+
         -- This prints some information to the screen about what we're doing.
         -- This should probably refactored to make it more functional.
         notify a = bracket_
@@ -78,24 +91,21 @@ connect server port chan nick dbFile = notify $ do
             (putStrLn "done.")
             a
 
-        -- This gets a string from the output channel and writes it to STDOUT
-        -- and IRC.
-        write' :: Handle -> Chan String -> IO ()
-        write' h c = do
-            output <- readChan c
-            hPrintf h "%s\r\n" output
-            printf "> %s\n" output
-
 -- Run in `Net`.
 --
 -- First, `runRibot` logs onto the server and channel, then it listens.
 runRibot :: Net ()
 runRibot = do
-    n <- asks botNick
-    write "NICK" n
-    write "USER" (n ++ " 0 * :riBOT")
+    login
+    get >>= listen . botSocket
+
+-- This logs onto IRC with a nick into a channel.
+login :: Net ()
+login = do
+    nick <- asks botNick
+    write "NICK" nick
+    write "USER" (nick ++ " 0 * :riBOT")
     asks botChan >>= write "JOIN"
-    asks botSocket >>= listen
 
 -- This is a stripped-down version of `runRibot`. It doesn't log into the
 -- server or listen to anything. It just evaluates a string in the context of
@@ -105,10 +115,10 @@ runRibot = do
 -- OS thread, it creates a new database connection.
 evalRibot :: Ribot -> RibotState -> Message -> IO ()
 evalRibot ribot state input = do
-    db <- clone $ botDbHandle ribot
+    db <- clone $ botDbHandle state
     withTransaction db initTempTable
     initTempTable db
-    runNet (eval input) (ribot { botDbHandle=db }) state
+    runNet (eval input) ribot $ state { botDbHandle=db }
 
 -- This is a shortcut for `liftIO` in the context of a `Net` monad.
 io :: IO a -> Net a
@@ -117,7 +127,7 @@ io = liftIO
 -- This writes a command and string to IRC. It also prints them to the screen.
 write :: String -> String -> Net ()
 write s t = do
-    output <- asks botOutput
+    output <- return . botOutput =<< get
     io . output $ s ++ " " ++ t
 
 -- This writes the input line to the screen with a timestamp.
@@ -166,7 +176,7 @@ eval (Message _ _ _ "!version") =
 eval (Message _ _ _ "!uptime") =
     uptime >>= privmsg
 eval (Message (Just usr) _ _ log) | "!log " `L.isPrefixOf` log = do
-    db <- asks botDbHandle
+    db <- return . botDbHandle =<< get
     io . withTransaction db $ \cxn ->
         setUserLogging cxn usr logFlag
     privmsg $ "Logging turned " ++ logMsg ++ " for " ++ usr ++ "."
@@ -175,7 +185,7 @@ eval (Message (Just usr) _ _ log) | "!log " `L.isPrefixOf` log = do
 eval (Message _ _ _ x) | "!echo" `L.isPrefixOf` x =
     privmsg (drop 6 x)
 eval (Message _ _ _ x) | "!search" `L.isPrefixOf` x = do
-    db <- asks botDbHandle
+    db <- return . botDbHandle =<< get
     results <- io $ search db query
     mapM_ privmsg . map showSearchResult $ results
     where query = drop 8 x
@@ -188,7 +198,7 @@ eval msg = processMessage msg
 uptime :: Net String
 uptime = do
     now <- io getCurrentTime
-    zero <- asks botStartTime
+    zero <- return . botStartTime =<< get
     return . show $ diffUTCTime now zero
 
 -- This sends a privmsg to the channel the bot's in.
@@ -203,15 +213,15 @@ privmsg s = do
 --
 -- At some point, this should spin off a new thread.
 processMessage :: Message -> Net ()
-processMessage msg = asks botDbHandle >>= io . (flip withTransaction) process
-    where
-        process cxn = do
-            mId <- logMessage msg cxn
-            case mId of
-                Just mId' ->
-                    index cxn (M.fromMaybe "" $ msgUser msg) mId' $ msgText msg
-                Nothing   -> return []
-            return ()
+processMessage msg = do
+    (RibotState _ _ db _) <- get
+    io . withTransaction db $ \cxn -> do
+        mId <- logMessage msg cxn
+        case mId of
+            Just mId' ->
+                index cxn (M.fromMaybe "" $ msgUser msg) mId' $ msgText msg
+            Nothing   -> return []
+        return ()
 
 -- This checks that a user exists in the database, and inserts it if necessary.
 checkUser :: IConnection c => c -> String -> IO ()
