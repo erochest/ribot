@@ -6,8 +6,6 @@ module Network.Ribot.Types
     , RibotState(..)
     , Net
     , runNet
-    , NetState
-    , runNetState
     , Message(..)
     , parseMessage
     ) where
@@ -39,18 +37,11 @@ data RibotState = RibotState { botLastMessage :: UTCTime
 
 -- This is the monad the bot runs under. The `ReaderT` holds the state (a
 -- `Ribot`) and silently threads it through the computation.
-type Net = ReaderT Ribot IO
+type Net = StateT RibotState (ReaderT Ribot IO)
 
 -- This is the primary execution function for the `Net` monad.
-runNet :: Net a -> Ribot -> IO a
-runNet = runReaderT
-
--- This is the `Net` monad, plus `RibotState`.
-type NetState = StateT RibotState Net
-
--- This is the primary execution function for the `NetState` monad.
-runNetState :: NetState a -> Ribot -> RibotState -> IO a
-runNetState ns r rs = runReaderT (evalStateT ns rs) r
+runNet :: Net a -> Ribot -> RibotState -> IO a
+runNet ns r rs = runReaderT (evalStateT ns rs) r
 
 -- This is a storage for incoming messages.
 data Message = Message { msgUser :: Maybe String

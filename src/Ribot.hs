@@ -12,7 +12,7 @@ import           Network
 import           Network.Ribot.Irc
 import           Database.Ribot (connectDb)
 import           Network.Ribot.Search (reindex)
-import           Network.Ribot.Types (runNetState, RibotState(..))
+import           Network.Ribot.Types (runNet)
 import           Ribot.Cli
 import           System.IO
 import           Text.Printf
@@ -23,9 +23,8 @@ main = do
     mode <- cmdArgs ribotModes
     case mode of
         Listen server port chan nick dbFile -> do
-            t <- getCurrentTime
             bracket (connect server port chan nick dbFile) disconnect
-                    (loop (RibotState t))
+                    (uncurry loop)
         Reindex dbFile -> do
             putStrLn "reindexing database."
             (msgCount, tknCount) <- bracket (connectDb dbFile)
@@ -34,9 +33,9 @@ main = do
             printf "indexed %d messages; %d tokens.\n" msgCount tknCount
     where
         -- Compose functions to get the bot's socket and close it.
-        disconnect = hClose . botSocket
+        disconnect = hClose . botSocket . fst
 
         -- This runs an infinite loop listening for a line from the IRC channel
         -- and processing it.
-        loop st cfg = catch (runNetState runRibot cfg st) (const $ return ())
+        loop cfg st = catch (runNet runRibot cfg st) (const $ return ())
 

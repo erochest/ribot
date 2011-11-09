@@ -5,7 +5,6 @@
 module Network.Ribot.Irc
     ( Ribot (..)
     , Net
-    , NetState
     , connect
     , runRibot
     , write
@@ -19,6 +18,7 @@ import           Control.Concurrent.Chan
 import           Control.Exception (bracket_)
 import           Control.Monad (mapM_, forever, liftM)
 import           Control.Monad.Reader
+import           Control.Monad.State
 import           Control.Monad.Trans (lift)
 import           Database.HDBC
 import           Database.Ribot (initTempTable)
@@ -54,7 +54,7 @@ helpMessage =
 
 -- This connects to IRC, to the database, notes the current time, and returns a
 -- ready-to-go `Ribot`.
-connect :: String -> Int -> String -> String -> Maybe String -> IO Ribot
+connect :: String -> Int -> String -> String -> Maybe String -> IO (Ribot, RibotState)
 connect server port chan nick dbFile = notify $ do
     h <- connectTo server . PortNumber $ fromIntegral port
     t <- getCurrentTime
@@ -66,7 +66,10 @@ connect server port chan nick dbFile = notify $ do
     out <- newChan
     forkIO . forever $ write' h out
 
-    return . Ribot h server port chan nick t db $ writeChan out
+    return ( Ribot h server port chan nick t db $ writeChan out
+           , RibotState t
+           )
+
     where
         -- This prints some information to the screen about what we're doing.
         -- This should probably refactored to make it more functional.
@@ -83,15 +86,15 @@ connect server port chan nick dbFile = notify $ do
             hPrintf h "%s\r\n" output
             printf "> %s\n" output
 
--- Run in `NetState`.
+-- Run in `Net`.
 --
 -- First, `runRibot` logs onto the server and channel, then it listens.
-runRibot :: NetState ()
+runRibot :: Net ()
 runRibot = do
     n <- asks botNick
-    lift $ write "NICK" n
-    lift $ write "USER" (n ++ " 0 * :riBOT")
-    asks botChan >>= lift . write "JOIN"
+    write "NICK" n
+    write "USER" (n ++ " 0 * :riBOT")
+    asks botChan >>= write "JOIN"
     asks botSocket >>= listen
 
 -- This is a stripped-down version of `runRibot`. It doesn't log into the
@@ -100,12 +103,12 @@ runRibot = do
 --
 -- Because this assumes that it's being run in another thread, possibly another
 -- OS thread, it creates a new database connection.
-evalRibot :: Ribot -> Message -> IO ()
-evalRibot ribot input = do
+evalRibot :: Ribot -> RibotState -> Message -> IO ()
+evalRibot ribot state input = do
     db <- clone $ botDbHandle ribot
     withTransaction db initTempTable
     initTempTable db
-    runNet (eval input) $ ribot { botDbHandle=db }
+    runNet (eval input) (ribot { botDbHandle=db }) state
 
 -- This is a shortcut for `liftIO` in the context of a `Net` monad.
 io :: IO a -> Net a
@@ -126,18 +129,19 @@ logInput input = do
 
 -- This listens forever. It pulls a line from IRC, prints it, cleans it up, and
 -- evaluates it.
-listen :: Handle -> NetState ()
+listen :: Handle -> Net ()
 listen h = forever $ do
     s <- init `fmap` liftIO (hGetLine h)
     liftIO $ logInput s
-    lift $ case s of
+    case s of
         ping | "PING" `L.isPrefixOf` ping -> do
             write "PONG" ""
             return ()
         otherwise -> do
             msg <- liftIO (parseMessage s)
             ribot <- ask
-            _ <- liftIO . forkIO $ evalRibot ribot msg
+            state <- get
+            _ <- liftIO . forkIO $ evalRibot ribot state msg
             return ()
 
 -- This cleans up a string send by IRC by removing the prefix.
