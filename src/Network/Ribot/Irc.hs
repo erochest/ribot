@@ -139,14 +139,6 @@ listen h = forever $ do
             ribot <- ask
             _ <- liftIO . forkIO $ evalRibot ribot msg
             return ()
-    where
-        -- `forever` executes a and then recursively executes it again. Only
-        -- Chunk Norris can stop it. (And Ctrl-C, which may stand for
-        -- Ctrl-Chuck Norris, although nothing can control Chunk Norris.)
-        --
-        -- I should probably use the one from Control.Monad, but I've already
-        -- written the comment above.
-        forever a = a >> forever a
 
 -- This cleans up a string send by IRC by removing the prefix.
 clean :: String -> String
