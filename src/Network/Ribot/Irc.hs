@@ -21,7 +21,7 @@ import           Control.Monad.Reader
 import           Control.Monad.State
 import           Control.Monad.Trans (lift)
 import           Database.HDBC
-import           Database.Ribot (initTempTable)
+import           Database.Ribot (initTempTable, resolveDbFile)
 import qualified Data.List as L
 import qualified Data.Maybe as M
 import           Data.Time
@@ -54,8 +54,8 @@ helpMessage =
 
 -- This takes the ribot and fills in the state by connecting to IRC,
 -- the database, etc.
-connectState :: Ribot -> Maybe FilePath -> IO RibotState
-connectState (Ribot server port chan nick) dbFile = do
+connectState :: Ribot -> IO RibotState
+connectState (Ribot server port chan nick dbFile) = do
     t <- getCurrentTime
     -- First, connect to IRC and set the buffering.
     printf "Connecting to %s:%d..." server port
@@ -77,13 +77,11 @@ connectState (Ribot server port chan nick) dbFile = do
 connect :: String -> Int -> String -> String -> Maybe FilePath -> IO (Ribot, RibotState)
 connect server port chan nick dbFile =
     notify $ do
-        state <- connectState ribot dbFile
+        dbFile' <- resolveDbFile dbFile
+        let ribot = Ribot server (fromIntegral port) chan nick dbFile'
+        state <- connectState ribot
         return (ribot, state)
     where
-        -- This is the initial `Reader`/`Ribot` data.
-        ribot :: Ribot
-        ribot =  Ribot server (fromIntegral port) chan nick
-
         -- This prints some information to the screen about what we're doing.
         -- This should probably refactored to make it more functional.
         notify a = bracket_

@@ -14,6 +14,7 @@ module Database.Ribot
     , createDb
     , initDb
     , initTempTable
+    , resolveDbFile
     ) where
 
 import           Control.Monad (forM, forM_, mapM, mapM_)
@@ -25,18 +26,22 @@ import           System.Directory
 import           System.FilePath ((</>))
 
 
+-- This resolves the database file path based on the value in the
+-- configuration.
+resolveDbFile :: Maybe FilePath -> IO FilePath
+resolveDbFile Nothing   = findDbFile
+resolveDbFile (Just "") = findDbFile
+resolveDbFile (Just df) = return df
+
+
 -- This connects to the database. It returns a ConnWrapper in order to provide
 -- some flexibility in what database engine I use.
-connectDb :: Maybe String -> IO ConnWrapper
-connectDb dbFile = getDbFile
-          >>= connectSqlite3
-          >>= initDb
-          >>= createDb
-          >>= return . ConnWrapper
-    where getDbFile = case dbFile of
-                        Nothing  -> findDbFile
-                        Just ""  -> findDbFile
-                        Just dbf -> return dbf
+connectDb :: String -> IO ConnWrapper
+connectDb dbFile =
+          connectSqlite3 dbFile >>=
+          initDb                >>=
+          createDb              >>=
+          return . ConnWrapper
 
 -- This initializes the database by turning on appropriate pragmas.
 initDb :: IConnection c => c -> IO c

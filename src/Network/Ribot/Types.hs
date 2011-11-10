@@ -24,6 +24,7 @@ data Ribot = Ribot { botServer :: String
                    , botPort   :: Int
                    , botChan   :: String
                    , botNick   :: String
+                   , botDbFile :: FilePath
                    }
 
 -- This adds a little state to the Ribot bot. Currently, that's just the time

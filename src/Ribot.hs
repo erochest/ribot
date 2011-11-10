@@ -10,7 +10,7 @@ import qualified Database.HDBC as Db
 import           Data.Time
 import           Network
 import           Network.Ribot.Irc
-import           Database.Ribot (connectDb)
+import           Database.Ribot (connectDb, resolveDbFile)
 import           Network.Ribot.Search (reindex)
 import           Network.Ribot.Types
 import           Ribot.Cli
@@ -27,7 +27,7 @@ main = do
                     (uncurry loop)
         Reindex dbFile -> do
             putStrLn "reindexing database."
-            (msgCount, tknCount) <- bracket (connectDb dbFile)
+            (msgCount, tknCount) <- bracket (resolveDbFile dbFile >>= connectDb)
                                             Db.disconnect
                                             reindex
             printf "indexed %d messages; %d tokens.\n" msgCount tknCount
