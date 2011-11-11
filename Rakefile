@@ -1,6 +1,7 @@
 
 require 'tempfile'
 require 'fileutils'
+require 'pathname'
 
 task :default => :usage
 
@@ -33,9 +34,31 @@ task :clean do
   sh %{cabal clean}
 end
 
+# This runs docco on the source file and moves the output into a deeper level
+# than just ./docs.
+def docco(src_file)
+  sh %{docco #{src_file}}
+
+  basename = File.basename(src_file, '.hs') + '.html'
+  tmp = File.join("docs", basename)
+
+  parts = Pathname.new(src_file).each_filename.to_a
+  parts[parts.index('src')] = 'docs'
+  dest = File.join(*parts)[0..-4] + '.html'
+
+  if tmp != dest
+    dirname = File.dirname(dest)
+    FileUtils.mkdir_p(dirname)
+    FileUtils.mv(tmp, dest, :verbose => true)
+    FileUtils.mv('docs/docco.css', File.join(dirname, 'docco.css'),
+                 :verbose => true)
+  end
+end
+
 desc 'Creates docs using docco (must be on path).'
 task :docs do
-  sh %{find src -name '*.hs' -exec docco \\{\\} \\;}
+  hs_files = File.join('src', '**', '*.hs')
+  Dir.glob(hs_files).each { |filename| docco(filename) }
 end
 
 desc 'Creates the docs and commits onto the gh-pages branch.'
