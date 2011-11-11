@@ -17,9 +17,7 @@ import           Database.HDBC (ConnWrapper)
 import           System.IO
 import           Text.ParserCombinators.Parsec
 
--- This is the main data structure for the bot. It has connection information,
--- connection handles for IRC and the database, and the time the bot started
--- (for `!uptime`).
+-- This is the main data structure for the bot. It has connection information.
 data Ribot = Ribot { botServer :: String
                    , botPort   :: Int
                    , botChan   :: String
@@ -27,16 +25,18 @@ data Ribot = Ribot { botServer :: String
                    , botDbFile :: FilePath
                    }
 
--- This adds a little state to the Ribot bot. Currently, that's just the time
--- of the last data sent from the server.
+-- This adds a little state to the Ribot bot. This contains all of the handles
+-- and other information that changes between connections and re-connections in
+-- the same session.
 data RibotState = RibotState { botSocket    :: Handle
                              , botStartTime :: UTCTime
                              , botDbHandle  :: ConnWrapper
                              , botOutput    :: String -> IO ()
                              }
 
--- This is the monad the bot runs under. The `ReaderT` holds the state (a
--- `Ribot`) and silently threads it through the computation.
+-- This is the monad the bot runs under. The `ReaderT` holds the configuration
+-- (a `Ribot`), `StateT` holds the (duh) state. Both are silently threads it
+-- through the computation.
 type Net = StateT RibotState (ReaderT Ribot IO)
 
 -- This is the primary execution function for the `Net` monad.
@@ -63,7 +63,7 @@ parseMessage input =
             return $ Message Nothing Nothing now input
     where
         -- And example line would be:
-        -- ":erochester!~erocheste@137.54.2.108 PRIVMSG #err1234567890 :this is a message"
+        -- "`:erochester!~erocheste@137.54.2.108 PRIVMSG #err1234567890 :this is a message`"
         -- Which parses as something like this: `:USER!.*#CHAN :MSG`.
         parseMsg :: String -> Either ParseError [String]
         parseMsg = parse ircLine "(unknown)"

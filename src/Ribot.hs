@@ -9,13 +9,17 @@ import           Control.Exception (bracket)
 import qualified Database.HDBC as Db
 import           Data.Time
 import           Network
+import           Ribot.Cli
+import           System.IO
+import           Text.Printf
+-- [Network.Ribot.Irc](Network/Ribot/Irc.html) <br />
+-- [Database.Ribot](Database/Ribot.html) <br />
+-- [Network.Ribot.Search](Network/Ribot/Search.html) <br />
+-- [Network.Ribot.Types](Network/Ribot/Types.html)
 import           Network.Ribot.Irc
 import           Database.Ribot (connectDb, resolveDbFile)
 import           Network.Ribot.Search (reindex)
 import           Network.Ribot.Types
-import           Ribot.Cli
-import           System.IO
-import           Text.Printf
 
 -- The main function.
 main :: IO ()

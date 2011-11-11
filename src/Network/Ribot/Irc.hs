@@ -26,14 +26,19 @@ import qualified Data.List as L
 import qualified Data.Maybe as M
 import           Data.Time
 import           Network
-import           Database.Ribot
-import           Network.Ribot.Types
-import           Network.Ribot.Search (index, search)
 import           System.Exit
 import           System.IO
 import           System.Locale
 import           System.Timeout
 import           Text.Printf
+
+-- [Database.Ribot](../../Database/Ribot.html) <br />
+-- [Network.Ribot.Types](Types.html) <br />
+-- [Network.Ribot.Search](Search.html) <br />
+-- [Text.Ribot.Utils](../../Text/Ribot/Utils.html)
+import           Database.Ribot
+import           Network.Ribot.Types
+import           Network.Ribot.Search (index, search)
 import           Text.Ribot.Utils (split)
 
 -- This is the version, for the command line and the !version command.
@@ -191,19 +196,18 @@ clean = drop 1 . dropWhile (/= ':') . drop 1
 -- you'd add new commands.
 --
 -- Commands it recognizes now are:
---
--- * `!version` — print out the version of the bot.
--- * `!uptime` — print how long the bot has been running.
--- * `!log off` — turn off logging for the user.
--- * `!log on` — turn on logging for the user.
--- * `!echo NAME` — echo back.
 eval :: Message -> Net ()
+-- * `!help` — print this message;
 eval (Message _ _ _ "!help") =
     mapM_ privmsg helpMessage
+-- * `!version` — print out the version of the bot;
 eval (Message _ _ _ "!version") =
     privmsg $ "version " ++ ribotVersion
+-- * `!uptime` — print how long the bot has been running;
 eval (Message _ _ _ "!uptime") =
     uptime >>= privmsg
+-- * `!log off` — turn off logging for the user;
+-- * `!log on` — turn on logging for the user;
 eval (Message (Just usr) _ _ log) | "!log " `L.isPrefixOf` log = do
     db <- return . botDbHandle =<< get
     io . withTransaction db $ \cxn ->
@@ -211,8 +215,11 @@ eval (Message (Just usr) _ _ log) | "!log " `L.isPrefixOf` log = do
     privmsg $ "Logging turned " ++ logMsg ++ " for " ++ usr ++ "."
     where logFlag = log == "!log on"
           logMsg = if logFlag then "on" else "off"
+-- * `!echo NAME` — echo back;
 eval (Message _ _ _ x) | "!echo" `L.isPrefixOf` x =
     privmsg (drop 6 x)
+-- * `!search TERMS` — This searches the log and prints out the last 25
+--   results;
 eval (Message _ _ _ x) | "!search" `L.isPrefixOf` x = do
     db <- return . botDbHandle =<< get
     results <- io $ search db query
@@ -221,7 +228,9 @@ eval (Message _ _ _ x) | "!search" `L.isPrefixOf` x = do
     where query = drop 8 x
           showSearchResult (_, nick, date, msg) =
             "[" ++ date ++ "] " ++ nick ++ ": " ++ msg ++ "\n"
+-- * All other `!` commands are ignored; and
 eval (Message _ _ _ ('!':_)) = return ()
+-- * All other messages are handled by `processMessage`.
 eval msg = processMessage msg
 
 -- This gets how long the bot has been running and returns it as a string.
@@ -239,9 +248,8 @@ privmsg s = do
 
 -- This processes an incoming message.
 --
--- Currently, this means that we log it to the database.
---
--- At some point, this should spin off a new thread.
+-- Currently, this means that we log it to the database and add its tokens to
+-- the inverted index.
 processMessage :: Message -> Net ()
 processMessage msg = do
     (RibotState _ _ db _) <- get

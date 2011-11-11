@@ -21,9 +21,10 @@ import           Control.Monad (forM, forM_, mapM, mapM_)
 import           Database.HDBC
 import           Database.HDBC.Types (IConnection(..), ConnWrapper)
 import           Database.HDBC.Sqlite3 (connectSqlite3)
-import           Network.Ribot.Types
 import           System.Directory
 import           System.FilePath ((</>))
+-- [Network.Ribot.Types](../Network/Ribot/Types.html)
+import           Network.Ribot.Types
 
 
 -- This resolves the database file path based on the value in the

@@ -9,6 +9,7 @@ module Text.Ribot.Search
 import qualified Data.Char as C
 import qualified Data.List as L
 import           Text.ParserCombinators.Parsec
+-- [Text.Ribot.Tokenizer](Tokenizer.html)
 import qualified Text.Ribot.Tokenizer as T
 
 -- This takes an input string and tokenizes it and removes stop words and
@@ -23,6 +24,7 @@ tokenize nick input =
         keep word = T.isWord word && not (T.inStopList word)
 
 -- Parse search parses the search query according to these rules:
+--
 -- * for the most part, tokenization follows `tokenize` above;
 -- * English stop words and punctuation are stripped out; and
 -- * wildcards (stars) are turned into SQL wildcards (*%*).
@@ -52,7 +54,7 @@ parseSearch input =
         tokenList = word `sepBy` many (satisfy isJunk)
 
         -- A single token. This is where it differs from
-        -- `Text.Ribot.Tokenizer`.
+        -- [`Text.Ribot.Tokenizer`](Tokenizer.html).
         word :: GenParser Char st String
         word = do
             first <- alphaNum <|> char '*'

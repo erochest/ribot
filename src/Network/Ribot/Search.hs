@@ -22,6 +22,9 @@ import qualified Data.Char as C
 import qualified Data.List as L
 import           Database.HDBC
 import           Database.HDBC.Types (IConnection)
+
+-- [Text.Ribot.Tokenizer](../../Text/Ribot/Tokenizer.html) <br />
+-- [Text.Ribot.Search](../../Text/Ribot/Search.html)
 import qualified Text.Ribot.Tokenizer as T
 import           Text.Ribot.Search
 
@@ -44,7 +47,7 @@ index cxn nick msgId msg =
         tokenValues = [[msgIdSql, toSql tkn] | tkn <- tokens]
         msgIdSql = toSql msgId
 
-        -- 1. The tokens are loaded into the temporary table;
+        -- * The tokens are loaded into the temporary table;
         loadTokens :: IConnection a => a -> IO ()
         loadTokens cxn = do
             stmt <- prepare cxn "INSERT OR IGNORE INTO msg_token \
@@ -52,8 +55,8 @@ index cxn nick msgId msg =
             executeMany stmt tokenValues
             return ()
 
-        -- 2. `token` is updated with the tokens in the temporary table
-        -- (`INSERT OR IGNORE`);
+        -- * `token` is updated with the tokens in the temporary table
+        --   (`INSERT OR IGNORE`);
         updateTokenTable :: IConnection a => a -> IO ()
         updateTokenTable cxn = do
             stmt <- prepare cxn "INSERT OR IGNORE INTO token (text) \
@@ -62,8 +65,8 @@ index cxn nick msgId msg =
             execute stmt [msgIdSql]
             return ()
 
-        -- 3. The IDs in the temporary table are filled in from the `token`
-        -- table;
+        -- * The IDs in the temporary table are filled in from the `token`
+        --   table;
         updateIds :: IConnection a => a -> IO ()
         updateIds cxn = do
             stmt <- prepare cxn "INSERT OR REPLACE INTO msg_token \
@@ -75,8 +78,8 @@ index cxn nick msgId msg =
             execute stmt [msgIdSql]
             return ()
 
-        -- 4. The tokens in the temporary table are inserted into the
-        -- `position` table; and
+        -- * The tokens in the temporary table are inserted into the
+        --   `position` table; and
         updateIndex :: IConnection a => a -> IO ()
         updateIndex cxn = do
             stmt <- prepare cxn "INSERT INTO position (token_id, message_id) \
@@ -85,7 +88,7 @@ index cxn nick msgId msg =
             execute stmt [msgIdSql]
             return ()
 
-        -- 5. Remove the tokens from this message from the temporary table.
+        -- * Remove the tokens from this message from the temporary table.
         cleanUp :: IConnection a => a -> IO ()
         cleanUp cxn = do
             stmt <- prepare cxn "DELETE FROM msg_token WHERE message_id=?;"
@@ -112,8 +115,8 @@ reindex cxn = do
         return (length msgs, length tokens)
 
     where
-        -- 1. First, we have to clear out the existing data from the `token`
-        -- and `position` tables;
+        -- * First, we have to clear out the existing data from the `token`
+        --   and `position` tables;
         clearExistingData :: IConnection a => a -> IO ()
         clearExistingData cxn =
             mapM_ (runRaw cxn) [ "DELETE FROM token;"
@@ -121,7 +124,7 @@ reindex cxn = do
                                , "DELETE FROM msg_token;"
                                ]
 
-        -- 2. Get all messages (Message ID, User Nick, Message Text);
+        -- * Get all messages (Message ID, User Nick, Message Text);
         getMessages :: IConnection a => a -> IO [(Int, String, String)]
         getMessages cxn = do
             results <- quickQuery' cxn
@@ -132,7 +135,7 @@ reindex cxn = do
             return [(fromSql mId, fromSql userName, fromSql msgText) |
                     [mId, userName, msgText] <- results]
 
-        -- 3. Tokenize them (output of `getMessages` -> (mId, tokenText));
+        -- * Tokenize them (output of `getMessages` -> (mId, tokenText));
         tokenizeMessages :: [(Int, String, String)] -> [(Int, String)]
         tokenizeMessages = L.concatMap tokenizeMessage
 
@@ -140,7 +143,7 @@ reindex cxn = do
         tokenizeMessage (msgId, nick, msgText) =
             map ((,) msgId) $ tokenize nick msgText
 
-        -- 4. Push the tokens into `msg_token`;
+        -- * Push the tokens into `msg_token`;
         populateMsgTokenTable :: IConnection c => c -> [(Int, String)] -> IO ()
         populateMsgTokenTable cxn tokens = do
             stmt <- prepare cxn " INSERT OR IGNORE INTO msg_token \
@@ -149,13 +152,13 @@ reindex cxn = do
                               (msgId, token) <- tokens]
             return ()
 
-        -- 5. Fill in the `token` table;
+        -- * Fill in the `token` table;
         updateTokenTable :: IConnection c => c -> IO ()
         updateTokenTable cxn =
             runRaw cxn " INSERT OR IGNORE INTO token (text) \
                        \ SELECT text FROM msg_token;"
 
-        -- 6. Pull the token IDs back into `msg_token` (unfortunately, I can't
+        -- * Pull the token IDs back into `msg_token` (unfortunately, I can't
         -- figure out a way to do this in SQL without `UPDATE ... SELECT`);
         updateIds :: IConnection a => a -> IO ()
         updateIds cxn = do
@@ -164,18 +167,19 @@ reindex cxn = do
                                   \ SET token_id=? WHERE text=?;"
             executeMany update tokens
 
-        -- 7. Push the token/message relationships into `position`; and
+        -- * Push the token/message relationships into `position`; and
         updateIndex :: IConnection a => a -> IO ()
         updateIndex cxn =
             runRaw cxn " INSERT INTO position (token_id, message_id) \
                        \ SELECT token_id, message_id FROM msg_token; "
 
-        -- 8. Remove the working data from the `msg_token` table.
+        -- * Remove the working data from the `msg_token` table.
         cleanUp :: IConnection a => a -> IO ()
         cleanUp cxn =
             runRaw cxn "DELETE FROM msg_token;"
 
 -- A `SearchResult` is one hit from a search query. It contains
+--
 -- 1. the message ID,
 -- 2. the nick of the person who sent the message,
 -- 3. the date the message was sent, and

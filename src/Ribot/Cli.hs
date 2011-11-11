@@ -7,8 +7,9 @@ module Ribot.Cli (
     , cmdArgs
     ) where
 
-import           Network.Ribot.Irc (ribotVersion)
 import           System.Console.CmdArgs
+-- [Network.Ribot.Irc](../Network/Ribot/Irc.html)
+import           Network.Ribot.Irc (ribotVersion)
 
 -- These are the default command-line settings.
 defaultServer :: String

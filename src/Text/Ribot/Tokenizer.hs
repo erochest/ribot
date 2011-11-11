@@ -16,7 +16,8 @@ import qualified Data.Set as S
 import           Text.ParserCombinators.Parsec
 
 
--- This is an English stop list taken from http://www.nltk.org/.
+-- This is an English stop list taken from the [Natural Language
+-- Toolkit](http://www.nltk.org/).
 stopList :: S.Set String
 stopList = S.fromList [ "i", "me", "my", "myself", "we", "our", "ours",
     "ourselves", "you", "your", "yours", "yourself", "yourselves", "he", "him",
