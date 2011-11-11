@@ -32,6 +32,7 @@ import           Network.Ribot.Search (index, search)
 import           System.Exit
 import           System.IO
 import           System.Locale
+import           System.Timeout
 import           Text.Printf
 import           Text.Ribot.Utils (split)
 
@@ -52,6 +53,13 @@ helpMessage =
     , "!search QUERY: Search the logs for one or more terms."
     ]
 
+
+-- This is the maximum time that we can go without hearing from the server. If
+-- this timeout is reached, we re-connect.  Currently, this is set for five
+-- minutes.
+timeoutPeriod :: Int
+timeoutPeriod =  5 * 60 * 10^6
+
 -- This takes the ribot and fills in the state by connecting to IRC,
 -- the database, etc.
 connectState :: Ribot -> IO RibotState
@@ -71,6 +79,19 @@ connectState (Ribot server port chan nick dbFile) = do
         hPrintf h "%s\r\n" output
         printf "> %s\n" output
     return $ RibotState h t db $ writeChan out
+
+-- This reconnects to the IRC server. It maintains the same connection to the
+-- database and other settings.
+reconnectIRC :: Net ()
+reconnectIRC = do
+    state  <- get
+    io . hClose $ botSocket state
+    server <- asks botServer
+    port   <- asks botPort
+    h      <- io . connectTo server . PortNumber $ fromIntegral port
+    io $ hSetBuffering h NoBuffering
+    login
+    put $ state { botSocket=h }
 
 -- This connects to IRC, to the database, notes the current time, and returns a
 -- ready-to-go `Ribot`.
@@ -100,6 +121,7 @@ runRibot = do
 -- This logs onto IRC with a nick into a channel.
 login :: Net ()
 login = do
+    gets botSocket >>= io . hShow >>= io . printf "Logging onto %s\n"
     nick <- asks botNick
     write "NICK" nick
     write "USER" (nick ++ " 0 * :riBOT")
@@ -139,17 +161,34 @@ logInput input = do
 -- evaluates it.
 listen :: Handle -> Net ()
 listen h = forever $ do
-    s <- init `fmap` liftIO (hGetLine h)
-    liftIO $ logInput s
+    -- Listening to the server can time out. If it does, we have to reconnect.
+    maybeS <- io . timeout timeoutPeriod $ init `fmap` liftIO (hGetLine h)
+    case maybeS of
+        Nothing -> do
+            io $ putStrLn "Lost connection. Re-connecting..."
+            reconnectIRC
+            io $ putStrLn "OK. Reconnected..."
+        Just s -> handleInput s
+
+-- This processes a line of input from the IRC server.
+handleInput :: String -> Net ()
+handleInput s = do
+    io $ logInput s
     case s of
+        -- The server can send the `PING` command, to which we have to
+        -- immediately reply "PONG".
         ping | "PING" `L.isPrefixOf` ping -> do
             write "PONG" ""
             return ()
+
+        -- Otherwise, we parse the message, get the configuration and state to
+        -- the monad can be recreated in a second thread, and fork the new
+        -- thread to evaluate the input.
         otherwise -> do
-            msg <- liftIO (parseMessage s)
+            msg   <- io (parseMessage s)
             ribot <- ask
             state <- get
-            _ <- liftIO . forkIO $ evalRibot ribot state msg
+            _     <- io . forkIO $ evalRibot ribot state msg
             return ()
 
 -- This cleans up a string send by IRC by removing the prefix.
