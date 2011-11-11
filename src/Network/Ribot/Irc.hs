@@ -217,6 +217,7 @@ eval (Message _ _ _ x) | "!search" `L.isPrefixOf` x = do
     db <- return . botDbHandle =<< get
     results <- io $ search db query
     mapM_ privmsg . map showSearchResult $ results
+    privmsg $ show (length results) ++ " message(s) found."
     where query = drop 8 x
           showSearchResult (_, nick, date, msg) =
             "[" ++ date ++ "] " ++ nick ++ ": " ++ msg ++ "\n"
