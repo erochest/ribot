@@ -2,18 +2,41 @@
 -- This contains the tokenizer for search and generating the MM.
 
 module Text.Ribot.Tokenizer
-    ( tokenize
+    ( lex
+    , tokenize
     , isWord
     , removePunctuation
     , stopList
     , inStopList
     , removeStopWords
+    , Lex(..)
     ) where
 
 import qualified Data.Char as C
 import qualified Data.List as L
 import qualified Data.Set as S
 import           Text.ParserCombinators.Parsec
+import           Prelude hiding (lex)
+
+
+-- This provides the data definition for the lexed text.
+data Lex = LexAlphaNum String
+    deriving (Show, Eq)
+
+-- This breaks a text string into a list of `Lex` data that the tokenizer can
+-- throw away, join to other lexed items, or output them as is.
+--
+-- The parameters are the source and the line to lex.
+lex :: String -> String -> Either ParseError [Lex]
+lex = parse lexItems
+
+-- A list of lexed items.
+lexItems :: GenParser Char st [Lex]
+lexItems = many lexAlphaNum
+
+-- A string of alpha-numeric characters.
+lexAlphaNum :: GenParser Char st Lex
+lexAlphaNum = many1 alphaNum >>= return . LexAlphaNum
 
 
 -- This is an English stop list taken from the [Natural Language
