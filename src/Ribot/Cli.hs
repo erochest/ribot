@@ -1,5 +1,12 @@
 
 -- This contains the CLI option processing options for Ribot.
+--
+-- For more information on the command-line parser and the syntax and capabilities of the Modes below, see the documentation for the cmdargs package, especially these:
+--
+-- * [On Hackage](http://hackage.haskell.org/package/cmdargs)
+-- * [CmdArgs: Easy Command Line Processing](http://community.haskell.org/~ndm/darcs/cmdargs/cmdargs.htm)
+-- * [Using CmdArgs (Single and Multi-Mode)](http://zuttobenkyou.wordpress.com/2011/04/19/haskell-using-cmdargs-single-and-multi-mode/)
+-- * [Building a Haskell CLI Utility with CmdArgs](http://michaelxavier.net/Building-a-Haskell-CLI-Utility-with-CmdArgs.html)
 
 module Ribot.Cli (
       Modes(..)
@@ -35,6 +42,10 @@ data Modes
     | Reindex
        { dbFile   :: Maybe String
        }
+    | Search
+       { dbFile   :: Maybe String
+       , terms    :: [String]
+       }
     deriving (Show, Data, Typeable)
 
 -- Here are the options for the options.
@@ -56,6 +67,10 @@ ribotModes = modes
         { dbFile = defaultDbFile &= name "d" &= typ "DATABASE-FILE"
                                  &= help "The database file to use for logging."
         } &= details ["This reindexes the messages for searching."]
+    , Search
+        { dbFile = defaultDbFile &= name "d" &= typ "DATABASE-FILE"
+        , terms = def &= args &= typ "SEARCH-TERMS"
+        } &= details ["The terms to search for."]
     ] &= summary ("ribot v" ++ ribotVersion)
       &= program "ribot"
 

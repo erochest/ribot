@@ -38,12 +38,12 @@ import           Text.Printf
 -- [Text.Ribot.Utils](../../Text/Ribot/Utils.html)
 import           Database.Ribot
 import           Network.Ribot.Types
-import           Network.Ribot.Search (index, search)
+import           Network.Ribot.Search (index, search, showSearchResult)
 import           Text.Ribot.Utils (split)
 
 -- This is the version, for the command line and the !version command.
 ribotVersion :: String
-ribotVersion =  "0.2.0"
+ribotVersion =  "0.2.1"
 
 -- This is the help message for the bot.
 helpMessage :: [String]
@@ -81,8 +81,8 @@ connectState (Ribot server port chan nick dbFile) = do
     out <- newChan
     forkIO . forever $ do
         output <- readChan out
-        hPrintf h "%s\r\n" output
         printf "> %s\n" output
+        hPrintf h "%s\r\n" output
     return $ RibotState h t db $ writeChan out
 
 -- This reconnects to the IRC server. It maintains the same connection to the
@@ -95,6 +95,7 @@ reconnectIRC = do
     port   <- asks botPort
     h      <- io . connectTo server . PortNumber $ fromIntegral port
     io $ hSetBuffering h NoBuffering
+    io $ putStrLn "Reordered II."
     put $ state { botSocket=h }
     login
 
@@ -221,13 +222,11 @@ eval (Message _ _ _ x) | "!echo" `L.isPrefixOf` x =
 -- * `!search TERMS` — This searches the log and prints out the last 25
 --   results;
 eval (Message _ _ _ x) | "!search" `L.isPrefixOf` x = do
-    db <- return . botDbHandle =<< get
+    db <- gets botDbHandle
     results <- io $ search db query
     mapM_ privmsg . map showSearchResult $ results
     privmsg $ show (length results) ++ " message(s) found."
     where query = drop 8 x
-          showSearchResult (_, nick, date, msg) =
-            "[" ++ date ++ "] " ++ nick ++ ": " ++ msg ++ "\n"
 -- * All other `!` commands are ignored; and
 eval (Message _ _ _ ('!':_)) = return ()
 -- * All other messages are handled by `processMessage`.

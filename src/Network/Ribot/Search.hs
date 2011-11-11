@@ -14,6 +14,7 @@ module Network.Ribot.Search
     , reindex
     , search
     , buildQuery
+    , showSearchResult
     , SearchResult
     ) where
 
@@ -247,4 +248,10 @@ buildQuery queryTerms =
                  -> ([String], [String], [SqlValue])
         foldTerm (sql, wheres, params) (n, term) =
             ((join n : sql), (where_ n term : wheres), (toSql term) : params)
+
+-- This prints a list of search results to 
+
+showSearchResult :: SearchResult -> String
+showSearchResult (_, nick, date, message) =
+    "[" ++ date ++ "] " ++ nick ++ ": " ++ message
 
