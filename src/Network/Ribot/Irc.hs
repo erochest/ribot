@@ -96,19 +96,11 @@ reconnectIRC = do
 -- This connects to IRC, to the database, notes the current time, and returns a
 -- ready-to-go `Ribot`.
 connect :: String -> Int -> String -> String -> Maybe FilePath -> IO (Ribot, RibotState)
-connect server port chan nick dbFile =
-    notify $ do
-        dbFile' <- resolveDbFile dbFile
-        let ribot = Ribot server (fromIntegral port) chan nick dbFile'
-        state <- connectState ribot
-        return (ribot, state)
-    where
-        -- This prints some information to the screen about what we're doing.
-        -- This should probably refactored to make it more functional.
-        notify a = bracket_
-            (printf "Connecting to %s ..." server >> hFlush stdout)
-            (putStrLn "done.")
-            a
+connect server port chan nick dbFile = do
+    dbFile' <- resolveDbFile dbFile
+    let ribot = Ribot server (fromIntegral port) chan nick dbFile'
+    state <- connectState ribot
+    return (ribot, state)
 
 -- Run in `Net`.
 --
