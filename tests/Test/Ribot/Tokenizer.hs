@@ -42,6 +42,19 @@ assertLexWS = do
     assertLex descr "   \t  " [LexWS "   \t  "]
     where descr = "Lex whitespace"
 
+assertLexInterTokenP :: Assertion
+assertLexInterTokenP = do
+    assertLex descr "-" [LexInterToken '-']
+    assertLex descr "." [LexInterToken '.']
+    assertLex descr "," [LexInterToken ',']
+    assertLex descr "'" [LexInterToken '\'']
+    assertLex descr "',.-" [ LexInterToken '\''
+                           , LexInterToken ','
+                           , LexInterToken '.'
+                           , LexInterToken '-'
+                           ]
+    where descr = "Lex inter-token punctuation"
+
 assertLexCombined :: Assertion
 assertLexCombined = do
     assertLex descr "a " [LexAlphaNum "a", LexWS " "]
@@ -55,20 +68,10 @@ assertLexCombined = do
                                 , LexWS "\n"
                                 , LexAlphaNum "d"
                                 ]
+    assertLex descr "a-" [LexAlphaNum "a", LexInterToken '-']
+    assertLex descr " . " [LexWS " ", LexInterToken '.', LexWS " "]
+    assertLex descr "a, " [LexAlphaNum "a", LexInterToken ',', LexWS " "]
     where descr = "Lex combined"
-
-assertLexInterTokenP :: Assertion
-assertLexInterTokenP = do
-    assertLex descr "-" [LexInterToken '-']
-    assertLex descr "." [LexInterToken '.']
-    assertLex descr "," [LexInterToken ',']
-    assertLex descr "'" [LexInterToken '\'']
-    assertLex descr "',.-" [ LexInterToken '\''
-                           , LexInterToken ','
-                           , LexInterToken '.'
-                           , LexInterToken '-'
-                           ]
-    where descr = "Lex inter-token punctuation"
 
 tokenizerTests :: [Test]
 tokenizerTests =
