@@ -8,7 +8,7 @@ The site for this is on [my site](http://www.ericrochester.com/ribot).
 # Features
 
 * Chat logging;
-* <del>Log searches</del>;
+* Log searches;
 * <del>Mimicking</del>.
 
 # Commands
