@@ -27,8 +27,9 @@ main = do
     mode <- cmdArgs ribotModes
     case mode of
         Listen server port chan nick dbFile -> do
-            bracket (connect server port chan nick dbFile) disconnect
-                    (uncurry loop)
+            withSocketsDo $ do
+                bracket (connect server port chan nick dbFile) disconnect
+                        (uncurry loop)
         Reindex dbFile -> do
             putStrLn "reindexing database."
             (msgCount, tknCount) <- bracket (resolveDbFile dbFile >>= connectDb)
