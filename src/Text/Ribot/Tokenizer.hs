@@ -50,9 +50,11 @@ lexWS :: GenParser Char st Lex
 lexWS = many1 space >>= return . LexWS
 
 -- A single inter-token punctuation character.
+lexInterToken :: GenParser Char st Lex
 lexInterToken = oneOf "-.,'" >>= return . LexInterToken
 
 -- A single punctuation character.
+lexPunct :: GenParser Char st Lex
 lexPunct = anyChar >>= return . LexPunct
 
 
