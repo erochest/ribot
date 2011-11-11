@@ -56,16 +56,9 @@ For future reference, the IRC is defined by [RFC 1459][2].
 
 # Source Documentation
 
-The annotated source is at these locations:
+The annotated source branches off of this page:
 
-* [Ribot](http://www.ericrochester.com/ribot/docs/Ribot.html)
-* [Ribot.Cli](http://www.ericrochester.com/ribot/docs/Cli.html)
-* [Database.Ribot](http://www.ericrochester.com/ribot/docs/Ribot.html)
-* [Network.Ribot.Irc](http://www.ericrochester.com/ribot/docs/Irc.html)
-* [Network.Ribot.Types](http://www.ericrochester.com/ribot/docs/Types.html)
-* [Text.Ribot.Search](http://www.ericrochester.com/ribot/docs/Search.html)
-* [Text.Ribot.Tokenizer](http://www.ericrochester.com/ribot/docs/Tokenizer.html)
-* [Text.Ribot.Utils](http://www.ericrochester.com/ribot/docs/Utils.html)
+* [Ribot](http://www.ericrochester.com/ribot/docs/)
 
 [1]: http://en.wikipedia.org/wiki/Monad_(functional_programming) "Monad (functional programming)"
 [2]: http://tools.ietf.org/html/rfc1459 "RFC 1459"
