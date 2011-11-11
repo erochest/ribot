@@ -33,9 +33,35 @@ assertLexAlphaNum = do
     assertLex descr "3388aa77zz" [LexAlphaNum "3388aa77zz"]
     where descr = "Lex alphanumeric"
 
+assertLexWS :: Assertion
+assertLexWS = do
+    assertLex descr " " [LexWS " "]
+    assertLex descr "\t" [LexWS "\t"]
+    assertLex descr "\r" [LexWS "\r"]
+    assertLex descr "   " [LexWS "   "]
+    assertLex descr "   \t  " [LexWS "   \t  "]
+    where descr = "Lex whitespace"
+
+assertLexCombined :: Assertion
+assertLexCombined = do
+    assertLex descr "a " [LexAlphaNum "a", LexWS " "]
+    assertLex descr " a" [LexWS " ", LexAlphaNum "a"]
+    assertLex descr "   aaa" [LexWS "   ", LexAlphaNum "aaa"]
+    assertLex descr "a b\tc\nd" [ LexAlphaNum "a"
+                                , LexWS " "
+                                , LexAlphaNum "b"
+                                , LexWS "\t"
+                                , LexAlphaNum "c"
+                                , LexWS "\n"
+                                , LexAlphaNum "d"
+                                ]
+    where descr = "Lex combined"
+
 tokenizerTests :: [Test]
 tokenizerTests =
     [ testGroup "lexer" [ testCase "alpha-numeric" assertLexAlphaNum
+                        , testCase "whitespace" assertLexWS
+                        , testCase "combined" assertLexCombined
                         ]
     ]
 
