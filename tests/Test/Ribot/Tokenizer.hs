@@ -55,6 +55,23 @@ assertLexInterTokenP = do
                            ]
     where descr = "Lex inter-token punctuation"
 
+assertLexPunctuation :: Assertion
+assertLexPunctuation = do
+    assertLex descr "!" [LexPunct '!']
+    assertLex descr "%" [LexPunct '%']
+    assertLex descr ":" [LexPunct ':']
+    assertLex descr "<^>*+=~`/" [ LexPunct '<'
+                                , LexPunct '^'
+                                , LexPunct '>'
+                                , LexPunct '*'
+                                , LexPunct '+'
+                                , LexPunct '='
+                                , LexPunct '~'
+                                , LexPunct '`'
+                                , LexPunct '/'
+                                ]
+    where descr = "Lex punctuation"
+
 assertLexCombined :: Assertion
 assertLexCombined = do
     assertLex descr "a " [LexAlphaNum "a", LexWS " "]
@@ -78,6 +95,7 @@ tokenizerTests =
     [ testGroup "lexer" [ testCase "alpha-numeric" assertLexAlphaNum
                         , testCase "whitespace" assertLexWS
                         , testCase "inter-token punctuation" assertLexInterTokenP
+                        , testCase "punctuation" assertLexPunctuation
                         , testCase "combined" assertLexCombined
                         ]
     ]
