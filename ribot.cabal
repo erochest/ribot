@@ -27,6 +27,7 @@ Library
   exposed-modules:
       Database.Ribot
     , Network.Ribot.Irc
+    , Network.Ribot.Irc.Commands
     , Network.Ribot.Types
     , Network.Ribot.Search
     , Text.Ribot.Search

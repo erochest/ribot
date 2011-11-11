@@ -8,6 +8,7 @@ module Network.Ribot.Types
     , runNet
     , Message(..)
     , parseMessage
+    , io
     ) where
 
 import           Control.Monad.Reader
@@ -88,5 +89,9 @@ parseMessage input =
         ircMsg = many anyChar
         -- This skeps everything to `#`.
         skipHost = skipMany (noneOf "#")
+
+-- This is a shortcut for `liftIO` in the context of a `Net` monad.
+io :: IO a -> Net a
+io = liftIO
 
 
