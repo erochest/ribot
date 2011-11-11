@@ -95,8 +95,8 @@ reconnectIRC = do
     port   <- asks botPort
     h      <- io . connectTo server . PortNumber $ fromIntegral port
     io $ hSetBuffering h NoBuffering
-    login
     put $ state { botSocket=h }
+    login
 
 -- This connects to IRC, to the database, notes the current time, and returns a
 -- ready-to-go `Ribot`.
