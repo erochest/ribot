@@ -22,6 +22,7 @@ import           Prelude hiding (lex)
 -- This provides the data definition for the lexed text.
 data Lex = LexAlphaNum String
          | LexWS String
+         | LexInterToken Char
     deriving (Show, Eq)
 
 -- This breaks a text string into a list of `Lex` data that the tokenizer can
@@ -35,6 +36,7 @@ lex = parse lexItems
 lexItems :: GenParser Char st [Lex]
 lexItems = many (   lexAlphaNum
                 <|> lexWS
+                <|> lexInterToken
                 )
 
 -- A string of alpha-numeric characters.
@@ -44,6 +46,9 @@ lexAlphaNum = many1 alphaNum >>= return . LexAlphaNum
 -- A string of whitespace characters.
 lexWS :: GenParser Char st Lex
 lexWS = many1 space >>= return . LexWS
+
+-- A single inter-token punctuation character.
+lexInterToken = oneOf "-.,'" >>= return . LexInterToken
 
 
 -- This is an English stop list taken from the [Natural Language

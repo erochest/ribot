@@ -57,10 +57,24 @@ assertLexCombined = do
                                 ]
     where descr = "Lex combined"
 
+assertLexInterTokenP :: Assertion
+assertLexInterTokenP = do
+    assertLex descr "-" [LexInterToken '-']
+    assertLex descr "." [LexInterToken '.']
+    assertLex descr "," [LexInterToken ',']
+    assertLex descr "'" [LexInterToken '\'']
+    assertLex descr "',.-" [ LexInterToken '\''
+                           , LexInterToken ','
+                           , LexInterToken '.'
+                           , LexInterToken '-'
+                           ]
+    where descr = "Lex inter-token punctuation"
+
 tokenizerTests :: [Test]
 tokenizerTests =
     [ testGroup "lexer" [ testCase "alpha-numeric" assertLexAlphaNum
                         , testCase "whitespace" assertLexWS
+                        , testCase "inter-token punctuation" assertLexInterTokenP
                         , testCase "combined" assertLexCombined
                         ]
     ]
