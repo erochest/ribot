@@ -46,11 +46,16 @@ def docco(src_file)
   parts[parts.index('src')] = 'docs'
   dest = File.join(*parts)[0..-4] + '.html'
 
-  if tmp != dest
+  if tmp == dest
+    # If the tmp and dest are the same, then change dest's filename to
+    # index.html and only copy it.
+    dest = File.join(File.dirname(tmp), 'index.html')
+    FileUtils.cp(tmp, dest, :verbose => true)
+  else
     dirname = File.dirname(dest)
     FileUtils.mkdir_p(dirname)
     FileUtils.mv(tmp, dest, :verbose => true)
-    FileUtils.mv('docs/docco.css', File.join(dirname, 'docco.css'),
+    FileUtils.cp('docs/docco.css', File.join(dirname, 'docco.css'),
                  :verbose => true)
   end
 end
