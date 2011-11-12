@@ -73,7 +73,7 @@ token = parse tokenList
 
 -- This is a list of tokens.
 tokenList :: GenParser Lex st [String]
-tokenList = many tokenItem
+tokenList = trash >> many tokenItem
 
 -- This is a parser combinator that passes anything that matches a predicate.
 tokenp :: Stream s m Lex => (Lex -> Bool) -> ParsecT s u m Lex
@@ -86,12 +86,16 @@ tokenp f = tokenPrim (\l -> "'" ++ (show l) ++ "'")
 -- This is a single token.
 tokenItem :: GenParser Lex st String
 tokenItem = do
-    skipMany (tokenws <|> tokenpunct)
-    tokenp isLexAlphaNum >>= return . lexToString
+    token <- tokenp isLexAlphaNum
+    trash
+    return $ lexToString token
     where
         isLexAlphaNum :: Lex -> Bool
         isLexAlphaNum (LexAlphaNum _) = True
         isLexAlphaNum _               = False
+
+trash :: GenParser Lex st ()
+trash = skipMany (tokenpunct <|> tokenws)
 
 tokenws :: GenParser Lex st String
 tokenws = tokenp isWS >>= return . lexToString
@@ -101,11 +105,11 @@ tokenws = tokenp isWS >>= return . lexToString
         isWS _         = False
 
 tokenpunct :: GenParser Lex st String
-tokenpunct = tokenp isPunct >>= return . lexToString
+tokenpunct = tokenp isTokenPunct >>= return . lexToString
     where
-        isPunct :: Lex -> Bool
-        isPunct (LexPunct _) = True
-        isPunct _            = False
+        isTokenPunct :: Lex -> Bool
+        isTokenPunct (LexPunct _) = True
+        isTokenPunct _            = False
 
 lexToString :: Lex -> String
 lexToString (LexAlphaNum l)   = l
@@ -115,7 +119,7 @@ lexToString (LexPunct l)      = [l]
 
 -- Stub
 tokenize :: String -> String -> Either ParseError [String]
-tokenize _ _ = Right []
+tokenize src input = lex src input >>= token src
 
 
 -- This is an English stop list taken from the [Natural Language

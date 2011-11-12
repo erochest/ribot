@@ -117,6 +117,12 @@ assertTokenMultiple = mapM_ (uncurry at) inputs
                  , ( [LexAlphaNum "aaa", LexPunct '*', LexAlphaNum "bbb"]
                    , ["aaa", "bbb"]
                    )
+                 , ( [LexAlphaNum "aaa", LexPunct '*', LexAlphaNum "bbb", LexWS " \n"]
+                   , ["aaa", "bbb"]
+                   )
+                 , ( [LexPunct '!', LexWS "\n"]
+                   , []
+                   )
                  , ( [LexAlphaNum "abc", LexWS "\t", LexAlphaNum "def", LexPunct '!', LexAlphaNum "ghi"]
                    , ["abc", "def", "ghi"]
                    )
