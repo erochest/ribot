@@ -85,11 +85,27 @@ tokenp f = tokenPrim (\l -> "'" ++ (show l) ++ "'")
 
 -- This is a single token.
 tokenItem :: GenParser Lex st String
-tokenItem = tokenp isLexAlphaNum >>= return . lexToString
+tokenItem = do
+    skipMany (tokenws <|> tokenpunct)
+    tokenp isLexAlphaNum >>= return . lexToString
     where
         isLexAlphaNum :: Lex -> Bool
         isLexAlphaNum (LexAlphaNum _) = True
         isLexAlphaNum _               = False
+
+tokenws :: GenParser Lex st String
+tokenws = tokenp isWS >>= return . lexToString
+    where
+        isWS :: Lex -> Bool
+        isWS (LexWS _) = True
+        isWS _         = False
+
+tokenpunct :: GenParser Lex st String
+tokenpunct = tokenp isPunct >>= return . lexToString
+    where
+        isPunct :: Lex -> Bool
+        isPunct (LexPunct _) = True
+        isPunct _            = False
 
 lexToString :: Lex -> String
 lexToString (LexAlphaNum l)   = l

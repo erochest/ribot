@@ -108,7 +108,20 @@ assertTokenSimple = mapM_ (uncurry at) inputs
                  ]
 
 assertTokenMultiple :: Assertion
-assertTokenMultiple = assertBool "token-multiple" False
+assertTokenMultiple = mapM_ (uncurry at) inputs
+    where
+        at = assertToken "Token multiple"
+        inputs = [ ( [LexAlphaNum "aaa", LexWS "   ", LexAlphaNum "bbb"]
+                   , ["aaa", "bbb"]
+                   )
+                 , ( [LexAlphaNum "aaa", LexPunct '*', LexAlphaNum "bbb"]
+                   , ["aaa", "bbb"]
+                   )
+                 , ( [LexAlphaNum "abc", LexWS "\t", LexAlphaNum "def", LexPunct '!', LexAlphaNum "ghi"]
+                   , ["abc", "def", "ghi"]
+                   )
+                 ]
+
 
 assertTokenInter :: Assertion
 assertTokenInter = assertBool "inter" False
