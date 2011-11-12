@@ -90,6 +90,38 @@ assertLexCombined = do
     assertLex descr "a, " [LexAlphaNum "a", LexInterToken ',', LexWS " "]
     where descr = "Lex combined"
 
+assertToken :: String -> [Lex] -> [String] -> Assertion
+assertToken descr input expected =
+    assertBool (descr ++ ": " ++ (show input) ++ " => " ++ (show tokens))
+               (expected == tokens)
+    where tokens = onlyRight [] $ token "" input
+
+assertTokenSimple :: Assertion
+assertTokenSimple = mapM_ (uncurry at) inputs
+    where
+        at = assertToken "Token simple"
+        inputs = [ ([LexAlphaNum "aaa"], ["aaa"])
+                 , ([LexAlphaNum "qwerty"], ["qwerty"])
+                 , ([LexWS " \t"], [])
+                 , ([LexInterToken '-'], [])
+                 , ([LexPunct '*'], [])
+                 ]
+
+assertTokenMultiple :: Assertion
+assertTokenMultiple = assertBool "token-multiple" False
+
+assertTokenInter :: Assertion
+assertTokenInter = assertBool "inter" False
+
+assertTokenPrePost :: Assertion
+assertTokenPrePost = assertBool "pre- post-" False
+
+assertTokenContractions :: Assertion
+assertTokenContractions = assertBool "contractions" False
+
+assertTokenURLs :: Assertion
+assertTokenURLs = assertBool "URLs" False
+
 tokenizerTests :: [Test]
 tokenizerTests =
     [ testGroup "lexer" [ testCase "alpha-numeric" assertLexAlphaNum
@@ -98,5 +130,12 @@ tokenizerTests =
                         , testCase "punctuation" assertLexPunctuation
                         , testCase "combined" assertLexCombined
                         ]
+    , testGroup "tokenizer" [ testCase "simple" assertTokenSimple
+                            , testCase "multiple" assertTokenMultiple
+                            , testCase "inter-token punctuation" assertTokenInter
+                            , testCase "pre- and post-punctuation" assertTokenPrePost
+                            , testCase "contractions" assertTokenContractions
+                            , testCase "URLs" assertTokenURLs
+                            ]
     ]
 

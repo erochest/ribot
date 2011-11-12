@@ -1,21 +1,25 @@
+{-# LANGUAGE FlexibleContexts #-}
 
 -- This contains the tokenizer for search and generating the MM.
 
 module Text.Ribot.Tokenizer
     ( lex
+    , token
+    , Lex(..)
+
     , tokenize
     , isWord
     , removePunctuation
     , stopList
     , inStopList
     , removeStopWords
-    , Lex(..)
     ) where
 
 import qualified Data.Char as C
 import qualified Data.List as L
 import qualified Data.Set as S
-import           Text.ParserCombinators.Parsec
+import           Text.Parsec hiding (token)
+import           Text.ParserCombinators.Parsec hiding (token)
 import           Prelude hiding (lex)
 
 
@@ -57,6 +61,46 @@ lexInterToken = oneOf "-.,'" >>= return . LexInterToken
 lexPunct :: GenParser Char st Lex
 lexPunct = anyChar >>= return . LexPunct
 
+-- This processes the output of `lex`. It does one of several things:
+--
+-- * drop trash and whitespace;
+-- * put word tokens with intra-token punctuation together; and
+-- * pass simple word tokens through.
+--
+-- This also normalizes all tokens.
+token :: String -> [Lex] -> Either ParseError [String]
+token = parse tokenList
+
+-- This is a list of tokens.
+tokenList :: GenParser Lex st [String]
+tokenList = many tokenItem
+
+-- This is a parser combinator that passes anything that matches a predicate.
+tokenp :: Stream s m Lex => (Lex -> Bool) -> ParsecT s u m Lex
+tokenp f = tokenPrim (\l -> "'" ++ (show l) ++ "'")
+                     nextPos
+                     (\l -> if f l then Just l else Nothing)
+    where
+        nextPos pos _ _ = incSourceColumn pos 1
+
+-- This is a single token.
+tokenItem :: GenParser Lex st String
+tokenItem = tokenp isLexAlphaNum >>= return . lexToString
+    where
+        isLexAlphaNum :: Lex -> Bool
+        isLexAlphaNum (LexAlphaNum _) = True
+        isLexAlphaNum _               = False
+
+lexToString :: Lex -> String
+lexToString (LexAlphaNum l)   = l
+lexToString (LexWS l)         = l
+lexToString (LexInterToken l) = [l]
+lexToString (LexPunct l)      = [l]
+
+-- Stub
+tokenize :: String -> String -> Either ParseError [String]
+tokenize _ _ = Right []
+
 
 -- This is an English stop list taken from the [Natural Language
 -- Toolkit](http://www.nltk.org/).
@@ -93,60 +137,6 @@ isWord _                      = False
 -- This removes all punctuation tokens from a list of tokens.
 removePunctuation :: [String] -> [String]
 removePunctuation = L.filter isWord
-
--- This is the main function. It breaks a `String` into a `[String]`. It uses
--- a Parsec parser combinator to do this. The input should be very short, so we
--- don't need to worry about handling large input or lazy evaluation or
--- anything.
---
--- The two parameters are the source (channel + nick, maybe) and the line to
--- parse.
-tokenize :: String -> String -> Either ParseError [String]
-tokenize = parse tokenList
-
--- A `tokenList` is optional whitespace followed by a list of tokens, separated
--- by and optionally ended by whitespace.
-tokenList :: GenParser Char st [String]
-tokenList = do
-    spaces
-    (eof >> return []) <|> tokenRest
-
--- This is a token (immediate, no leading whitespace) and the rest of the
--- tokens.
-tokenRest :: GenParser Char st [String]
-tokenRest = do
-    t <- singleToken
-    ts <- tokenList
-    return $ t:ts
-
--- A `singleToken` is a punctuation character or a `word`.
-singleToken :: GenParser Char st String
-singleToken =   (punctuation >>= \c -> return [c])
-            <|> word
-
--- A `word` is one or more alpha-numeric characters, optionally followed by a
--- punctuation mark immediately followed by another word (alphanumber and
--- another suffix).
-word :: GenParser Char st String
-word = do
-    base <- many1 alphaNum
-    rest <- optionMaybe $ try suffix
-    let normBase = map C.toLower base
-    return $ case rest of
-        Just rest' -> normBase ++ rest'
-        Nothing    -> normBase
-
--- This is a suffix of a word. It contains one or more punctuation marks
--- followed by another word.
-suffix :: GenParser Char st String
-suffix = do
-    p <- many1 punctuation
-    rest <- word
-    return $ p ++ rest
-
--- This is a single punctuation character.
-punctuation :: GenParser Char st Char
-punctuation = satisfy isPunctuation
 
 -- This is my re-definition of `C.isPunctuation` so that it includes symbols.
 isPunctuation :: Char -> Bool
