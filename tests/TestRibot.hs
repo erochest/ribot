@@ -1,6 +1,7 @@
 
 module Main where
 
+import Test.Ribot.Generate
 import Test.Ribot.Search
 import Test.Ribot.Tokenizer
 
@@ -13,5 +14,6 @@ tests :: [Test]
 tests =
     [ testGroup "tokenizer" tokenizerTests
     , testGroup "search" searchTests
+    , testGroup "generate" generateTests
     ]
 

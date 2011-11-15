@@ -30,6 +30,7 @@ Library
     , Network.Ribot.Irc.Commands
     , Network.Ribot.Types
     , Network.Ribot.Search
+    , Text.Ribot.Generate
     , Text.Ribot.Search
     , Text.Ribot.Tokenizer
     , Text.Ribot.Utils
