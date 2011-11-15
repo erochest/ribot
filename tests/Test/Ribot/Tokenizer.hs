@@ -148,10 +148,28 @@ assertTokenInter = mapM_ (uncurry at) inputs
                  ]
 
 assertTokenPrePost :: Assertion
-assertTokenPrePost = assertBool "pre- post-" False
-
-assertTokenContractions :: Assertion
-assertTokenContractions = assertBool "contractions" False
+assertTokenPrePost = mapM_ (uncurry at) inputs
+    where
+        at = assertToken "Token pre- and post-"
+        inputs = [ ( [LexInterToken '\'', LexAlphaNum "aaa"]
+                   , ["aaa"]
+                   )
+                 , ( [LexAlphaNum "aaa", LexInterToken '\'']
+                   , ["aaa"]
+                   )
+                 , ( [LexInterToken '-', LexAlphaNum "aaa", LexInterToken '.']
+                   , ["aaa"]
+                   )
+                 , ( [LexPunct '"', LexAlphaNum "aaa"]
+                   , ["aaa"]
+                   )
+                 , ( [LexAlphaNum "aaa", LexPunct '"']
+                   , ["aaa"]
+                   )
+                 , ( [LexPunct '!', LexAlphaNum "aaa", LexPunct '*']
+                   , ["aaa"]
+                   )
+                 ]
 
 assertTokenURLs :: Assertion
 assertTokenURLs = assertBool "URLs" False
@@ -168,7 +186,6 @@ tokenizerTests =
                             , testCase "multiple" assertTokenMultiple
                             , testCase "inter-token punctuation" assertTokenInter
                             , testCase "pre- and post-punctuation" assertTokenPrePost
-                            , testCase "contractions" assertTokenContractions
                             , testCase "URLs" assertTokenURLs
                             ]
     ]

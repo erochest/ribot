@@ -18,7 +18,7 @@ module Text.Ribot.Tokenizer
 import qualified Data.Char as C
 import qualified Data.List as L
 import qualified Data.Set as S
-import           Text.Parsec hiding (token)
+import           Text.Parsec hiding (token, try)
 import           Text.ParserCombinators.Parsec hiding (token)
 import           Prelude hiding (lex)
 
@@ -87,7 +87,7 @@ tokenp f = tokenPrim (\l -> "'" ++ (show l) ++ "'")
 tokenItem :: GenParser Lex st String
 tokenItem = do
     token <- tokenword
-    rest  <- many tokenintrapunct
+    rest  <- many (try tokenItem')
     trash
     return . L.concat $ (token : rest)
 
@@ -98,23 +98,17 @@ tokenword = tokenp isLexAlphaNum >>= return . lexToString
         isLexAlphaNum (LexAlphaNum _) = True
         isLexAlphaNum _               = False
 
-tokenintrapunct :: GenParser Lex st String
-tokenintrapunct = do
-    lookAhead punctword
-    punctword
+tokenItem' :: GenParser Lex st String
+tokenItem' = punctword
     where
         punctword :: GenParser Lex st String
         punctword = do
-            p <- tokenp isIntraTokenPunct
+            p <- tokenintrapunct
             w <- tokenword
-            return . (++ w) $ lexToString p
-
-        isIntraTokenPunct :: Lex -> Bool
-        isIntraTokenPunct (LexInterToken _) = True
-        isIntraTokenPunct _                 = False
+            return $ p ++ w
 
 trash :: GenParser Lex st ()
-trash = skipMany (tokenpunct <|> tokenws)
+trash = skipMany (tokenpunct <|> tokenws <|> tokenintrapunct)
 
 tokenws :: GenParser Lex st String
 tokenws = tokenp isWS >>= return . lexToString
@@ -122,6 +116,13 @@ tokenws = tokenp isWS >>= return . lexToString
         isWS :: Lex -> Bool
         isWS (LexWS _) = True
         isWS _         = False
+
+tokenintrapunct :: GenParser Lex st String
+tokenintrapunct = tokenp isIntraTokenPunct >>= return . lexToString
+    where
+        isIntraTokenPunct :: Lex -> Bool
+        isIntraTokenPunct (LexInterToken _) = True
+        isIntraTokenPunct _                 = False
 
 tokenpunct :: GenParser Lex st String
 tokenpunct = tokenp isTokenPunct >>= return . lexToString
