@@ -139,7 +139,12 @@ lexToString (LexPunct l)      = [l]
 
 -- Stub
 tokenize :: String -> String -> Either ParseError [String]
-tokenize src input = lex src input >>= token src
+tokenize src input =   lex src input
+                   >>= token src
+                   >>= return . map normalize
+    where
+        normalize :: String -> String
+        normalize = map C.toLower
 
 
 -- This is an English stop list taken from the [Natural Language
