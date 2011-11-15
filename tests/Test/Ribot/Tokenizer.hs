@@ -130,7 +130,22 @@ assertTokenMultiple = mapM_ (uncurry at) inputs
 
 
 assertTokenInter :: Assertion
-assertTokenInter = assertBool "inter" False
+assertTokenInter = mapM_ (uncurry at) inputs
+    where
+        at = assertToken "Token inter-token punctuation"
+        inputs = [ ( [LexAlphaNum "aaa", LexInterToken '\'', LexAlphaNum "s"]
+                   , ["aaa's"]
+                   )
+                 , ( [LexAlphaNum "aaa", LexInterToken '-', LexAlphaNum "aaa"]
+                   , ["aaa-aaa"]
+                   )
+                 , ( [LexAlphaNum "aaa", LexInterToken ',', LexAlphaNum "aaa"]
+                   , ["aaa,aaa"]
+                   )
+                 , ( [LexAlphaNum "aaa", LexInterToken '.', LexAlphaNum "aaa"]
+                   , ["aaa.aaa"]
+                   )
+                 ]
 
 assertTokenPrePost :: Assertion
 assertTokenPrePost = assertBool "pre- post-" False

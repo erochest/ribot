@@ -86,13 +86,32 @@ tokenp f = tokenPrim (\l -> "'" ++ (show l) ++ "'")
 -- This is a single token.
 tokenItem :: GenParser Lex st String
 tokenItem = do
-    token <- tokenp isLexAlphaNum
+    token <- tokenword
+    rest  <- many tokenintrapunct
     trash
-    return $ lexToString token
+    return . L.concat $ (token : rest)
+
+tokenword :: GenParser Lex st String
+tokenword = tokenp isLexAlphaNum >>= return . lexToString
     where
         isLexAlphaNum :: Lex -> Bool
         isLexAlphaNum (LexAlphaNum _) = True
         isLexAlphaNum _               = False
+
+tokenintrapunct :: GenParser Lex st String
+tokenintrapunct = do
+    lookAhead punctword
+    punctword
+    where
+        punctword :: GenParser Lex st String
+        punctword = do
+            p <- tokenp isIntraTokenPunct
+            w <- tokenword
+            return . (++ w) $ lexToString p
+
+        isIntraTokenPunct :: Lex -> Bool
+        isIntraTokenPunct (LexInterToken _) = True
+        isIntraTokenPunct _                 = False
 
 trash :: GenParser Lex st ()
 trash = skipMany (tokenpunct <|> tokenws)
