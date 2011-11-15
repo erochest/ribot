@@ -171,9 +171,6 @@ assertTokenPrePost = mapM_ (uncurry at) inputs
                    )
                  ]
 
-assertTokenURLs :: Assertion
-assertTokenURLs = assertBool "URLs" False
-
 tokenizerTests :: [Test]
 tokenizerTests =
     [ testGroup "lexer" [ testCase "alpha-numeric" assertLexAlphaNum
@@ -186,7 +183,6 @@ tokenizerTests =
                             , testCase "multiple" assertTokenMultiple
                             , testCase "inter-token punctuation" assertTokenInter
                             , testCase "pre- and post-punctuation" assertTokenPrePost
-                            , testCase "URLs" assertTokenURLs
                             ]
     ]
 
