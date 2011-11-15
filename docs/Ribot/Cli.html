@@ -1,4 +1,13 @@
-<!DOCTYPE html>  <html> <head>   <title>Cli.hs</title>   <meta http-equiv="content-type" content="text/html; charset=UTF-8">   <link rel="stylesheet" media="all" href="docco.css" /> </head> <body>   <div id="container">     <div id="background"></div>          <table cellpadding="0" cellspacing="0">       <thead>         <tr>           <th class="docs">             <h1>               Cli.hs             </h1>           </th>           <th class="code">           </th>         </tr>       </thead>       <tbody>                               <tr id="section-1">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-1">&#182;</a>               </div>                            </td>             <td class="code">               <div class="highlight"><pre></pre></div>             </td>           </tr>                               <tr id="section-2">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-2">&#182;</a>               </div>               <p>This contains the CLI option processing options for Ribot.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="kr">module</span> <span class="nn">Ribot.Cli</span> <span class="p">(</span>
+<!DOCTYPE html>  <html> <head>   <title>Cli.hs</title>   <meta http-equiv="content-type" content="text/html; charset=UTF-8">   <link rel="stylesheet" media="all" href="docco.css" /> </head> <body>   <div id="container">     <div id="background"></div>          <table cellpadding="0" cellspacing="0">       <thead>         <tr>           <th class="docs">             <h1>               Cli.hs             </h1>           </th>           <th class="code">           </th>         </tr>       </thead>       <tbody>                               <tr id="section-1">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-1">&#182;</a>               </div>                            </td>             <td class="code">               <div class="highlight"><pre></pre></div>             </td>           </tr>                               <tr id="section-2">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-2">&#182;</a>               </div>               <p>This contains the CLI option processing options for Ribot.</p>
+
+<p>For more information on the command-line parser and the syntax and capabilities of the Modes below, see the documentation for the cmdargs package, especially these:</p>
+
+<ul>
+<li><a href="http://hackage.haskell.org/package/cmdargs">On Hackage</a></li>
+<li><a href="http://community.haskell.org/~ndm/darcs/cmdargs/cmdargs.htm">CmdArgs: Easy Command Line Processing</a></li>
+<li><a href="http://zuttobenkyou.wordpress.com/2011/04/19/haskell-using-cmdargs-single-and-multi-mode/">Using CmdArgs (Single and Multi-Mode)</a></li>
+<li><a href="http://michaelxavier.net/Building-a-Haskell-CLI-Utility-with-CmdArgs.html">Building a Haskell CLI Utility with CmdArgs</a></li>
+</ul>             </td>             <td class="code">               <div class="highlight"><pre><span class="kr">module</span> <span class="nn">Ribot.Cli</span> <span class="p">(</span>
       <span class="kt">Modes</span><span class="p">(</span><span class="o">..</span><span class="p">)</span>
     <span class="p">,</span> <span class="nf">ribotModes</span>
     <span class="p">,</span> <span class="nf">cmdArgs</span>
@@ -24,6 +33,10 @@
     <span class="o">|</span> <span class="kt">Reindex</span>
        <span class="p">{</span> <span class="n">dbFile</span>   <span class="ow">::</span> <span class="kt">Maybe</span> <span class="kt">String</span>
        <span class="p">}</span>
+    <span class="o">|</span> <span class="kt">Search</span>
+       <span class="p">{</span> <span class="n">dbFile</span>   <span class="ow">::</span> <span class="kt">Maybe</span> <span class="kt">String</span>
+       <span class="p">,</span> <span class="n">terms</span>    <span class="ow">::</span> <span class="p">[</span><span class="kt">String</span><span class="p">]</span>
+       <span class="p">}</span>
     <span class="kr">deriving</span> <span class="p">(</span><span class="kt">Show</span><span class="p">,</span> <span class="kt">Data</span><span class="p">,</span> <span class="kt">Typeable</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-6">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-6">&#182;</a>               </div>               <p>Here are the options for the options.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nf">ribotModes</span> <span class="ow">::</span> <span class="kt">Modes</span>
 <span class="nf">ribotModes</span> <span class="ow">=</span> <span class="n">modes</span>
     <span class="p">[</span> <span class="kt">Listen</span>
@@ -42,6 +55,10 @@
         <span class="p">{</span> <span class="n">dbFile</span> <span class="ow">=</span> <span class="n">defaultDbFile</span> <span class="o">&amp;=</span> <span class="n">name</span> <span class="s">&quot;d&quot;</span> <span class="o">&amp;=</span> <span class="n">typ</span> <span class="s">&quot;DATABASE-FILE&quot;</span>
                                  <span class="o">&amp;=</span> <span class="n">help</span> <span class="s">&quot;The database file to use for logging.&quot;</span>
         <span class="p">}</span> <span class="o">&amp;=</span> <span class="n">details</span> <span class="p">[</span><span class="s">&quot;This reindexes the messages for searching.&quot;</span><span class="p">]</span>
+    <span class="p">,</span> <span class="kt">Search</span>
+        <span class="p">{</span> <span class="n">dbFile</span> <span class="ow">=</span> <span class="n">defaultDbFile</span> <span class="o">&amp;=</span> <span class="n">name</span> <span class="s">&quot;d&quot;</span> <span class="o">&amp;=</span> <span class="n">typ</span> <span class="s">&quot;DATABASE-FILE&quot;</span>
+        <span class="p">,</span> <span class="n">terms</span> <span class="ow">=</span> <span class="n">def</span> <span class="o">&amp;=</span> <span class="n">args</span> <span class="o">&amp;=</span> <span class="n">typ</span> <span class="s">&quot;SEARCH-TERMS&quot;</span>
+        <span class="p">}</span> <span class="o">&amp;=</span> <span class="n">details</span> <span class="p">[</span><span class="s">&quot;The terms to search for.&quot;</span><span class="p">]</span>
     <span class="p">]</span> <span class="o">&amp;=</span> <span class="n">summary</span> <span class="p">(</span><span class="s">&quot;ribot v&quot;</span> <span class="o">++</span> <span class="n">ribotVersion</span><span class="p">)</span>
       <span class="o">&amp;=</span> <span class="n">program</span> <span class="s">&quot;ribot&quot;</span>
 
