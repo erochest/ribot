@@ -91,6 +91,7 @@ tokenItem = do
     trash
     return . L.concat $ (token : rest)
 
+-- This defines the word part of a token (i.e., the alpha-numeric part).
 tokenword :: GenParser Lex st String
 tokenword = tokenp isLexAlphaNum >>= return . lexToString
     where
@@ -98,18 +99,19 @@ tokenword = tokenp isLexAlphaNum >>= return . lexToString
         isLexAlphaNum (LexAlphaNum _) = True
         isLexAlphaNum _               = False
 
+-- This is a sub-function of `tokenItem`. It handles the rest of a token,
+-- everything after the initial word-part.
 tokenItem' :: GenParser Lex st String
-tokenItem' = punctword
-    where
-        punctword :: GenParser Lex st String
-        punctword = do
-            p <- tokenintrapunct
-            w <- tokenword
-            return $ p ++ w
+tokenItem' = do
+    p <- tokenintrapunct
+    w <- tokenword
+    return $ p ++ w
 
+-- This defines any characters that are valid trash between tokens.
 trash :: GenParser Lex st ()
 trash = skipMany (tokenpunct <|> tokenws <|> tokenintrapunct)
 
+-- This is a string of whitespace.
 tokenws :: GenParser Lex st String
 tokenws = tokenp isWS >>= return . lexToString
     where
@@ -117,6 +119,7 @@ tokenws = tokenp isWS >>= return . lexToString
         isWS (LexWS _) = True
         isWS _         = False
 
+-- This is an intra-token punctuation.
 tokenintrapunct :: GenParser Lex st String
 tokenintrapunct = tokenp isIntraTokenPunct >>= return . lexToString
     where
@@ -124,6 +127,7 @@ tokenintrapunct = tokenp isIntraTokenPunct >>= return . lexToString
         isIntraTokenPunct (LexInterToken _) = True
         isIntraTokenPunct _                 = False
 
+-- This is punctuation that must happen around tokens.
 tokenpunct :: GenParser Lex st String
 tokenpunct = tokenp isTokenPunct >>= return . lexToString
     where
@@ -131,13 +135,15 @@ tokenpunct = tokenp isTokenPunct >>= return . lexToString
         isTokenPunct (LexPunct _) = True
         isTokenPunct _            = False
 
+-- This takes a `Lex` instance and turns it into a string.
 lexToString :: Lex -> String
 lexToString (LexAlphaNum l)   = l
 lexToString (LexWS l)         = l
 lexToString (LexInterToken l) = [l]
 lexToString (LexPunct l)      = [l]
 
--- Stub
+-- This lexes a string, tokenizes it, and normalizes the output by converting
+-- it to lower-case.
 tokenize :: String -> String -> Either ParseError [String]
 tokenize src input =   lex src input
                    >>= token src
