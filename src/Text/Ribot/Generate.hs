@@ -74,6 +74,8 @@ randomContinuation textGen seq =
         Nothing   -> return Nothing
         Just cont -> randomIO >>= return . getWeightedChoice cont
 
+-- TODO: L.mapAccumL :: (acc -> x -> (acc, y)) -> acc -> [x] -> (acc, [y])
+
 -- This takes a list of items with weights and a percent as a fraction and
 -- returns the item with that weighted amount. It walks through the list and
 -- takes the item for which the running weight total takes it over the weight
@@ -143,5 +145,6 @@ chain textGen@(TextGenerator tg) start = do
 --     [(-1, -1, 1), (-1, 1, 2), (1, 2, 3), (2, 3, 4), (3, 4, 5), (4, 5, -1),
 --      (5, -1, -1)]
 triples :: a -> [a] -> [(a, a, a)]
-triples _ _ = []
+triples fill xs = L.zip3 xxs (L.drop 1 xxs) (L.drop 2 xxs)
+    where xxs = (fill : fill : xs) ++ [fill, fill]
 
