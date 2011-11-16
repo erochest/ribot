@@ -10,14 +10,18 @@ module Text.Ribot.Generate
     , randomContinuation
     , chain
     , triples
+    , mimic
     ) where
 
+import qualified Data.Either as E
 import qualified Data.List as L
 import qualified Data.Map as M
 import           Data.Maybe
 import qualified Data.Ord as O
 import qualified Data.Set as S
 import           System.Random
+-- [Text.Ribot.Tokenizer](Tokenizer.html)
+import           Text.Ribot.Tokenizer
 
 -- This is a frequency map between an item and its frequency.
 type FreqMap a = M.Map a Int
@@ -163,4 +167,15 @@ chain textGen@(TextGenerator tg) start = do
 triples :: a -> [a] -> [(a, a, a)]
 triples fill xs = L.zip3 xxs (L.drop 1 xxs) (L.drop 2 xxs)
     where xxs = (fill : fill : xs) ++ [fill, fill]
+
+-- This takes a list of message texts and a number of items to generate. It
+-- tokenizes the messages, breaks them into triples, and creates a
+-- `TextGenerator` from that data. It uses that generator to assemble a
+-- mimicking utterance for the person.
+mimic :: [String] -> Int -> IO [String]
+mimic inputs n = chain tg "#" >>= return . L.take n . L.filter (/= "#")
+    where
+        tokens = E.rights . map (tokenize "") $ inputs
+        trips  = L.concatMap (triples "#") tokens
+        tg = mkTextGenerator trips
 
