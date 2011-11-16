@@ -16,6 +16,7 @@ import qualified Data.List as L
 import qualified Data.Map as M
 import           Data.Maybe
 import qualified Data.Ord as O
+import qualified Data.Set as S
 import           System.Random
 
 -- This is a frequency map between an item and its frequency.
@@ -95,8 +96,45 @@ getChoice cutOff total run ((_, weight):items) =
 -- This creates an infinite chain of items. You can limit it using `take` or
 -- `takeWhile` or something. The item given is the item to use for placeholders
 -- at the beginning and end of sequences.
-chain :: TextGenerator a -> a -> [a]
-chain _ _ = []
+--
+-- First, this will get all the sequences in the generator that start with the
+-- initial character. It then picks one at random. From there, it keeps calling
+-- `randomConintuation` until it doesn't need more items.
+chain :: Ord a => TextGenerator a -> a -> IO [a]
+chain textGen@(TextGenerator tg) start = do
+    (_, next) <- randomElem nextPairs
+    chain' textGen start next
+    where
+        -- This is a list of all the sequences in the model that begin with
+        -- `start`.
+        nextPairs = L.filter ((start ==) . fst) $ M.keys tg
+
+        -- This is a set of all the options. It's used to randomly select a
+        -- continuation for where there are holes in the model.
+        itemSet :: Ord b => Model b -> S.Set b
+        itemSet m = S.fromList . L.concatMap (uncurry getItems) $ M.toList m
+            where
+                getItems :: Ord c => (c, c) -> (FreqMap c) -> [c]
+                getItems (t1, t2) freqMap = t1 : t2 : M.keys freqMap
+
+        -- Just `itemSet` as a list so we can easily pick one at random.
+        itemList :: Ord d => Model d -> [d]
+        itemList = S.toList . itemSet
+
+        randomElem :: Ord a => [a] -> IO a
+        randomElem list =
+            randomRIO (0, length list - 1) >>= return . (list !!)
+
+        -- This constructs a list/stream that pulls
+        chain' :: Ord e => TextGenerator e -> e -> e -> IO [e]
+        chain' tg@(TextGenerator m) token1 token2 = do
+            contMaybe <- randomContinuation tg (token1, token2)
+            case contMaybe of
+                Just token3 -> return . (token1:) =<< chain' tg token2 token3
+                Nothing     -> do
+                    token3 <- randomElem (itemList m)
+                    rest   <- chain' tg token2 token3
+                    return (token1 : rest)
 
 -- This breaks a list of items into a list of overlapping triples. The first
 -- position is for a boundary marker, so this call,
