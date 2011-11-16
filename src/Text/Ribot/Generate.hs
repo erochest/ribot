@@ -16,6 +16,7 @@ import qualified Data.List as L
 import qualified Data.Map as M
 import           Data.Maybe
 import qualified Data.Ord as O
+import           System.Random
 
 -- This is a frequency map between an item and its frequency.
 type FreqMap a = M.Map a Int
@@ -67,13 +68,29 @@ mostLikely textGen seq =
 -- selecting weighted by the frequency of each continuation. If there aren't
 -- any continuations, `Nothing` is returned.
 randomContinuation :: Ord a => TextGenerator a -> (a, a) -> IO (Maybe a)
-randomContinuation (TextGenerator hmm) seq =
-    case (M.lookup seq hmm) of
-        Nothing      -> return Nothing
-        Just freqMap -> return Nothing
+randomContinuation textGen seq =
+    case (getContinuationList textGen seq) of
+        Nothing   -> return Nothing
+        Just cont -> randomIO >>= return . getWeightedChoice cont
+
+-- This takes a list of items with weights and a percent as a fraction and
+-- returns the item with that weighted amount. It walks through the list and
+-- takes the item for which the running weight total takes it over the weight
+-- fraction passed in.
+getWeightedChoice :: [(a, Int)] -> Double -> Maybe a
+getWeightedChoice choices cutOff = getChoice cutOff total 0.0 choices
     where
-        key :: (a, Int) -> Int
-        key (_, i) = -i
+        total = L.sum $ map snd choices
+
+-- This uses `foldl` to decorate every item from the input with its running
+-- total weight as a percent of the total. `foldl` can thread the state
+-- through, but it complicates lazy evaluation.
+getChoice :: Double -> Int -> Double -> [(a, Int)] -> Maybe a
+getChoice _ _ _ [] = Nothing
+getChoice cutOff total run ((item, weight):_) | (run + (fromIntegral weight) / fromIntegral total) >= cutOff =
+    Just item
+getChoice cutOff total run ((_, weight):items) =
+    getChoice cutOff total (run + (fromIntegral weight) / fromIntegral total) items
 
 -- This creates an infinite chain of items. You can limit it using `take` or
 -- `takeWhile` or something. The item given is the item to use for placeholders
