@@ -74,26 +74,42 @@ randomContinuation textGen seq =
         Nothing   -> return Nothing
         Just cont -> randomIO >>= return . getWeightedChoice cont
 
--- TODO: L.mapAccumL :: (acc -> x -> (acc, y)) -> acc -> [x] -> (acc, [y])
-
 -- This takes a list of items with weights and a percent as a fraction and
 -- returns the item with that weighted amount. It walks through the list and
 -- takes the item for which the running weight total takes it over the weight
 -- fraction passed in.
 getWeightedChoice :: [(a, Int)] -> Double -> Maybe a
-getWeightedChoice choices cutOff = getChoice cutOff total 0.0 choices
-    where
-        total = L.sum $ map snd choices
+getWeightedChoice choices cutOff =
+    -- This is a mouthful, and you have to read it backwards. Here's what it
+    -- does:
+    --
+    -- * `L.mapAccumL accum 0 choices` — Convert the weights in the list of
+    -- choices into a percentage of the total weights in the list;
+    -- * `snd` — Drop off the accumulator's state, the running total;
+    -- * `L.dropWhile ((< cutOff) . snd)` — Remove all of the items from the
+    -- front of the list until we get to the item whose running weight total
+    -- percentage is at or above the cut off (i.e., remove all the items up to
+    -- the one we want);
+    -- * `map fst` — Remove the running weighted total percentage and save only
+    -- the item;
+    -- * `listToMaybe` — If there is anything in the list, take the head and
+    -- wrap it in `Maybe`; otherwise, return `Nothing`.
+    listToMaybe
+        . map fst
+        . L.dropWhile ((< cutOff) . snd)
+        . snd
+        $ L.mapAccumL accum 0 choices
 
--- This uses `foldl` to decorate every item from the input with its running
--- total weight as a percent of the total. `foldl` can thread the state
--- through, but it complicates lazy evaluation.
-getChoice :: Double -> Int -> Double -> [(a, Int)] -> Maybe a
-getChoice _ _ _ [] = Nothing
-getChoice cutOff total run ((item, weight):_) | (run + (fromIntegral weight) / fromIntegral total) >= cutOff =
-    Just item
-getChoice cutOff total run ((_, weight):items) =
-    getChoice cutOff total (run + (fromIntegral weight) / fromIntegral total) items
+    where
+        total = fromIntegral . L.sum $ map snd choices
+
+        -- This handles accumulating the running total information. It takes
+        -- each pair from the choice list and replaces the weight with the
+        -- running percentage of the weight totals.
+        accum :: Int -> (a, Int) -> (Int, (a, Double))
+        accum running (item, weight) =
+            (running', (item, (fromIntegral running') / total))
+            where running' = running + weight
 
 -- This creates an infinite chain of items. You can limit it using `take` or
 -- `takeWhile` or something. The item given is the item to use for placeholders
