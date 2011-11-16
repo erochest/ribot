@@ -83,9 +83,10 @@ assertRandomContinuation = do
     mapM_ (uncurry app) inputs
     where
         hmm = testTrain
-        app obs expected = assertBool ("random continuation " ++ (show obs) ++ " => " ++ (show pp))
+        app obs expected = do
+            pp <- randomContinuation hmm obs
+            assertBool ("random continuation " ++ (show obs) ++ " => " ++ (show pp))
                                  (expected == pp)
-                            where pp = randomContinuation hmm obs
         inputs = [ (("ceramics", "comes"), Just "from")      -- [(1,0.9872770353686064)
                  , (("ceramics", "community"), Just ".")     -- ,(2,9.953808039426804e-4)
                  , (("ceramics", "company"), Just ".")       -- ,(3,0.9737700945697725)

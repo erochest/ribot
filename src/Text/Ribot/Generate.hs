@@ -48,21 +48,32 @@ mkTextGenerator = TextGenerator . L.foldl' combine M.empty
         incr Nothing  = Just 1
         incr (Just n) = Just (n + 1)
 
--- This returns the most likely continuation of the sequence given. If there's
--- no data for that sequence, `Nothing` is returned.
-mostLikely :: Ord a => TextGenerator a -> (a, a) -> Maybe a
-mostLikely (TextGenerator hmm) k = do
-    freqMap <- M.lookup k hmm
-    fmap fst . listToMaybe . L.sortBy (O.comparing key) $ M.toList freqMap
+-- This returns the continuations for a leading sequence in descending order of
+-- frequency.
+getContinuationList :: Ord a => TextGenerator a -> (a, a) -> Maybe [(a, Int)]
+getContinuationList (TextGenerator hmm) seq =
+    return . L.sortBy (O.comparing key) . M.toList =<< M.lookup seq hmm
     where
         key :: (a, Int) -> Int
         key (_, i) = -i
 
+-- This returns the most likely continuation of the sequence given. If there's
+-- no data for that sequence, `Nothing` is returned.
+mostLikely :: Ord a => TextGenerator a -> (a, a) -> Maybe a
+mostLikely textGen seq =
+    fmap fst . listToMaybe =<< getContinuationList textGen seq
+
 -- This returns a continuation for the sequence. It does using a random
 -- selecting weighted by the frequency of each continuation. If there aren't
 -- any continuations, `Nothing` is returned.
-randomContinuation :: TextGenerator a -> (a, a) -> Maybe a
-randomContinuation _ _ = Nothing
+randomContinuation :: Ord a => TextGenerator a -> (a, a) -> IO (Maybe a)
+randomContinuation (TextGenerator hmm) seq =
+    case (M.lookup seq hmm) of
+        Nothing      -> return Nothing
+        Just freqMap -> return Nothing
+    where
+        key :: (a, Int) -> Int
+        key (_, i) = -i
 
 -- This creates an infinite chain of items. You can limit it using `take` or
 -- `takeWhile` or something. The item given is the item to use for placeholders
