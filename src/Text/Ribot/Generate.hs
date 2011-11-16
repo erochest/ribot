@@ -12,18 +12,51 @@ module Text.Ribot.Generate
     , triples
     ) where
 
+import qualified Data.List as L
+import qualified Data.Map as M
+import           Data.Maybe
+import qualified Data.Ord as O
+
+-- This is a frequency map between an item and its frequency.
+type FreqMap a = M.Map a Int
+
+-- This is a mapping between two observations and a `FreqMap` of the items that
+-- immediately follow it.
+type Model a = M.Map (a, a) (FreqMap a)
+
 -- This is the data type for holding the information about the statistical
 -- model. Currently, this is just a stub.
-data TextGenerator a = TextGenerator ()
+data TextGenerator a = TextGenerator (Model a)
 
--- This is the constructor for `TextGenerator` data.
-mkTextGenerator :: [(a, a, a)] -> TextGenerator a
-mkTextGenerator _ = TextGenerator ()
+-- This is the constructor for `TextGenerator` data. It takes a set of data to
+-- train on and returns the constructed generator.
+mkTextGenerator :: Ord a => [(a, a, a)] -> TextGenerator a
+mkTextGenerator = TextGenerator . L.foldl' combine M.empty
+    where
+        -- This handles one step of the fold.
+        combine :: Ord a => Model a -> (a, a, a) -> Model a
+        combine hmm (obs1, obs2, next) =
+            M.alter (combine' next) (obs1, obs2) hmm
+
+        -- This increments a sequence's `FreqMap`.
+        combine' :: Ord a => a -> Maybe (FreqMap a) -> Maybe (FreqMap a)
+        combine' item Nothing   = Just $ M.singleton item 1
+        combine' item (Just fm) = Just $ M.alter incr item fm
+
+        -- This increments an item's count in a `FreqMap`.
+        incr :: Maybe Int -> Maybe Int
+        incr Nothing  = Just 1
+        incr (Just n) = Just (n + 1)
 
 -- This returns the most likely continuation of the sequence given. If there's
 -- no data for that sequence, `Nothing` is returned.
-mostLikely :: TextGenerator a -> (a, a) -> Maybe a
-mostLikely _ _ = Nothing
+mostLikely :: Ord a => TextGenerator a -> (a, a) -> Maybe a
+mostLikely (TextGenerator hmm) k = do
+    freqMap <- M.lookup k hmm
+    fmap fst . listToMaybe . L.sortBy (O.comparing key) $ M.toList freqMap
+    where
+        key :: (a, Int) -> Int
+        key (_, i) = -i
 
 -- This returns a continuation for the sequence. It does using a random
 -- selecting weighted by the frequency of each continuation. If there aren't
