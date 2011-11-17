@@ -15,9 +15,11 @@ module Database.Ribot
     , initDb
     , initTempTable
     , resolveDbFile
+    , getUserMessages
     ) where
 
 import           Control.Monad (forM, forM_, mapM, mapM_)
+import           Data.Time.Clock
 import           Database.HDBC
 import           Database.HDBC.Types (IConnection(..), ConnWrapper)
 import           Database.HDBC.Sqlite3 (connectSqlite3)
@@ -129,4 +131,14 @@ findDbFile = do
     appDir <- getAppUserDataDirectory "ribot"
     createDirectoryIfMissing True appDir
     return $ appDir </> "ribot.db"
+
+-- This returns all the messages for the user as a string and date.
+getUserMessages :: IConnection c => c -> String -> IO [(UTCTime, String)]
+getUserMessages cxn user = do
+    results <- quickQuery' cxn " SELECT m.posted, m.text \
+                               \ FROM message m \
+                               \ JOIN user u ON u.id=m.user_id \
+                               \ WHERE u.username=?;"
+                               [toSql user]
+    return [ (fromSql t, fromSql m) | [t, m] <- results ]
 

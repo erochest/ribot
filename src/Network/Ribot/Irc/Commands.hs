@@ -15,10 +15,14 @@ import qualified Data.List as L
 import qualified Data.Maybe as M
 import           Data.Time
 import           Database.HDBC
+-- [Database.Ribot](../../../Database/Ribot.html) <br />
 -- [Network.Ribot.Types](../Types.html) <br />
--- [Network.Ribot.Search](Search.html) <br />
+-- [Network.Ribot.Search](../Search.html) <br />
+-- [Text.Ribot.Generate](../../../Text/Ribot/Generate.html) <br />
+import           Database.Ribot (getUserMessages)
 import           Network.Ribot.Search (index, search, showSearchResult)
 import           Network.Ribot.Types
+import           Text.Ribot.Generate (mimic)
 
 -- This is the version, for the command line and the !version command.
 ribotVersion :: String
@@ -35,6 +39,7 @@ helpMessage =
     , "!log on: Start logging your messages."
     , "!echo STRING: Right back at'cha."
     , "!search QUERY: Search the logs for one or more terms."
+    , "!mimic USER: Return a short string that mimics a user."
     ]
 
 -- This sends a privmsg to the channel the bot's in.
@@ -83,6 +88,18 @@ eval (Message _ _ _ x) | "!search" `L.isPrefixOf` x = do
     mapM_ privmsg . map showSearchResult $ results
     privmsg $ show (length results) ++ " message(s) found."
     where query = drop 8 x
+-- * `!mimic USER` — This outputs ten tokens that mimic USER according to a
+-- very simple probabilistic model.
+eval (Message _ _ _ x) | "!mimic" `L.isPrefixOf` x = do
+    privmsg $ "Mimicking " ++ user
+    db       <- gets botDbHandle
+    privmsg "DB"
+    messages <- io $ return . map snd =<< getUserMessages db user
+    privmsg $ "Messages: " ++ (show $ length messages)
+    tokens   <- io $ mimic messages 12
+    privmsg $ "Tokens: " ++ (show tokens)
+    privmsg $ L.intercalate " " tokens
+    where user = drop 7 x
 -- * All other `!` commands are ignored; and
 eval (Message _ _ _ ('!':_)) = return ()
 -- * All other messages are handled by `processMessage`.
