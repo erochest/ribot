@@ -91,13 +91,9 @@ eval (Message _ _ _ x) | "!search" `L.isPrefixOf` x = do
 -- * `!mimic USER` — This outputs ten tokens that mimic USER according to a
 -- very simple probabilistic model.
 eval (Message _ _ _ x) | "!mimic" `L.isPrefixOf` x = do
-    privmsg $ "Mimicking " ++ user
     db       <- gets botDbHandle
-    privmsg "DB"
     messages <- io $ return . map snd =<< getUserMessages db user
-    privmsg $ "Messages: " ++ (show $ length messages)
     tokens   <- io $ mimic messages 12
-    privmsg $ "Tokens: " ++ (show tokens)
     privmsg $ L.intercalate " " tokens
     where user = drop 7 x
 -- * All other `!` commands are ignored; and

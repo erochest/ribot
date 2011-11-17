@@ -46,6 +46,10 @@ data Modes
        { dbFile   :: Maybe String
        , terms    :: [String]
        }
+    | Mimic
+       { dbFile   :: Maybe String
+       , nick     :: String
+       }
     deriving (Show, Data, Typeable)
 
 -- Here are the options for the options.
@@ -71,6 +75,10 @@ ribotModes = modes
         { dbFile = defaultDbFile &= name "d" &= typ "DATABASE-FILE"
         , terms = def &= args &= typ "SEARCH-TERMS"
         } &= details ["The terms to search for."]
+    , Mimic
+        { dbFile = defaultDbFile &= name "d" &= typ "DATABASE-FILE"
+        , nick = def &= args &= typ "IRC-NICK"
+        } &= details ["The user nick to mimic."]
     ] &= summary ("ribot v" ++ ribotVersion)
       &= program "ribot"
 

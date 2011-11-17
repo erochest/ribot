@@ -115,17 +115,17 @@ getWeightedChoice choices cutOff =
             (running', (item, (fromIntegral running') / total))
             where running' = running + weight
 
--- This creates an infinite chain of items. You can limit it using `take` or
--- `takeWhile` or something. The item given is the item to use for placeholders
--- at the beginning and end of sequences.
+-- This creates a chain of items. You can limit it using `take` or `takeWhile`
+-- or something. The item given is the item to use for placeholders at the
+-- beginning and end of sequences.
 --
 -- First, this will get all the sequences in the generator that start with the
 -- initial character. It then picks one at random. From there, it keeps calling
 -- `randomConintuation` until it doesn't need more items.
-chain :: Ord a => TextGenerator a -> a -> IO [a]
-chain textGen@(TextGenerator tg) start = do
+chain :: Ord a => Show a => TextGenerator a -> a -> Int -> IO [a]
+chain textGen@(TextGenerator tg) start n = do
     (_, next) <- randomElem nextPairs
-    chain' textGen start next
+    return . filter (/= start) =<< chain' textGen start start next n
     where
         -- This is a list of all the sequences in the model that begin with
         -- `start`.
@@ -147,16 +147,23 @@ chain textGen@(TextGenerator tg) start = do
         randomElem list =
             randomRIO (0, length list - 1) >>= return . (list !!)
 
-        -- This constructs a list/stream that pulls
-        chain' :: Ord e => TextGenerator e -> e -> e -> IO [e]
-        chain' tg@(TextGenerator m) token1 token2 = do
+        -- This constructs a list/stream that pulls.
+        chain' :: Ord e => Show e => Eq e =>
+                  TextGenerator e -> e -> e -> e -> Int -> IO [e]
+        chain' _ _ _ _ 0 = return []
+        chain' tg@(TextGenerator m) filterOut token1 token2 n = do
             contMaybe <- randomContinuation tg (token1, token2)
             case contMaybe of
-                Just token3 -> return . (token1:) =<< chain' tg token2 token3
+                Just token3 -> do
+                    rest <- chain' tg filterOut token2 token3 n'
+                    return (token1 : rest)
                 Nothing     -> do
                     token3 <- randomElem (itemList m)
-                    rest   <- chain' tg token2 token3
+                    rest   <- chain' tg filterOut token2 token3 n'
                     return (token1 : rest)
+            where n' = if (token1 == filterOut)
+                       then n
+                       else (n - 1)
 
 -- This breaks a list of items into a list of overlapping triples. The first
 -- position is for a boundary marker, so this call,
@@ -173,9 +180,9 @@ triples fill xs = L.zip3 xxs (L.drop 1 xxs) (L.drop 2 xxs)
 -- `TextGenerator` from that data. It uses that generator to assemble a
 -- mimicking utterance for the person.
 mimic :: [String] -> Int -> IO [String]
-mimic inputs n = chain tg "#" >>= return . L.take n . L.filter (/= "#")
+mimic inputs n = chain tg "#" n
     where
         tokens = E.rights . map (tokenize "") $ inputs
         trips  = L.concatMap (triples "#") tokens
-        tg = mkTextGenerator trips
+        tg@(TextGenerator m) = mkTextGenerator trips
 

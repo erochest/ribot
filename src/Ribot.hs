@@ -16,11 +16,13 @@ import           Text.Printf
 -- [Network.Ribot.Irc](Network/Ribot/Irc.html) <br />
 -- [Database.Ribot](Database/Ribot.html) <br />
 -- [Network.Ribot.Search](Network/Ribot/Search.html) <br />
--- [Network.Ribot.Types](Network/Ribot/Types.html)
+-- [Network.Ribot.Types](Network/Ribot/Types.html) <br />
+-- [Text.Ribot.Generate](Text/Ribot/Generate.html)
 import           Network.Ribot.Irc
-import           Database.Ribot (connectDb, resolveDbFile)
+import           Database.Ribot (connectDb, getUserMessages, resolveDbFile)
 import           Network.Ribot.Search (reindex, search, showSearchResult)
 import           Network.Ribot.Types
+import           Text.Ribot.Generate (mimic)
 
 -- The main function.
 main :: IO ()
@@ -41,6 +43,10 @@ main = do
             bracket (resolveDbFile dbFile >>= connectDb)
                     Db.disconnect
                     (search' terms)
+        Mimic dbFile nick -> do
+            bracket (resolveDbFile dbFile >>= connectDb)
+                    Db.disconnect
+                    (mimic' nick)
     where
         -- Compose functions to get the bot's socket and close it.
         disconnect = hClose . botSocket . snd
@@ -56,4 +62,11 @@ main = do
             mapM_ (putStrLn . showSearchResult) results
             printf "Found %d message(s).\n" $ length results
             where query = L.intercalate " " terms
+
+        -- This mimics the nick given.
+        mimic' :: Db.IConnection c => String -> c -> IO ()
+        mimic' nick cxn = do
+            messages <- return . map snd =<< getUserMessages cxn nick
+            tokens   <- mimic messages 12
+            putStrLn . ("> " ++) $ L.intercalate " " tokens
 
