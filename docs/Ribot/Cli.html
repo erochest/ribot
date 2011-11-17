@@ -37,6 +37,10 @@
        <span class="p">{</span> <span class="n">dbFile</span>   <span class="ow">::</span> <span class="kt">Maybe</span> <span class="kt">String</span>
        <span class="p">,</span> <span class="n">terms</span>    <span class="ow">::</span> <span class="p">[</span><span class="kt">String</span><span class="p">]</span>
        <span class="p">}</span>
+    <span class="o">|</span> <span class="kt">Mimic</span>
+       <span class="p">{</span> <span class="n">dbFile</span>   <span class="ow">::</span> <span class="kt">Maybe</span> <span class="kt">String</span>
+       <span class="p">,</span> <span class="n">nick</span>     <span class="ow">::</span> <span class="kt">String</span>
+       <span class="p">}</span>
     <span class="kr">deriving</span> <span class="p">(</span><span class="kt">Show</span><span class="p">,</span> <span class="kt">Data</span><span class="p">,</span> <span class="kt">Typeable</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-6">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-6">&#182;</a>               </div>               <p>Here are the options for the options.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nf">ribotModes</span> <span class="ow">::</span> <span class="kt">Modes</span>
 <span class="nf">ribotModes</span> <span class="ow">=</span> <span class="n">modes</span>
     <span class="p">[</span> <span class="kt">Listen</span>
@@ -59,6 +63,10 @@
         <span class="p">{</span> <span class="n">dbFile</span> <span class="ow">=</span> <span class="n">defaultDbFile</span> <span class="o">&amp;=</span> <span class="n">name</span> <span class="s">&quot;d&quot;</span> <span class="o">&amp;=</span> <span class="n">typ</span> <span class="s">&quot;DATABASE-FILE&quot;</span>
         <span class="p">,</span> <span class="n">terms</span> <span class="ow">=</span> <span class="n">def</span> <span class="o">&amp;=</span> <span class="n">args</span> <span class="o">&amp;=</span> <span class="n">typ</span> <span class="s">&quot;SEARCH-TERMS&quot;</span>
         <span class="p">}</span> <span class="o">&amp;=</span> <span class="n">details</span> <span class="p">[</span><span class="s">&quot;The terms to search for.&quot;</span><span class="p">]</span>
+    <span class="p">,</span> <span class="kt">Mimic</span>
+        <span class="p">{</span> <span class="n">dbFile</span> <span class="ow">=</span> <span class="n">defaultDbFile</span> <span class="o">&amp;=</span> <span class="n">name</span> <span class="s">&quot;d&quot;</span> <span class="o">&amp;=</span> <span class="n">typ</span> <span class="s">&quot;DATABASE-FILE&quot;</span>
+        <span class="p">,</span> <span class="n">nick</span> <span class="ow">=</span> <span class="n">def</span> <span class="o">&amp;=</span> <span class="n">args</span> <span class="o">&amp;=</span> <span class="n">typ</span> <span class="s">&quot;IRC-NICK&quot;</span>
+        <span class="p">}</span> <span class="o">&amp;=</span> <span class="n">details</span> <span class="p">[</span><span class="s">&quot;The user nick to mimic.&quot;</span><span class="p">]</span>
     <span class="p">]</span> <span class="o">&amp;=</span> <span class="n">summary</span> <span class="p">(</span><span class="s">&quot;ribot v&quot;</span> <span class="o">++</span> <span class="n">ribotVersion</span><span class="p">)</span>
       <span class="o">&amp;=</span> <span class="n">program</span> <span class="s">&quot;ribot&quot;</span>
 

@@ -12,9 +12,11 @@ I expect to run Ribot on.)</p>             </td>             <td class="code">  
     <span class="p">,</span> <span class="nf">initDb</span>
     <span class="p">,</span> <span class="nf">initTempTable</span>
     <span class="p">,</span> <span class="nf">resolveDbFile</span>
+    <span class="p">,</span> <span class="nf">getUserMessages</span>
     <span class="p">)</span> <span class="kr">where</span>
 
 <span class="kr">import</span>           <span class="nn">Control.Monad</span> <span class="p">(</span><span class="nf">forM</span><span class="p">,</span> <span class="nf">forM_</span><span class="p">,</span> <span class="nf">mapM</span><span class="p">,</span> <span class="nf">mapM_</span><span class="p">)</span>
+<span class="kr">import</span>           <span class="nn">Data.Time.Clock</span>
 <span class="kr">import</span>           <span class="nn">Database.HDBC</span>
 <span class="kr">import</span>           <span class="nn">Database.HDBC.Types</span> <span class="p">(</span><span class="kt">IConnection</span><span class="p">(</span><span class="o">..</span><span class="p">),</span> <span class="kt">ConnWrapper</span><span class="p">)</span>
 <span class="kr">import</span>           <span class="nn">Database.HDBC.Sqlite3</span> <span class="p">(</span><span class="nf">connectSqlite3</span><span class="p">)</span>
@@ -87,6 +89,13 @@ directory.</p>             </td>             <td class="code">               <di
 <span class="nf">findDbFile</span> <span class="ow">=</span> <span class="kr">do</span>
     <span class="n">appDir</span> <span class="ow">&lt;-</span> <span class="n">getAppUserDataDirectory</span> <span class="s">&quot;ribot&quot;</span>
     <span class="n">createDirectoryIfMissing</span> <span class="kt">True</span> <span class="n">appDir</span>
-    <span class="n">return</span> <span class="o">$</span> <span class="n">appDir</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;ribot.db&quot;</span>
+    <span class="n">return</span> <span class="o">$</span> <span class="n">appDir</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;ribot.db&quot;</span></pre></div>             </td>           </tr>                               <tr id="section-18">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-18">&#182;</a>               </div>               <p>This returns all the messages for the user as a string and date.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nf">getUserMessages</span> <span class="ow">::</span> <span class="kt">IConnection</span> <span class="n">c</span> <span class="ow">=&gt;</span> <span class="n">c</span> <span class="ow">-&gt;</span> <span class="kt">String</span> <span class="ow">-&gt;</span> <span class="kt">IO</span> <span class="p">[(</span><span class="kt">UTCTime</span><span class="p">,</span> <span class="kt">String</span><span class="p">)]</span>
+<span class="nf">getUserMessages</span> <span class="n">cxn</span> <span class="n">user</span> <span class="ow">=</span> <span class="kr">do</span>
+    <span class="n">results</span> <span class="ow">&lt;-</span> <span class="n">quickQuery&#39;</span> <span class="n">cxn</span> <span class="s">&quot; SELECT m.posted, m.text </span><span class="se">\</span>
+<span class="se">                               \</span><span class="s"> FROM message m </span><span class="se">\</span>
+<span class="se">                               \</span><span class="s"> JOIN user u ON u.id=m.user_id </span><span class="se">\</span>
+<span class="se">                               \</span><span class="s"> WHERE u.username=?;&quot;</span>
+                               <span class="p">[</span><span class="n">toSql</span> <span class="n">user</span><span class="p">]</span>
+    <span class="n">return</span> <span class="p">[</span> <span class="p">(</span><span class="n">fromSql</span> <span class="n">t</span><span class="p">,</span> <span class="n">fromSql</span> <span class="n">m</span><span class="p">)</span> <span class="o">|</span> <span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="ow">&lt;-</span> <span class="n">results</span> <span class="p">]</span>
 
 </pre></div>             </td>           </tr>                </tbody>     </table>   </div> </body> </html> 
