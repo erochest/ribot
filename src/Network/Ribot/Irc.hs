@@ -15,7 +15,7 @@ module Network.Ribot.Irc
 
 import           Control.Concurrent (forkIO)
 import           Control.Concurrent.Chan
-import           Control.Exception (bracket_)
+import           Control.Exception (bracket, bracket_)
 import           Control.Monad (mapM_, forever, liftM)
 import           Control.Monad.Reader
 import           Control.Monad.State
@@ -118,10 +118,23 @@ login = do
 -- OS thread, it creates a new database connection.
 evalRibot :: Ribot -> RibotState -> Message -> IO ()
 evalRibot ribot state input = do
-    db <- clone $ botDbHandle state
-    withTransaction db initTempTable
-    initTempTable db
-    runNet (eval input) ribot $ state { botDbHandle=db }
+    bracket (init state)
+            finalize
+            (run state)
+    where
+        init :: RibotState -> IO ConnWrapper
+        init state = do
+            db <- clone $ botDbHandle state
+            initTempTable db
+            return (ConnWrapper db)
+
+        run :: RibotState -> ConnWrapper -> IO ()
+        run state db = runNet (eval input) ribot state'
+            where state' = state { botDbHandle=db }
+
+        finalize :: IConnection c => c -> IO ()
+        finalize = disconnect
+
 
 -- This writes the input line to the screen with a timestamp.
 logInput :: String -> IO ()
