@@ -13,36 +13,44 @@ import           Network
 import           Ribot.Cli
 import           System.IO
 import           Text.Printf
--- [Network.Ribot.Irc](Network/Ribot/Irc.html) <br />
 -- [Database.Ribot](Database/Ribot.html) <br />
+-- [Network.Ribot.Irc](Network/Ribot/Irc.html) <br />
 -- [Network.Ribot.Search](Network/Ribot/Search.html) <br />
 -- [Network.Ribot.Types](Network/Ribot/Types.html) <br />
 -- [Text.Ribot.Generate](Text/Ribot/Generate.html)
-import           Network.Ribot.Irc
 import           Database.Ribot (connectDb, getUserMessages, resolveDbFile)
+import           Network.Ribot.Irc
 import           Network.Ribot.Search (reindex, search, showSearchResult)
 import           Network.Ribot.Types
 import           Text.Ribot.Generate (mimic)
 
 -- The main function.
+--
+-- This parses the command line arguments and handles each mode appropriately.
 main :: IO ()
 main = do
     mode <- cmdArgs ribotModes
     case mode of
+        -- This is the default mode. It listens on IRC. This is the primary
+        -- bot mode.
         Listen server port chan nick dbFile -> do
             withSocketsDo $ do
                 bracket (connect server port chan nick dbFile) disconnect
                         (uncurry loop)
+        -- This rebuilds the inverted index of messages without connecting to
+        -- IRC.
         Reindex dbFile -> do
             putStrLn "reindexing database."
             (msgCount, tknCount) <- bracket (resolveDbFile dbFile >>= connectDb)
                                             Db.disconnect
                                             reindex
             printf "indexed %d messages; %d tokens.\n" msgCount tknCount
+        -- This searches the messages without connecting to IRC.
         Search dbFile terms -> do
             bracket (resolveDbFile dbFile >>= connectDb)
                     Db.disconnect
                     (search' terms)
+        -- This runs the `!mimic` command from the command line.
         Mimic dbFile nick -> do
             bracket (resolveDbFile dbFile >>= connectDb)
                     Db.disconnect
