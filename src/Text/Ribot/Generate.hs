@@ -97,7 +97,7 @@ getWeightedChoice choices cutOff =
     -- * `map fst` — Remove the running weighted total percentage and save only
     -- the item;
     -- * `listToMaybe` — If there is anything in the list, take the head and
-    -- wrap it in `Maybe`; otherwise, return `Nothing`.
+    -- wrap it in `Just`; otherwise, return `Nothing`.
     listToMaybe
         . map fst
         . L.dropWhile ((< cutOff) . snd)
@@ -115,13 +115,15 @@ getWeightedChoice choices cutOff =
             (running', (item, (fromIntegral running') / total))
             where running' = running + weight
 
--- This creates a chain of items. You can limit it using `take` or `takeWhile`
--- or something. The item given is the item to use for placeholders at the
--- beginning and end of sequences.
+-- This creates a chain of items. The item given is the item to use for
+-- placeholders at the beginning and end of sequences. The number is the number
+-- of tokens to output in the sequence.
 --
 -- First, this will get all the sequences in the generator that start with the
 -- initial character. It then picks one at random. From there, it keeps calling
 -- `randomConintuation` until it doesn't need more items.
+--
+-- This is kind of messy. I'm not very happy with it.
 chain :: Ord a => Show a => TextGenerator a -> a -> Int -> IO [a]
 chain textGen@(TextGenerator tg) start n = do
     (_, next) <- randomElem nextPairs
