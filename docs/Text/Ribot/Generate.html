@@ -123,6 +123,7 @@ position is for a boundary marker, so this call,</p>
 tokenizes the messages, breaks them into triples, and creates a
 <code>TextGenerator</code> from that data. It uses that generator to assemble a
 mimicking utterance for the person.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nf">mimic</span> <span class="ow">::</span> <span class="p">[</span><span class="kt">String</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="kt">Int</span> <span class="ow">-&gt;</span> <span class="kt">IO</span> <span class="p">[</span><span class="kt">String</span><span class="p">]</span>
+<span class="nf">mimic</span> <span class="kt">[]</span>     <span class="kr">_</span> <span class="ow">=</span> <span class="n">return</span> <span class="p">[</span><span class="s">&quot;Hmm. That person hasn&#39;t said anything.&quot;</span><span class="p">]</span>
 <span class="nf">mimic</span> <span class="n">inputs</span> <span class="n">n</span> <span class="ow">=</span> <span class="n">chain</span> <span class="n">tg</span> <span class="s">&quot;#&quot;</span> <span class="n">n</span>
     <span class="kr">where</span>
         <span class="n">tokens</span> <span class="ow">=</span> <span class="kt">E</span><span class="o">.</span><span class="n">rights</span> <span class="o">.</span> <span class="n">map</span> <span class="p">(</span><span class="n">tokenize</span> <span class="s">&quot;&quot;</span><span class="p">)</span> <span class="o">$</span> <span class="n">inputs</span>

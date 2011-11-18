@@ -24,11 +24,12 @@
 <span class="nf">defaultDbFile</span> <span class="ow">::</span> <span class="kt">Maybe</span> <span class="kt">String</span>
 <span class="nf">defaultDbFile</span> <span class="ow">=</span> <span class="kt">Nothing</span></pre></div>             </td>           </tr>                               <tr id="section-5">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-5">&#182;</a>               </div>               <p>These are the command line options.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="kr">data</span> <span class="kt">Modes</span>
     <span class="ow">=</span> <span class="kt">Listen</span>
-        <span class="p">{</span> <span class="n">server</span>  <span class="ow">::</span> <span class="kt">String</span>
-        <span class="p">,</span> <span class="n">port</span>    <span class="ow">::</span> <span class="kt">Int</span>
-        <span class="p">,</span> <span class="n">channel</span> <span class="ow">::</span> <span class="kt">String</span>
-        <span class="p">,</span> <span class="n">nick</span>    <span class="ow">::</span> <span class="kt">String</span>
-        <span class="p">,</span> <span class="n">dbFile</span>  <span class="ow">::</span> <span class="kt">Maybe</span> <span class="kt">String</span>
+        <span class="p">{</span> <span class="n">server</span>      <span class="ow">::</span> <span class="kt">String</span>
+        <span class="p">,</span> <span class="n">port</span>        <span class="ow">::</span> <span class="kt">Int</span>
+        <span class="p">,</span> <span class="n">channel</span>     <span class="ow">::</span> <span class="kt">String</span>
+        <span class="p">,</span> <span class="n">nick</span>        <span class="ow">::</span> <span class="kt">String</span>
+        <span class="p">,</span> <span class="n">dbFile</span>      <span class="ow">::</span> <span class="kt">Maybe</span> <span class="kt">String</span>
+        <span class="p">,</span> <span class="n">pasteBinKey</span> <span class="ow">::</span> <span class="kt">Maybe</span> <span class="kt">String</span>
         <span class="p">}</span>
     <span class="o">|</span> <span class="kt">Reindex</span>
        <span class="p">{</span> <span class="n">dbFile</span>   <span class="ow">::</span> <span class="kt">Maybe</span> <span class="kt">String</span>
@@ -54,6 +55,8 @@
                              <span class="o">&amp;=</span> <span class="n">help</span> <span class="p">(</span><span class="s">&quot;The IRC nick name (default is &quot;</span> <span class="o">++</span> <span class="n">defaultNick</span> <span class="o">++</span> <span class="s">&quot;).&quot;</span><span class="p">)</span>
         <span class="p">,</span> <span class="n">dbFile</span> <span class="ow">=</span> <span class="n">defaultDbFile</span> <span class="o">&amp;=</span> <span class="n">name</span> <span class="s">&quot;d&quot;</span> <span class="o">&amp;=</span> <span class="n">typ</span> <span class="s">&quot;DATABASE-FILE&quot;</span>
                                  <span class="o">&amp;=</span> <span class="n">help</span> <span class="s">&quot;The database file to use for logging.&quot;</span>
+        <span class="p">,</span> <span class="n">pasteBinKey</span> <span class="ow">=</span> <span class="n">def</span> <span class="o">&amp;=</span> <span class="n">name</span> <span class="s">&quot;k&quot;</span> <span class="o">&amp;=</span> <span class="n">typ</span> <span class="s">&quot;PASTEBIN-API-KEY&quot;</span>
+                            <span class="o">&amp;=</span> <span class="n">help</span> <span class="p">(</span><span class="s">&quot;The developer API key for http://pastebin.com/api. If given, this will be used for long search results.&quot;</span><span class="p">)</span>
         <span class="p">}</span> <span class="o">&amp;=</span> <span class="n">details</span> <span class="p">[</span><span class="s">&quot;This listens on an IRC channel.&quot;</span><span class="p">]</span> <span class="o">&amp;=</span> <span class="n">auto</span>
     <span class="p">,</span> <span class="kt">Reindex</span>
         <span class="p">{</span> <span class="n">dbFile</span> <span class="ow">=</span> <span class="n">defaultDbFile</span> <span class="o">&amp;=</span> <span class="n">name</span> <span class="s">&quot;d&quot;</span> <span class="o">&amp;=</span> <span class="n">typ</span> <span class="s">&quot;DATABASE-FILE&quot;</span>
