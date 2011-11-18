@@ -24,8 +24,10 @@ import qualified Data.List as L
 import           Database.HDBC
 import           Database.HDBC.Types (IConnection)
 
+-- [Network.Ribot.Types](Types.html)
 -- [Text.Ribot.Tokenizer](../../Text/Ribot/Tokenizer.html) <br />
 -- [Text.Ribot.Search](../../Text/Ribot/Search.html)
+import           Network.Ribot.Types
 import qualified Text.Ribot.Tokenizer as T
 import           Text.Ribot.Search
 
@@ -224,7 +226,7 @@ buildQuery queryTerms =
                  \ FROM message m\
                  \ JOIN user u ON u.id=m.user_id"
         -- This is the suffix for all queries.
-        suffix = " ORDER BY m.posted DESC LIMIT 25;"
+        suffix = " ORDER BY m.posted DESC;"
 
         -- This creates a join clause for a given item in the term list.
         join :: Int -> String
@@ -249,8 +251,7 @@ buildQuery queryTerms =
         foldTerm (sql, wheres, params) (n, term) =
             ((join n : sql), (where_ n term : wheres), (toSql term) : params)
 
--- This prints a list of search results to 
-
+-- This constructs a string for the output of the search results.
 showSearchResult :: SearchResult -> String
 showSearchResult (_, nick, date, message) =
     "[" ++ date ++ "] " ++ nick ++ ": " ++ message

@@ -51,7 +51,7 @@ timeoutPeriod =  5 * 60 * 10^6
 -- This takes the ribot and fills in the state by connecting to IRC,
 -- the database, etc.
 connectState :: Ribot -> IO RibotState
-connectState (Ribot server port chan nick dbFile) = do
+connectState (Ribot server port chan nick dbFile _) = do
     t <- getCurrentTime
     -- First, connect to IRC and set the buffering.
     printf "Connecting to %s:%d..." server port
@@ -86,10 +86,16 @@ reconnectIRC = do
 
 -- This connects to IRC, to the database, notes the current time, and returns a
 -- ready-to-go `Ribot`.
-connect :: String -> Int -> String -> String -> Maybe FilePath -> IO (Ribot, RibotState)
-connect server port chan nick dbFile = do
+connect :: String                   -- The IRC server host.
+        -> Int                      -- The IRC server port.
+        -> String                   -- The IRC channel.
+        -> String                   -- The IRC nick.
+        -> Maybe FilePath           -- The path to the database file.
+        -> Maybe String             -- The developer API key for http://pastebin.com/api.
+        -> IO (Ribot, RibotState)   -- The resulting `Ribot` and `RibotState`.
+connect server port chan nick dbFile pasteBinKey = do
     dbFile' <- resolveDbFile dbFile
-    let ribot = Ribot server (fromIntegral port) chan nick dbFile'
+    let ribot = Ribot server (fromIntegral port) chan nick dbFile' pasteBinKey
     state <- connectState ribot
     return (ribot, state)
 
@@ -104,7 +110,6 @@ runRibot = do
 -- This logs onto IRC with a nick into a channel.
 login :: Net ()
 login = do
-    gets botSocket >>= io . hShow >>= io . printf "Logging onto %s\n"
     nick <- asks botNick
     write "NICK" nick
     write "USER" (nick ++ " 0 * :riBOT")

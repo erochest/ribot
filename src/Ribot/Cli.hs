@@ -33,11 +33,12 @@ defaultDbFile = Nothing
 -- These are the command line options.
 data Modes
     = Listen
-        { server  :: String
-        , port    :: Int
-        , channel :: String
-        , nick    :: String
-        , dbFile  :: Maybe String
+        { server      :: String
+        , port        :: Int
+        , channel     :: String
+        , nick        :: String
+        , dbFile      :: Maybe String
+        , pasteBinKey :: Maybe String
         }
     | Reindex
        { dbFile   :: Maybe String
@@ -66,6 +67,8 @@ ribotModes = modes
                              &= help ("The IRC nick name (default is " ++ defaultNick ++ ").")
         , dbFile = defaultDbFile &= name "d" &= typ "DATABASE-FILE"
                                  &= help "The database file to use for logging."
+        , pasteBinKey = def &= name "k" &= typ "PASTEBIN-API-KEY"
+                            &= help ("The developer API key for http://pastebin.com/api. If given, this will be used for long search results.")
         } &= details ["This listens on an IRC channel."] &= auto
     , Reindex
         { dbFile = defaultDbFile &= name "d" &= typ "DATABASE-FILE"
