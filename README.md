@@ -9,7 +9,7 @@ The site for this is on [my site](http://www.ericrochester.com/ribot).
 
 * Chat logging;
 * Log searches;
-* <del>Mimicking</del>.
+* Mimicking.
 
 # Commands
 
@@ -20,6 +20,7 @@ The site for this is on [my site](http://www.ericrochester.com/ribot).
 * `!log on` — turn on logging for the user.
 * `!echo STRING` — echo back.
 * `!search QUERY` — search the log of messages.
+* `!mimic NICK` — mimic the language of the user nick.
 
 # Search Queries
 
@@ -43,8 +44,9 @@ For example, here are some queries and what they would search for:
 * <del>log to the database</del>;
 * <del>`!log off` and `!log on`</del>;
 * <del>`!search QUERY`</del>;
-* `!mimic NICK`;
-* automatically reconnect after network outages.
+* <del>`!mimic NICK`</del>;
+* <del>automatically reconnect after network outages</del>;
+* daemon mode.
 
 # Architecture
 
