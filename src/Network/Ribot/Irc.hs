@@ -68,18 +68,20 @@ connectState (Ribot server port chan nick dbFile) = do
         hPrintf h "%s\r\n" output
     return $ RibotState h t db $ writeChan out
 
+-- This disconnects a Ribot state from all connects (just database and IRC at
+-- this point). It leaves the state itself intact, but using it will generate
+-- errors.
+disconnectState :: Net ()
+disconnectState = do
+    gets botSocket   >>= io . hClose
+    gets botDbHandle >>= io . disconnect
+
 -- This reconnects to the IRC server. It maintains the same connection to the
 -- database and other settings.
 reconnectIRC :: Net ()
 reconnectIRC = do
-    state  <- get
-    io . hClose $ botSocket state
-    server <- asks botServer
-    port   <- asks botPort
-    h      <- io . connectTo server . PortNumber $ fromIntegral port
-    io $ hSetBuffering h NoBuffering
-    io $ putStrLn "Reordered II."
-    put $ state { botSocket=h }
+    disconnectState
+    put =<< io . connectState =<< ask
     login
 
 -- This connects to IRC, to the database, notes the current time, and returns a
