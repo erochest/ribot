@@ -182,6 +182,7 @@ triples fill xs = L.zip3 xxs (L.drop 1 xxs) (L.drop 2 xxs)
 -- `TextGenerator` from that data. It uses that generator to assemble a
 -- mimicking utterance for the person.
 mimic :: [String] -> Int -> IO [String]
+mimic []     _ = return ["Hmm. That person hasn't said anything."]
 mimic inputs n = chain tg "#" n
     where
         tokens = E.rights . map (tokenize "") $ inputs
