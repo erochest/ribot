@@ -2,7 +2,7 @@
 -- see
 -- http://www.haskell.org/cabal/release/cabal-latest/doc/users-guide/authors.html#pkg-descr.
 Name:		     ribot
-Version:	     0.3.2
+Version:	     0.4.0
 Synopsis:	     A toy IRC bot in Haskell.
 -- Description:		
 Homepage:	     https://github.com/erochest/ribot
