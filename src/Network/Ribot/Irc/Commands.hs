@@ -6,6 +6,7 @@ module Network.Ribot.Irc.Commands
     , ribotVersion
     , privmsg
     , write
+    , sendResultsToIrc
     ) where
 
 import           Control.Monad (mapM_, liftM)
@@ -16,11 +17,13 @@ import qualified Data.Maybe as M
 import           Data.Time
 import           Database.HDBC
 -- [Database.Ribot](../../../Database/Ribot.html) <br />
+-- [Network.Ribot.PasteBin](../PasteBin.html) <br />
 -- [Network.Ribot.Search](../Search.html) <br />
 -- [Network.Ribot.Types](../Types.html) <br />
 -- [Text.Ribot.Generate](../../../Text/Ribot/Generate.html) <br />
 import           Database.Ribot (getUserMessages)
-import           Network.Ribot.Search (index, search, showSearchResult)
+import           Network.Ribot.PasteBin
+import           Network.Ribot.Search
 import           Network.Ribot.Types
 import           Text.Ribot.Generate (mimic)
 
@@ -82,12 +85,10 @@ eval (Message _ _ _ x) | "!echo" `L.isPrefixOf` x =
     privmsg (drop 6 x)
 -- * `!search TERMS` — This searches the log and prints out the last 25
 --   results;
-eval (Message _ _ _ x) | "!search" `L.isPrefixOf` x = do
-    db      <- gets botDbHandle
-    results <- io $ search db query
-    mapM_ privmsg . map showSearchResult $ results
-    privmsg $ show (length results) ++ " message(s) found."
+eval (Message u _ _ x) | "!search" `L.isPrefixOf` x =
+    gets botDbHandle >>= io . (flip search) query >>= sendResultsToIrc user
     where query = drop 8 x
+          user  = M.fromMaybe "???" u
 -- * `!mimic USER` — This outputs ten tokens that mimic USER according to a
 -- very simple probabilistic model.
 eval (Message _ _ _ x) | "!mimic" `L.isPrefixOf` x = do
@@ -168,4 +169,29 @@ setUserLogging cxn nick loggingOn = do
         [iToSql loggingInt, toSql nick]
     return ()
     where loggingInt = if loggingOn then 1 else 0
+
+-- This sends the results to IRC. Depending on the number of results, this may
+-- actually involve posting the results to http://pastebin.com with a message,
+-- or if there is no deverloper's API key for Pastebin, just outputting a
+-- sorry and a few.
+sendResultsToIrc :: String -> [SearchResult] -> Net ()
+sendResultsToIrc _ results | (length results) < 3 =
+    mapM_ (privmsg . showSearchResult) results
+sendResultsToIrc nick results = do
+    maybePasteBinKey <- asks botPasteBinKey
+    case maybePasteBinKey of
+        Nothing -> do
+            privmsg ("There were " ++ (show $ length results) ++ " results.\
+                     \ But I don't know how to post to PasteBin, so here\
+                     \ are two:")
+            mapM_ (privmsg . showSearchResult) $ L.take 2 results
+        Just key -> do
+            url <-   io
+                   . createPaste key title
+                   . L.unlines
+                   $ map showSearchResult results
+            privmsg (nick ++ ", " ++ (show $ length results) ++
+                     " results: " ++ url)
+            privmsg "That will be available for about an hour."
+            where title = "Search for " ++ nick
 

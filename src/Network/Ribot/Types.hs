@@ -19,11 +19,12 @@ import           System.IO
 import           Text.ParserCombinators.Parsec
 
 -- This is the main data structure for the bot. It has connection information.
-data Ribot = Ribot { botServer :: String
-                   , botPort   :: Int
-                   , botChan   :: String
-                   , botNick   :: String
-                   , botDbFile :: FilePath
+data Ribot = Ribot { botServer      :: String
+                   , botPort        :: Int
+                   , botChan        :: String
+                   , botNick        :: String
+                   , botDbFile      :: FilePath
+                   , botPasteBinKey :: Maybe String
                    }
 
 -- This adds a little state to the Ribot bot. This contains all of the handles

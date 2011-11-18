@@ -33,9 +33,10 @@ main = do
     case mode of
         -- This is the default mode. It listens on IRC. This is the primary
         -- bot mode.
-        Listen server port chan nick dbFile -> do
+        Listen server port chan nick dbFile pasteBinKey -> do
             withSocketsDo $ do
-                bracket (connect server port chan nick dbFile) disconnect
+                bracket (connect server port chan nick dbFile pasteBinKey)
+                        disconnect
                         (uncurry loop)
         -- This rebuilds the inverted index of messages without connecting to
         -- IRC.

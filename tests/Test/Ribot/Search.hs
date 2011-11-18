@@ -208,8 +208,7 @@ assertQuerySingle =
                 \ JOIN position p0 ON p0.message_id=m.id\
                 \ JOIN token t0 ON t0.id=p0.token_id\
                 \ WHERE t0.text=?\
-                \ ORDER BY m.posted DESC\
-                \ LIMIT 25;"
+                \ ORDER BY m.posted DESC;"
           params = [toSql "message"]
 
 assertQueryMulti :: Assertion
@@ -226,8 +225,7 @@ assertQueryMulti =
                 \ JOIN token t1 ON t1.id=p1.token_id\
                 \ WHERE t0.text=?\
                 \ AND t1.text=?\
-                \ ORDER BY m.posted DESC\
-                \ LIMIT 25;"
+                \ ORDER BY m.posted DESC;"
           params = [toSql "important", toSql "message"]
 
 assertQueryWildSingle :: Assertion
@@ -241,8 +239,7 @@ assertQueryWildSingle =
                 \ JOIN position p0 ON p0.message_id=m.id\
                 \ JOIN token t0 ON t0.id=p0.token_id\
                 \ WHERE t0.text LIKE ?\
-                \ ORDER BY m.posted DESC\
-                \ LIMIT 25;"
+                \ ORDER BY m.posted DESC;"
           params = [toSql "messag%"]
 
 assertQueryWildMulti :: Assertion
@@ -259,8 +256,7 @@ assertQueryWildMulti =
                 \ JOIN token t1 ON t1.id=p1.token_id\
                 \ WHERE t0.text=?\
                 \ AND t1.text LIKE ?\
-                \ ORDER BY m.posted DESC\
-                \ LIMIT 25;"
+                \ ORDER BY m.posted DESC;"
           params = [toSql "important", toSql "messag%"]
 
 assertQueryEmpty :: Assertion
@@ -271,8 +267,7 @@ assertQueryEmpty =
           sql = "SELECT DISTINCT m.id, u.username, m.posted, m.text\
                 \ FROM message m\
                 \ JOIN user u ON u.id=m.user_id\
-                \ ORDER BY m.posted DESC\
-                \ LIMIT 25;"
+                \ ORDER BY m.posted DESC;"
           params = []
 
 testMessages :: [String]
