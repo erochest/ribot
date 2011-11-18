@@ -16,8 +16,8 @@ import qualified Data.Maybe as M
 import           Data.Time
 import           Database.HDBC
 -- [Database.Ribot](../../../Database/Ribot.html) <br />
--- [Network.Ribot.Types](../Types.html) <br />
 -- [Network.Ribot.Search](../Search.html) <br />
+-- [Network.Ribot.Types](../Types.html) <br />
 -- [Text.Ribot.Generate](../../../Text/Ribot/Generate.html) <br />
 import           Database.Ribot (getUserMessages)
 import           Network.Ribot.Search (index, search, showSearchResult)
@@ -67,11 +67,11 @@ eval (Message _ _ _ "!version") =
     privmsg $ "version " ++ ribotVersion
 -- * `!uptime` — print how long the bot has been running;
 eval (Message _ _ _ "!uptime") =
-    uptime >>= privmsg
+    privmsg =<< uptime
 -- * `!log off` — turn off logging for the user;
 -- * `!log on` — turn on logging for the user;
 eval (Message (Just usr) _ _ log) | "!log " `L.isPrefixOf` log = do
-    db <- return . botDbHandle =<< get
+    db <- gets botDbHandle
     io . withTransaction db $ \cxn ->
         setUserLogging cxn usr logFlag
     privmsg $ "Logging turned " ++ logMsg ++ " for " ++ usr ++ "."
@@ -83,7 +83,7 @@ eval (Message _ _ _ x) | "!echo" `L.isPrefixOf` x =
 -- * `!search TERMS` — This searches the log and prints out the last 25
 --   results;
 eval (Message _ _ _ x) | "!search" `L.isPrefixOf` x = do
-    db <- gets botDbHandle
+    db      <- gets botDbHandle
     results <- io $ search db query
     mapM_ privmsg . map showSearchResult $ results
     privmsg $ show (length results) ++ " message(s) found."
@@ -92,8 +92,8 @@ eval (Message _ _ _ x) | "!search" `L.isPrefixOf` x = do
 -- very simple probabilistic model.
 eval (Message _ _ _ x) | "!mimic" `L.isPrefixOf` x = do
     db       <- gets botDbHandle
-    messages <- io $ return . map snd =<< getUserMessages db user
-    tokens   <- io $ mimic messages 12
+    tokens   <- io $ do
+        getUserMessages db user >>= return . map snd >>= (flip mimic) 12
     privmsg $ L.intercalate " " tokens
     where user = drop 7 x
 -- * All other `!` commands are ignored; and
