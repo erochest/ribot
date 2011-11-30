@@ -134,13 +134,21 @@ end
 
 namespace :release do
   desc 'Cleans up everything and configures for release.'
-  task :build => [:clean, 'release:config'] do
-    sh %{cabal build}
-  end
+  task :build => [:clean, 'release:config', 'hs:build', 'release:strip']
 
   desc 'Configures the project for development.'
   task :config do
     sh %{cabal configure}
+  end
+
+  desc 'This strips out extra comments and fluff from the binary.'
+  task :strip do
+    sh %{strip -p --strip-unneeded -- remove-section=.comment -o ./ribot ./dist/build/ribot/ribot}
+  end
+
+  desc 'This copies the file to the ~/bin directory.'
+  task :tobin => ['release:build', 'release:strip'] do
+    FileUtils.cp('ribot', File.expand_path('~/bin/ribot'), :verbose => true)
   end
 end
 
