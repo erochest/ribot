@@ -40,6 +40,7 @@ data Modes
         , dbFile      :: Maybe String
         , pasteBinKey :: Maybe String
         , daemonMode  :: Bool
+        , debug       :: Bool
         }
     | Reindex
        { dbFile   :: Maybe String
@@ -72,6 +73,7 @@ ribotModes = modes
                             &= help ("The developer API key for http://pastebin.com/api. If given, this will be used for long search results.")
         , daemonMode = False &= name "D" &= name "daemon"
                              &= help "A flag to indicate that this should be run in daemon mode."
+        , debug = False &= help "A flag to turn on debugging logging output."
         } &= details ["This listens on an IRC channel."] &= auto
     , Reindex
         { dbFile = defaultDbFile &= name "d" &= typ "DATABASE-FILE"

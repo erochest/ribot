@@ -36,11 +36,12 @@ main = do
     case mode of
         -- This is the default mode. It listens on IRC. This is the primary
         -- bot mode.
-        Listen server port chan nick dbFile pasteBinKey daemon -> do
+        Listen server port chan nick dbFile pasteBinKey daemon debug -> do
             let runBot = withSocketsDo $ do
                 bracket (connect server port chan nick dbFile pasteBinKey)
                         disconnect
                         (uncurry loop)
+            updateGlobalLogger rootLoggerName (setLevel DEBUG)
             case daemon of
                 True  -> do
                     s <- fileHandler "/tmp/ribot.log" DEBUG
