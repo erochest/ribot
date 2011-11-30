@@ -121,11 +121,8 @@ end
 desc 'Creates the tags file.'
 task :tags do
   FileUtils.rm('tags', :verbose => true)
-  sh %{/usr/local/bin/ctags -R --extra=+f .}
-  puts "find src -name '*.hs' | xargs hothasktags"
-  puts `find src -name '*.hs'`
   hs_tags = `find src -name '*.hs' | xargs hothasktags`
-  File.open('tags', 'a') { |f| f.write(hs_tags) }
+  File.open('tags', 'w') { |f| f.write(hs_tags) }
 end
 
 namespace :hs do
