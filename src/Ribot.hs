@@ -41,7 +41,9 @@ main = do
                 bracket (connect server port chan nick dbFile pasteBinKey)
                         disconnect
                         (uncurry loop)
-            updateGlobalLogger rootLoggerName (setLevel DEBUG)
+            case debug of
+                True  -> updateGlobalLogger rootLoggerName (setLevel DEBUG)
+                False -> return ()
             case daemon of
                 True  -> do
                     s <- fileHandler "/tmp/ribot.log" DEBUG
