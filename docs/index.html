@@ -16,17 +16,29 @@ Haskell files.</p>             </td>             <td class="code">              
 <span class="kr">import</span>           <span class="nn">Network.Ribot.Irc</span>
 <span class="kr">import</span>           <span class="nn">Network.Ribot.Search</span> <span class="p">(</span><span class="nf">reindex</span><span class="p">,</span> <span class="nf">search</span><span class="p">,</span> <span class="nf">showSearchResult</span><span class="p">)</span>
 <span class="kr">import</span>           <span class="nn">Network.Ribot.Types</span>
+<span class="kr">import</span>           <span class="nn">System.Log.Handler.Simple</span>
+<span class="kr">import</span>           <span class="nn">System.Log.Logger</span>
+<span class="kr">import</span>           <span class="nn">System.Posix.Daemonize</span>
 <span class="kr">import</span>           <span class="nn">Text.Ribot.Generate</span> <span class="p">(</span><span class="nf">mimic</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-5">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-5">&#182;</a>               </div>               <p>The main function.</p>
 
 <p>This parses the command line arguments and handles each mode appropriately.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nf">main</span> <span class="ow">::</span> <span class="kt">IO</span> <span class="nb">()</span>
 <span class="nf">main</span> <span class="ow">=</span> <span class="kr">do</span>
     <span class="n">mode</span> <span class="ow">&lt;-</span> <span class="n">cmdArgs</span> <span class="n">ribotModes</span>
     <span class="kr">case</span> <span class="n">mode</span> <span class="kr">of</span></pre></div>             </td>           </tr>                               <tr id="section-6">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-6">&#182;</a>               </div>               <p>This is the default mode. It listens on IRC. This is the primary
-bot mode.</p>             </td>             <td class="code">               <div class="highlight"><pre>        <span class="kt">Listen</span> <span class="n">server</span> <span class="n">port</span> <span class="n">chan</span> <span class="n">nick</span> <span class="n">dbFile</span> <span class="n">pasteBinKey</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
-            <span class="n">withSocketsDo</span> <span class="o">$</span> <span class="kr">do</span>
+bot mode.</p>             </td>             <td class="code">               <div class="highlight"><pre>        <span class="kt">Listen</span> <span class="n">server</span> <span class="n">port</span> <span class="n">chan</span> <span class="n">nick</span> <span class="n">dbFile</span> <span class="n">pasteBinKey</span> <span class="n">daemon</span> <span class="n">debug</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+            <span class="kr">let</span> <span class="n">runBot</span> <span class="ow">=</span> <span class="n">withSocketsDo</span> <span class="o">$</span> <span class="kr">do</span>
                 <span class="n">bracket</span> <span class="p">(</span><span class="n">connect</span> <span class="n">server</span> <span class="n">port</span> <span class="n">chan</span> <span class="n">nick</span> <span class="n">dbFile</span> <span class="n">pasteBinKey</span><span class="p">)</span>
                         <span class="n">disconnect</span>
-                        <span class="p">(</span><span class="n">uncurry</span> <span class="n">loop</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-7">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-7">&#182;</a>               </div>               <p>This rebuilds the inverted index of messages without connecting to
+                        <span class="p">(</span><span class="n">uncurry</span> <span class="n">loop</span><span class="p">)</span>
+            <span class="kr">case</span> <span class="n">debug</span> <span class="kr">of</span>
+                <span class="kt">True</span>  <span class="ow">-&gt;</span> <span class="n">updateGlobalLogger</span> <span class="n">rootLoggerName</span> <span class="p">(</span><span class="n">setLevel</span> <span class="kt">DEBUG</span><span class="p">)</span>
+                <span class="kt">False</span> <span class="ow">-&gt;</span> <span class="n">return</span> <span class="nb">()</span>
+            <span class="kr">case</span> <span class="n">daemon</span> <span class="kr">of</span>
+                <span class="kt">True</span>  <span class="ow">-&gt;</span> <span class="kr">do</span>
+                    <span class="n">s</span> <span class="ow">&lt;-</span> <span class="n">fileHandler</span> <span class="s">&quot;/tmp/ribot.log&quot;</span> <span class="kt">DEBUG</span>
+                    <span class="n">updateGlobalLogger</span> <span class="n">rootLoggerName</span> <span class="p">(</span><span class="n">addHandler</span> <span class="n">s</span><span class="p">)</span>
+                    <span class="n">daemonize</span> <span class="n">runBot</span>
+                <span class="kt">False</span> <span class="ow">-&gt;</span> <span class="n">runBot</span></pre></div>             </td>           </tr>                               <tr id="section-7">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-7">&#182;</a>               </div>               <p>This rebuilds the inverted index of messages without connecting to
 IRC.</p>             </td>             <td class="code">               <div class="highlight"><pre>        <span class="kt">Reindex</span> <span class="n">dbFile</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
             <span class="n">putStrLn</span> <span class="s">&quot;reindexing database.&quot;</span>
             <span class="p">(</span><span class="n">msgCount</span><span class="p">,</span> <span class="n">tknCount</span><span class="p">)</span> <span class="ow">&lt;-</span> <span class="n">bracket</span> <span class="p">(</span><span class="n">resolveDbFile</span> <span class="n">dbFile</span> <span class="o">&gt;&gt;=</span> <span class="n">connectDb</span><span class="p">)</span>
