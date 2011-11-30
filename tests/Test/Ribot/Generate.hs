@@ -72,7 +72,9 @@ assertMostLikely = mapM_ (uncurry aml') inputs
 --
 --     ghci> setStdGen $ mkStdGen 0
 --     ghci> mapM (\x -> randomRIO (0.0, 1.0) >>= return . (\y -> (x, y))) [1..10]
---     [(1,0.9872770353686064),(2,9.953808039426804e-4),(3,0.9737700945697725),(4,0.130280438112095),(5,0.2037222092039883),(6,0.5737648080103099),(7,0.9673066593240947),(8,0.6253049722872674),(9,0.5327889025211334),(10,0.45740725565701723)]
+--     [(1,0.9929251340102517),(2,0.9933624439225405),(3,0.4648305261946105),(4,0.30447780927171453),(5,0.8487722844272707),(6,0.13064938479790267),(7,0.773192732530635),(8,0.5761192174651203),(9,0.852615525445816),(10,0.9628064094487252)]
+--
+-- If something changes with the random sequence, the test below will fail.
 
 resetRandom :: IO ()
 resetRandom = setStdGen $ mkStdGen 0
@@ -87,18 +89,11 @@ assertRandomContinuation = do
             pp <- randomContinuation hmm obs
             assertBool ("random continuation " ++ (show obs) ++ " => " ++ (show pp))
                                  (expected == pp)
-        inputs = [ (("ceramics", "comes"), Just "from")      -- [(1,0.9872770353686064)
-                 , (("ceramics", "community"), Just ".")     -- ,(2,9.953808039426804e-4)
-                 , (("ceramics", "company"), Just ".")       -- ,(3,0.9737700945697725)
+        inputs = [ (("ceramics", "comes"), Just "from")      -- [(1,0.9929251340102517)
+                 , (("ceramics", "community"), Just "for")   -- ,(2,0.9933624439225405)
+                 , (("ceramics", "company"), Just "!")       -- ,(3,0.4648305261946105)
                  , (("cermaics", "not here"), Nothing)
                  ]
--- ,(4,0.130280438112095)
--- ,(5,0.2037222092039883)
--- ,(6,0.5737648080103099)
--- ,(7,0.9673066593240947)
--- ,(8,0.6253049722872674)
--- ,(9,0.5327889025211334)
--- ,(10,0.45740725565701723)]
 
 assertTriples :: Assertion
 assertTriples =
