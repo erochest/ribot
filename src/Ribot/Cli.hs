@@ -39,6 +39,7 @@ data Modes
         , nick        :: String
         , dbFile      :: Maybe String
         , pasteBinKey :: Maybe String
+        , daemonMode  :: Bool
         }
     | Reindex
        { dbFile   :: Maybe String
@@ -69,6 +70,8 @@ ribotModes = modes
                                  &= help "The database file to use for logging."
         , pasteBinKey = def &= name "k" &= typ "PASTEBIN-API-KEY"
                             &= help ("The developer API key for http://pastebin.com/api. If given, this will be used for long search results.")
+        , daemonMode = False &= name "D" &= name "daemon"
+                             &= help "A flag to indicate that this should be run in daemon mode."
         } &= details ["This listens on an IRC channel."] &= auto
     , Reindex
         { dbFile = defaultDbFile &= name "d" &= typ "DATABASE-FILE"

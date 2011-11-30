@@ -22,6 +22,9 @@ import           Database.Ribot (connectDb, getUserMessages, resolveDbFile)
 import           Network.Ribot.Irc
 import           Network.Ribot.Search (reindex, search, showSearchResult)
 import           Network.Ribot.Types
+import           System.Log.Handler.Simple
+import           System.Log.Logger
+import           System.Posix.Daemonize
 import           Text.Ribot.Generate (mimic)
 
 -- The main function.
@@ -33,11 +36,17 @@ main = do
     case mode of
         -- This is the default mode. It listens on IRC. This is the primary
         -- bot mode.
-        Listen server port chan nick dbFile pasteBinKey -> do
-            withSocketsDo $ do
+        Listen server port chan nick dbFile pasteBinKey daemon -> do
+            let runBot = withSocketsDo $ do
                 bracket (connect server port chan nick dbFile pasteBinKey)
                         disconnect
                         (uncurry loop)
+            case daemon of
+                True  -> do
+                    s <- fileHandler "/tmp/ribot.log" DEBUG
+                    updateGlobalLogger rootLoggerName (addHandler s)
+                    daemonize runBot
+                False -> runBot
         -- This rebuilds the inverted index of messages without connecting to
         -- IRC.
         Reindex dbFile -> do

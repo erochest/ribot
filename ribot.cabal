@@ -49,6 +49,8 @@ Library
     , containers >= 0.4.0.0 && < 0.5
     , random >= 1.0.0.0 && < 2
     , HTTP >= 4000.1.1 && < 4000.2
+    , hdaemonize >= 0.4.1 && < 0.5
+    , hslogger >= 1.1.5 && < 2
   if flag(development)
     cpp-options: -DDEVELOPMENT
     ghc-options: -DEVELOPMENT -w
@@ -79,6 +81,8 @@ Executable ribot
     , containers >= 0.4.0.0 && < 0.5
     , random >= 1.0.0.0 && < 2
     , HTTP >= 4000.1.1 && < 4000.2
+    , hdaemonize >= 0.4.1 && < 0.5
+    , hslogger >= 1.1.5 && < 2
     , ribot
 
   extensions: DeriveDataTypeable
@@ -113,6 +117,8 @@ Test-Suite test-ribot
     , HDBC-sqlite3 >=2.3.0.0 && < 3
     , convertible >=1.0.11.0 && < 2
     , random >= 1.0.0.0 && < 2
+    , hdaemonize >= 0.4.1 && < 0.5
+    , hslogger >= 1.1.5 && < 2
     , ribot
   ghc-options:		 -Wall -rtsopts
 
