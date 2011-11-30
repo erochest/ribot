@@ -28,6 +28,7 @@ import           Network
 import           System.Exit
 import           System.IO
 import           System.Locale
+import           System.Log.Logger
 import           System.Timeout
 import           Text.Printf
 
@@ -54,7 +55,7 @@ connectState :: Ribot -> IO RibotState
 connectState (Ribot server port chan nick dbFile _) = do
     t <- getCurrentTime
     -- First, connect to IRC and set the buffering.
-    printf "Connecting to %s:%d..." server port
+    noticeM "Network.Ribot" $ "Connecting to " ++ server ++ ":" ++ (show port)
     h <- connectTo server . PortNumber $ fromIntegral port
     hSetBuffering h NoBuffering
     -- Second, connect to the database.
@@ -64,7 +65,7 @@ connectState (Ribot server port chan nick dbFile _) = do
     out <- newChan
     forkIO . forever $ do
         output <- readChan out
-        printf "> %s\n" output
+        debugM "Network.Ribot" $ "> " ++ output
         hPrintf h "%s\r\n" output
     return $ RibotState h t db $ writeChan out
 
@@ -141,13 +142,6 @@ evalRibot ribot state input = do
         finalize = disconnect
 
 
--- This writes the input line to the screen with a timestamp.
-logInput :: String -> IO ()
-logInput input = do
-    dt <- getCurrentTime
-    let time = formatTime defaultTimeLocale "%c" dt
-    printf "[%s] %s\n" time input
-
 -- This listens forever. It pulls a line from IRC, prints it, cleans it up, and
 -- evaluates it.
 listen :: Handle -> Net ()
@@ -156,15 +150,15 @@ listen h = forever $ do
     maybeS <- io . timeout timeoutPeriod $ init `fmap` liftIO (hGetLine h)
     case maybeS of
         Nothing -> do
-            io $ putStrLn "Lost connection. Re-connecting..."
+            io $ warningM "Network.Ribot" "Lost connection. Re-connecting..."
             reconnectIRC
-            io $ putStrLn "OK. Reconnected..."
+            io $ warningM "Network.Ribot" "OK. Reconnected..."
         Just s -> handleInput s
 
 -- This processes a line of input from the IRC server.
 handleInput :: String -> Net ()
 handleInput s = do
-    io $ logInput s
+    io . debugM "Network.Ribot" $ "< " ++ s
     case s of
         -- The server can send the `PING` command, to which we have to
         -- immediately reply "PONG".
