@@ -28,7 +28,7 @@ import           Text.Ribot.Generate (mimic)
 
 -- This is the version, for the command line and the !version command.
 ribotVersion :: String
-ribotVersion =  "0.4.1"
+ribotVersion =  "1.0.0"
 
 -- This is the help message for the bot.
 helpMessage :: [String]
