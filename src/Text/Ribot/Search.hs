@@ -16,7 +16,7 @@ import qualified Text.Ribot.Tokenizer as T
 -- punctuation. The parameters are the user's nick and the message.
 tokenize :: String -> String -> [String]
 tokenize nick input = 
-    case (T.tokenize nick input) of
+    case T.tokenize nick input of
         Left _    -> []
         Right all -> L.filter keep all
     where
@@ -30,7 +30,7 @@ tokenize nick input =
 -- * wildcards (stars) are turned into SQL wildcards (*%*).
 parseSearch :: String -> [String]
 parseSearch input =
-    case (tokenizeQuery "<query>" input) of
+    case tokenizeQuery "<query>" input of
         Left _    -> []
         Right all -> map normalize $ L.filter keep all
     where
@@ -47,7 +47,7 @@ parseSearch input =
         normalize :: String -> String
         normalize []       = []
         normalize ('*':xs) = '%' : normalize xs
-        normalize (x:xs)   = (C.toLower x) : (normalize xs)
+        normalize (x:xs)   = C.toLower x : normalize xs
 
         -- This defines a list of tokens.
         tokenList :: GenParser Char st [String]

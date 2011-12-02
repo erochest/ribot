@@ -55,7 +55,7 @@ connectState :: Ribot -> IO RibotState
 connectState (Ribot server port chan nick dbFile _) = do
     t <- getCurrentTime
     -- First, connect to IRC and set the buffering.
-    noticeM "Network.Ribot" $ "Connecting to " ++ server ++ ":" ++ (show port)
+    noticeM "Network.Ribot" $ "Connecting to " ++ server ++ ":" ++ show port
     h <- connectTo server . PortNumber $ fromIntegral port
     hSetBuffering h NoBuffering
     -- Second, connect to the database.
@@ -106,7 +106,7 @@ connect server port chan nick dbFile pasteBinKey = do
 runRibot :: Net ()
 runRibot = do
     login
-    get >>= listen . botSocket
+    gets botSocket >>= listen
 
 -- This logs onto IRC with a nick into a channel.
 login :: Net ()
@@ -123,7 +123,7 @@ login = do
 -- Because this assumes that it's being run in another thread, possibly another
 -- OS thread, it creates a new database connection.
 evalRibot :: Ribot -> RibotState -> Message -> IO ()
-evalRibot ribot state input = do
+evalRibot ribot state input =
     bracket (init state)
             finalize
             (run state)

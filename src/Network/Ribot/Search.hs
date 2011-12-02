@@ -39,10 +39,10 @@ import           Text.Ribot.Search
 index :: IConnection a => a -> String -> Int -> String -> IO [String]
 index cxn nick msgId msg =
     withTransaction cxn $ \cxn -> do
-        loadTokens cxn
-        updateTokenTable cxn
-        updateIds cxn
-        updateIndex cxn
+        loadMessageTokens cxn
+        updateMessageTokenTable cxn
+        updateMessageIds cxn
+        updateMessageIndex cxn
         cleanUp cxn
         return tokens
     where
@@ -51,8 +51,8 @@ index cxn nick msgId msg =
         msgIdSql = toSql msgId
 
         -- * The tokens are loaded into the temporary table;
-        loadTokens :: IConnection a => a -> IO ()
-        loadTokens cxn = do
+        loadMessageTokens :: IConnection a => a -> IO ()
+        loadMessageTokens cxn = do
             stmt <- prepare cxn "INSERT OR IGNORE INTO msg_token \
                                 \ (message_id, text) VALUES (?, ?);"
             executeMany stmt tokenValues
@@ -60,8 +60,8 @@ index cxn nick msgId msg =
 
         -- * `token` is updated with the tokens in the temporary table
         --   (`INSERT OR IGNORE`);
-        updateTokenTable :: IConnection a => a -> IO ()
-        updateTokenTable cxn = do
+        updateMessageTokenTable :: IConnection a => a -> IO ()
+        updateMessageTokenTable cxn = do
             stmt <- prepare cxn "INSERT OR IGNORE INTO token (text) \
                                 \ SELECT text FROM msg_token \
                                 \ WHERE message_id=?;"
@@ -70,8 +70,8 @@ index cxn nick msgId msg =
 
         -- * The IDs in the temporary table are filled in from the `token`
         --   table;
-        updateIds :: IConnection a => a -> IO ()
-        updateIds cxn = do
+        updateMessageIds :: IConnection a => a -> IO ()
+        updateMessageIds cxn = do
             stmt <- prepare cxn "INSERT OR REPLACE INTO msg_token \
                                 \ (token_id, message_id, text) \
                                 \ SELECT t.id, mt.message_id, t.text \
@@ -83,8 +83,8 @@ index cxn nick msgId msg =
 
         -- * The tokens in the temporary table are inserted into the
         --   `position` table; and
-        updateIndex :: IConnection a => a -> IO ()
-        updateIndex cxn = do
+        updateMessageIndex :: IConnection a => a -> IO ()
+        updateMessageIndex cxn = do
             stmt <- prepare cxn "INSERT INTO position (token_id, message_id) \
                                 \ SELECT token_id, message_id FROM msg_token \
                                 \ WHERE message_id=?;"
@@ -102,7 +102,7 @@ index cxn nick msgId msg =
 -- messages it contains. It returns the number of messages indexed and the
 -- number of tokens indexed.
 reindex :: IConnection a => a -> IO (Int, Int)
-reindex cxn = do
+reindex cxn =
     withTransaction cxn $ \cxn -> do
         clearExistingData cxn
 
@@ -192,8 +192,7 @@ type SearchResult = (Int, String, String, String)
 -- This parses a search query, turns it into SQL, passes it to the database,
 -- parses the results into a list of `SearchResult`s and returns them.
 search :: IConnection c => c -> String -> IO [SearchResult]
-search cxn query = do
-    fmap (map toSearchResult) $ quickQuery' cxn sql params
+search cxn query = fmap (map toSearchResult) $ quickQuery' cxn sql params
     where
         -- These are the SQL query to run and its parameters.
         (sql, params) = buildQuery $ parseSearch query
@@ -240,16 +239,16 @@ buildQuery queryTerms =
             where intro = case n of
                             0 -> " WHERE"
                             _ -> " AND"
-                  op    = case ('%' `elem` term) of
-                            True  -> " LIKE "
-                            False -> "="
+                  op    = if '%' `elem` term
+                            then " LIKE "
+                            else "="
                   n' = show n
 
         foldTerm :: ([String], [String], [SqlValue])
                  -> (Int, String)
                  -> ([String], [String], [SqlValue])
         foldTerm (sql, wheres, params) (n, term) =
-            ((join n : sql), (where_ n term : wheres), (toSql term) : params)
+            (join n : sql, where_ n term : wheres, toSql term : params)
 
 -- This constructs a string for the output of the search results.
 showSearchResult :: SearchResult -> String

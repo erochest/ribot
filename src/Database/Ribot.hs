@@ -18,7 +18,7 @@ module Database.Ribot
     , getUserMessages
     ) where
 
-import           Control.Monad (forM, forM_, mapM, mapM_)
+import           Control.Monad (forM, forM_, liftM, mapM, mapM_)
 import           Data.Time.Clock
 import           Database.HDBC
 import           Database.HDBC.Types (IConnection(..), ConnWrapper)
@@ -41,10 +41,9 @@ resolveDbFile (Just df) = return df
 -- some flexibility in what database engine I use.
 connectDb :: String -> IO ConnWrapper
 connectDb dbFile =
-          connectSqlite3 dbFile >>=
-          initDb                >>=
-          createDb              >>=
-          return . ConnWrapper
+    liftM ConnWrapper (connectSqlite3 dbFile >>=
+                       initDb                >>=
+                       createDb)
 
 -- This initializes the database by turning on appropriate pragmas.
 initDb :: IConnection c => c -> IO c
@@ -60,8 +59,8 @@ initDb cxn = do
 -- Haskell-fu.)
 createDb :: IConnection c => c -> IO c
 createDb =
-    (flip withTransaction) $ \cxn -> do
-        forM_ sql $ (runRaw cxn)
+    flip withTransaction $ \cxn -> do
+        forM_ sql $ runRaw cxn
         initTempTable cxn
         return cxn
     where

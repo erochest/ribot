@@ -62,7 +62,7 @@ ribotModes = modes
         { server = defaultServer &= name "s" &= typ "HOST"
                                  &= help ("The IRC server (default is " ++ defaultServer ++ ").")
         , port = defaultPort &= name "p" &= typ "PORT"
-                             &= help ("The port of the IRC server (default is " ++ (show defaultPort) ++ ").")
+                             &= help ("The port of the IRC server (default is " ++ show defaultPort ++ ").")
         , channel = defaultChan &= name "c" &= typ "CHANNEL"
                                 &= help ("The channel on the server (default is " ++ defaultChan ++ ").")
         , nick = defaultNick &= name "n" &= typ "NICKNAME"
@@ -70,7 +70,9 @@ ribotModes = modes
         , dbFile = defaultDbFile &= name "d" &= typ "DATABASE-FILE"
                                  &= help "The database file to use for logging."
         , pasteBinKey = def &= name "k" &= typ "PASTEBIN-API-KEY"
-                            &= help ("The developer API key for http://pastebin.com/api. If given, this will be used for long search results.")
+                            &= help "The developer API key for \
+                                    \http://pastebin.com/api. If given, this \
+                                    \will be used for long search results."
         , daemonMode = False &= name "D" &= name "daemon"
                              &= help "A flag to indicate that this should be run in daemon mode."
         , debug = False &= help "A flag to turn on debugging logging output."

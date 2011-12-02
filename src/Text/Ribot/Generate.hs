@@ -13,6 +13,7 @@ module Text.Ribot.Generate
     , mimic
     ) where
 
+import           Control.Monad (liftM)
 import qualified Data.Either as E
 import qualified Data.List as L
 import qualified Data.Map as M
@@ -74,9 +75,9 @@ mostLikely textGen seq =
 -- any continuations, `Nothing` is returned.
 randomContinuation :: Ord a => TextGenerator a -> (a, a) -> IO (Maybe a)
 randomContinuation textGen seq =
-    case (getContinuationList textGen seq) of
+    case getContinuationList textGen seq of
         Nothing   -> return Nothing
-        Just cont -> randomIO >>= return . getWeightedChoice cont
+        Just cont -> liftM (getWeightedChoice cont) randomIO
 
 -- This takes a list of items with weights and a percent as a fraction and
 -- returns the item with that weighted amount. It walks through the list and
@@ -112,7 +113,7 @@ getWeightedChoice choices cutOff =
         -- running percentage of the weight totals.
         accum :: Int -> (a, Int) -> (Int, (a, Double))
         accum running (item, weight) =
-            (running', (item, (fromIntegral running') / total))
+            (running', (item, fromIntegral running' / total))
             where running' = running + weight
 
 -- This creates a chain of items. The item given is the item to use for
@@ -138,7 +139,7 @@ chain textGen@(TextGenerator tg) start n = do
         itemSet :: Ord b => Model b -> S.Set b
         itemSet m = S.fromList . L.concatMap (uncurry getItems) $ M.toList m
             where
-                getItems :: Ord c => (c, c) -> (FreqMap c) -> [c]
+                getItems :: Ord c => (c, c) -> FreqMap c -> [c]
                 getItems (t1, t2) freqMap = t1 : t2 : M.keys freqMap
 
         -- Just `itemSet` as a list so we can easily pick one at random.
@@ -147,7 +148,7 @@ chain textGen@(TextGenerator tg) start n = do
 
         randomElem :: Ord a => [a] -> IO a
         randomElem list =
-            randomRIO (0, length list - 1) >>= return . (list !!)
+            liftM (list !!) (randomRIO (0, length list - 1))
 
         -- This constructs a list/stream that pulls.
         chain' :: Ord e => Show e => Eq e =>
@@ -163,9 +164,9 @@ chain textGen@(TextGenerator tg) start n = do
                     token3 <- randomElem (itemList m)
                     rest   <- chain' tg filterOut token2 token3 n'
                     return (token1 : rest)
-            where n' = if (token1 == filterOut)
-                       then n
-                       else (n - 1)
+            where n' = if token1 == filterOut
+                        then n
+                        else n - 1
 
 -- This breaks a list of items into a list of overlapping triples. The first
 -- position is for a boundary marker, so this call,

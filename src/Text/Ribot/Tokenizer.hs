@@ -15,6 +15,7 @@ module Text.Ribot.Tokenizer
     , removeStopWords
     ) where
 
+import           Control.Monad (liftM)
 import qualified Data.Char as C
 import qualified Data.List as L
 import qualified Data.Set as S
@@ -47,19 +48,19 @@ lexItems = many (   lexAlphaNum
 
 -- A string of alpha-numeric characters.
 lexAlphaNum :: GenParser Char st Lex
-lexAlphaNum = many1 alphaNum >>= return . LexAlphaNum
+lexAlphaNum = liftM LexAlphaNum (many1 alphaNum)
 
 -- A string of whitespace characters.
 lexWS :: GenParser Char st Lex
-lexWS = many1 space >>= return . LexWS
+lexWS = liftM LexWS (many1 space)
 
 -- A single inter-token punctuation character.
 lexInterToken :: GenParser Char st Lex
-lexInterToken = oneOf "-.,'" >>= return . LexInterToken
+lexInterToken = liftM LexInterToken (oneOf "-.,'")
 
 -- A single punctuation character.
 lexPunct :: GenParser Char st Lex
-lexPunct = anyChar >>= return . LexPunct
+lexPunct = liftM LexPunct anyChar
 
 -- This processes the output of `lex`. It does one of several things:
 --
@@ -77,7 +78,7 @@ tokenList = trash >> many tokenItem
 
 -- This is a parser combinator that passes anything that matches a predicate.
 tokenp :: Stream s m Lex => (Lex -> Bool) -> ParsecT s u m Lex
-tokenp f = tokenPrim (\l -> "'" ++ (show l) ++ "'")
+tokenp f = tokenPrim (\l -> "'" ++ show l ++ "'")
                      nextPos
                      (\l -> if f l then Just l else Nothing)
     where
@@ -93,7 +94,7 @@ tokenItem = do
 
 -- This defines the word part of a token (i.e., the alpha-numeric part).
 tokenword :: GenParser Lex st String
-tokenword = tokenp isLexAlphaNum >>= return . lexToString
+tokenword = liftM lexToString (tokenp isLexAlphaNum)
     where
         isLexAlphaNum :: Lex -> Bool
         isLexAlphaNum (LexAlphaNum _) = True
@@ -113,7 +114,7 @@ trash = skipMany (tokenpunct <|> tokenws <|> tokenintrapunct)
 
 -- This is a string of whitespace.
 tokenws :: GenParser Lex st String
-tokenws = tokenp isWS >>= return . lexToString
+tokenws = liftM lexToString (tokenp isWS)
     where
         isWS :: Lex -> Bool
         isWS (LexWS _) = True
@@ -121,7 +122,7 @@ tokenws = tokenp isWS >>= return . lexToString
 
 -- This is an intra-token punctuation.
 tokenintrapunct :: GenParser Lex st String
-tokenintrapunct = tokenp isIntraTokenPunct >>= return . lexToString
+tokenintrapunct = liftM lexToString (tokenp isIntraTokenPunct)
     where
         isIntraTokenPunct :: Lex -> Bool
         isIntraTokenPunct (LexInterToken _) = True
@@ -129,7 +130,7 @@ tokenintrapunct = tokenp isIntraTokenPunct >>= return . lexToString
 
 -- This is punctuation that must happen around tokens.
 tokenpunct :: GenParser Lex st String
-tokenpunct = tokenp isTokenPunct >>= return . lexToString
+tokenpunct = liftM lexToString (tokenp isTokenPunct)
     where
         isTokenPunct :: Lex -> Bool
         isTokenPunct (LexPunct _) = True
@@ -145,9 +146,7 @@ lexToString (LexPunct l)      = [l]
 -- This lexes a string, tokenizes it, and normalizes the output by converting
 -- it to lower-case.
 tokenize :: String -> String -> Either ParseError [String]
-tokenize src input =   lex src input
-                   >>= token src
-                   >>= return . map normalize
+tokenize src input = liftM (map normalize) (lex src input >>= token src)
     where
         normalize :: String -> String
         normalize = map C.toLower
@@ -174,7 +173,7 @@ stopList = S.fromList [ "i", "me", "my", "myself", "we", "our", "ours",
 
 -- This tests whether a string is a word in the stoplist.
 inStopList :: String -> Bool
-inStopList = (flip S.member) stopList
+inStopList = flip S.member stopList
 
 -- This removes all words in the stop list from the list of tokens.
 removeStopWords :: [String] -> [String]

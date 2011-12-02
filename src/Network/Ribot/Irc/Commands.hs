@@ -47,7 +47,7 @@ helpMessage =
 
 -- This sends a privmsg to the channel the bot's in.
 privmsg :: String -> Net ()
-privmsg s = do
+privmsg s =
     asks botChan >>= \c ->
         write "PRIVMSG" $ c ++ " :" ++ s
 
@@ -86,16 +86,16 @@ eval (Message _ _ _ x) | "!echo" `L.isPrefixOf` x =
 -- * `!search TERMS` — This searches the log and prints out the last 25
 --   results;
 eval (Message u _ _ x) | "!search" `L.isPrefixOf` x =
-    gets botDbHandle >>= io . (flip search) query >>= sendResultsToIrc user
+    gets botDbHandle >>= io . flip search query >>= sendResultsToIrc user
     where query = drop 8 x
           user  = M.fromMaybe "???" u
 -- * `!mimic USER` — This outputs ten tokens that mimic USER according to a
 -- very simple probabilistic model.
 eval (Message _ _ _ x) | "!mimic" `L.isPrefixOf` x = do
     db       <- gets botDbHandle
-    tokens   <- io $ do
-        getUserMessages db user >>= return . map snd >>= (flip mimic) 12
-    privmsg $ L.intercalate " " tokens
+    tokens   <- io $
+        liftM (map snd) (getUserMessages db user) >>= flip mimic 12
+    privmsg $ L.unwords tokens
     where user = drop 7 x
 -- * All other `!` commands are ignored; and
 eval (Message _ _ _ ('!':_)) = return ()
@@ -138,9 +138,9 @@ checkUser cxn nick =
 --
 -- This returns the ID of the message in the `message` database or Nothing.
 logMessage :: IConnection c => Message -> c -> IO (Maybe Int)
-logMessage msg cxn = do
+logMessage msg cxn =
     -- If there's no user, move on.
-    case (msgUser msg) of
+    case msgUser msg of
         Just userName -> addMsg userName $ msgText msg
         Nothing       -> return Nothing
 
@@ -175,13 +175,13 @@ setUserLogging cxn nick loggingOn = do
 -- or if there is no deverloper's API key for Pastebin, just outputting a
 -- sorry and a few.
 sendResultsToIrc :: String -> [SearchResult] -> Net ()
-sendResultsToIrc _ results | (length results) < 3 =
+sendResultsToIrc _ results | length results < 3 =
     mapM_ (privmsg . showSearchResult) results
 sendResultsToIrc nick results = do
     maybePasteBinKey <- asks botPasteBinKey
     case maybePasteBinKey of
         Nothing -> do
-            privmsg ("There were " ++ (show $ length results) ++ " results.\
+            privmsg ("There were " ++ show (length results) ++ " results.\
                      \ But I don't know how to post to PasteBin, so here\
                      \ are two:")
             mapM_ (privmsg . showSearchResult) $ L.take 2 results
@@ -190,7 +190,7 @@ sendResultsToIrc nick results = do
                    . createPaste key title
                    . L.unlines
                    $ map showSearchResult results
-            privmsg (nick ++ ", " ++ (show $ length results) ++
+            privmsg (nick ++ ", " ++ show (length results) ++
                      " results: " ++ url)
             privmsg "That will be available for about an hour."
             where title = "Search for " ++ nick

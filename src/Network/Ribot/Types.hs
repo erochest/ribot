@@ -56,7 +56,7 @@ data Message = Message { msgUser :: Maybe String
 -- This parses an incoming string into a Message.
 parseMessage :: String -> IO Message
 parseMessage input =
-    case (parseMsg input) of
+    case parseMsg input of
         Right [user, chan, msg] -> do
             now <- getCurrentTime
             return $ Message (Just user) (Just chan) now msg
