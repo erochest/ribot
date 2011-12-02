@@ -60,9 +60,8 @@ parseMessage input =
         Right [user, chan, msg] -> do
             now <- getCurrentTime
             return $ Message (Just user) (Just chan) now msg
-        Left _ -> do
-            now <- getCurrentTime
-            return $ Message Nothing Nothing now input
+        Right _ -> nullMessage
+        Left _  -> nullMessage
     where
         -- And example line would be:
         -- "`:erochester!~erocheste@137.54.2.108 PRIVMSG #err1234567890 :this is a message`"
@@ -90,6 +89,12 @@ parseMessage input =
         ircMsg = many anyChar
         -- This skeps everything to `#`.
         skipHost = skipMany (noneOf "#")
+
+        -- This creates a `Message` with no information except the time stamp.
+        nullMessage :: IO Message
+        nullMessage = do
+            now <- getCurrentTime
+            return $ Message Nothing Nothing now input
 
 -- This is a shortcut for `liftIO` in the context of a `Net` monad.
 io :: IO a -> Net a

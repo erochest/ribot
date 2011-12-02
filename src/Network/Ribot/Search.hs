@@ -18,17 +18,12 @@ module Network.Ribot.Search
     , SearchResult
     ) where
 
-import           Control.Monad (mapM_)
-import qualified Data.Char as C
 import qualified Data.List as L
 import           Database.HDBC
-import           Database.HDBC.Types (IConnection)
 
 -- [Network.Ribot.Types](Types.html)
 -- [Text.Ribot.Tokenizer](../../Text/Ribot/Tokenizer.html) <br />
 -- [Text.Ribot.Search](../../Text/Ribot/Search.html)
-import           Network.Ribot.Types
-import qualified Text.Ribot.Tokenizer as T
 import           Text.Ribot.Search
 
 -- This takes a database connection, message ID, and message string. It
@@ -38,12 +33,12 @@ import           Text.Ribot.Search
 -- The index is populated using these steps:
 index :: IConnection a => a -> String -> Int -> String -> IO [String]
 index cxn nick msgId msg =
-    withTransaction cxn $ \cxn -> do
-        loadMessageTokens cxn
-        updateMessageTokenTable cxn
-        updateMessageIds cxn
-        updateMessageIndex cxn
-        cleanUp cxn
+    withTransaction cxn $ \db -> do
+        loadMessageTokens db
+        updateMessageTokenTable db
+        updateMessageIds db
+        updateMessageIndex db
+        cleanUp db
         return tokens
     where
         tokens = tokenize nick msg
@@ -52,49 +47,49 @@ index cxn nick msgId msg =
 
         -- * The tokens are loaded into the temporary table;
         loadMessageTokens :: IConnection a => a -> IO ()
-        loadMessageTokens cxn = do
-            stmt <- prepare cxn "INSERT OR IGNORE INTO msg_token \
-                                \ (message_id, text) VALUES (?, ?);"
+        loadMessageTokens db = do
+            stmt <- prepare db "INSERT OR IGNORE INTO msg_token \
+                               \ (message_id, text) VALUES (?, ?);"
             executeMany stmt tokenValues
             return ()
 
         -- * `token` is updated with the tokens in the temporary table
         --   (`INSERT OR IGNORE`);
         updateMessageTokenTable :: IConnection a => a -> IO ()
-        updateMessageTokenTable cxn = do
-            stmt <- prepare cxn "INSERT OR IGNORE INTO token (text) \
-                                \ SELECT text FROM msg_token \
-                                \ WHERE message_id=?;"
+        updateMessageTokenTable db = do
+            stmt <- prepare db "INSERT OR IGNORE INTO token (text) \
+                               \ SELECT text FROM msg_token \
+                               \ WHERE message_id=?;"
             execute stmt [msgIdSql]
             return ()
 
         -- * The IDs in the temporary table are filled in from the `token`
         --   table;
         updateMessageIds :: IConnection a => a -> IO ()
-        updateMessageIds cxn = do
-            stmt <- prepare cxn "INSERT OR REPLACE INTO msg_token \
-                                \ (token_id, message_id, text) \
-                                \ SELECT t.id, mt.message_id, t.text \
-                                \ FROM token t \
-                                \ JOIN msg_token mt ON mt.text=t.text \
-                                \ WHERE mt.message_id=?;"
+        updateMessageIds db = do
+            stmt <- prepare db "INSERT OR REPLACE INTO msg_token \
+                               \ (token_id, message_id, text) \
+                               \ SELECT t.id, mt.message_id, t.text \
+                               \ FROM token t \
+                               \ JOIN msg_token mt ON mt.text=t.text \
+                               \ WHERE mt.message_id=?;"
             execute stmt [msgIdSql]
             return ()
 
         -- * The tokens in the temporary table are inserted into the
         --   `position` table; and
         updateMessageIndex :: IConnection a => a -> IO ()
-        updateMessageIndex cxn = do
-            stmt <- prepare cxn "INSERT INTO position (token_id, message_id) \
-                                \ SELECT token_id, message_id FROM msg_token \
-                                \ WHERE message_id=?;"
+        updateMessageIndex db = do
+            stmt <- prepare db "INSERT INTO position (token_id, message_id) \
+                               \ SELECT token_id, message_id FROM msg_token \
+                               \ WHERE message_id=?;"
             execute stmt [msgIdSql]
             return ()
 
         -- * Remove the tokens from this message from the temporary table.
         cleanUp :: IConnection a => a -> IO ()
-        cleanUp cxn = do
-            stmt <- prepare cxn "DELETE FROM msg_token WHERE message_id=?;"
+        cleanUp db = do
+            stmt <- prepare db "DELETE FROM msg_token WHERE message_id=?;"
             execute stmt [msgIdSql]
             return ()
 
@@ -103,34 +98,34 @@ index cxn nick msgId msg =
 -- number of tokens indexed.
 reindex :: IConnection a => a -> IO (Int, Int)
 reindex cxn =
-    withTransaction cxn $ \cxn -> do
-        clearExistingData cxn
+    withTransaction cxn $ \db -> do
+        clearExistingData db
 
-        msgs <- getMessages cxn
+        msgs <- getMessages db
         let tokens = tokenizeMessages msgs
 
-        populateMsgTokenTable cxn tokens
-        updateTokenTable cxn
-        updateIds cxn
-        updateIndex cxn
+        populateMsgTokenTable db tokens
+        updateTokenTable db
+        updateIds db
+        updateIndex db
 
-        cleanUp cxn
+        cleanUp db
         return (length msgs, length tokens)
 
     where
         -- * First, we have to clear out the existing data from the `token`
         --   and `position` tables;
         clearExistingData :: IConnection a => a -> IO ()
-        clearExistingData cxn =
-            mapM_ (runRaw cxn) [ "DELETE FROM token;"
-                               , "DELETE FROM position;"
-                               , "DELETE FROM msg_token;"
-                               ]
+        clearExistingData db =
+            mapM_ (runRaw db) [ "DELETE FROM token;"
+                              , "DELETE FROM position;"
+                              , "DELETE FROM msg_token;"
+                              ]
 
         -- * Get all messages (Message ID, User Nick, Message Text);
         getMessages :: IConnection a => a -> IO [(Int, String, String)]
-        getMessages cxn = do
-            results <- quickQuery' cxn
+        getMessages db = do
+            results <- quickQuery' db
                                    " SELECT m.id, u.username, m.text \
                                    \ FROM message m \
                                    \ JOIN user u ON u.id=m.user_id;"
@@ -148,38 +143,38 @@ reindex cxn =
 
         -- * Push the tokens into `msg_token`;
         populateMsgTokenTable :: IConnection c => c -> [(Int, String)] -> IO ()
-        populateMsgTokenTable cxn tokens = do
-            stmt <- prepare cxn " INSERT OR IGNORE INTO msg_token \
-                                \ (message_id, text) VALUES (?, ?);"
+        populateMsgTokenTable db tokens = do
+            stmt <- prepare db " INSERT OR IGNORE INTO msg_token \
+                               \ (message_id, text) VALUES (?, ?);"
             executeMany stmt [[toSql msgId, toSql token] |
                               (msgId, token) <- tokens]
             return ()
 
         -- * Fill in the `token` table;
         updateTokenTable :: IConnection c => c -> IO ()
-        updateTokenTable cxn =
-            runRaw cxn " INSERT OR IGNORE INTO token (text) \
-                       \ SELECT text FROM msg_token;"
+        updateTokenTable db =
+            runRaw db " INSERT OR IGNORE INTO token (text) \
+                      \ SELECT text FROM msg_token;"
 
         -- * Pull the token IDs back into `msg_token` (unfortunately, I can't
         -- figure out a way to do this in SQL without `UPDATE ... SELECT`);
         updateIds :: IConnection a => a -> IO ()
-        updateIds cxn = do
-            tokens <- quickQuery' cxn "SELECT id, text FROM token;" []
-            update <- prepare cxn " UPDATE msg_token \
-                                  \ SET token_id=? WHERE text=?;"
+        updateIds db = do
+            tokens <- quickQuery' db "SELECT id, text FROM token;" []
+            update <- prepare db " UPDATE msg_token \
+                                 \ SET token_id=? WHERE text=?;"
             executeMany update tokens
 
         -- * Push the token/message relationships into `position`; and
         updateIndex :: IConnection a => a -> IO ()
-        updateIndex cxn =
-            runRaw cxn " INSERT INTO position (token_id, message_id) \
-                       \ SELECT token_id, message_id FROM msg_token; "
+        updateIndex db =
+            runRaw db " INSERT INTO position (token_id, message_id) \
+                      \ SELECT token_id, message_id FROM msg_token; "
 
         -- * Remove the working data from the `msg_token` table.
         cleanUp :: IConnection a => a -> IO ()
-        cleanUp cxn =
-            runRaw cxn "DELETE FROM msg_token;"
+        cleanUp db =
+            runRaw db "DELETE FROM msg_token;"
 
 -- A `SearchResult` is one hit from a search query. It contains
 --
@@ -205,6 +200,7 @@ search cxn query = fmap (map toSearchResult) $ quickQuery' cxn sql params
             , fromSql posted
             , fromSql mText
             )
+        toSearchResult _ = (-1, "", "", "")
 
 -- This takes a processed search query (the output of `parseSearch`) and it
 -- returns a SQL statement that takes those terms and returns the parameters
@@ -214,11 +210,12 @@ buildQuery queryTerms =
     (L.concat . L.reverse . (suffix:) $ wheres ++ sqlList, L.reverse params)
     where
         -- The initial state for the fold
-        init = ([prefix], [], [])
+        foldInit = ([prefix], [], [])
 
         -- The results of the folding the query terms to accumulate the
         -- intermediate output.
-        (sqlList, wheres, params) = L.foldl' foldTerm init . zip [0..] $ queryTerms
+        (sqlList, wheres, params) =
+            L.foldl' foldTerm foldInit . zip [0..] $ queryTerms
 
         -- This is the prefix for all queries.
         prefix = "SELECT DISTINCT m.id, u.username, m.posted, m.text\
@@ -247,8 +244,8 @@ buildQuery queryTerms =
         foldTerm :: ([String], [String], [SqlValue])
                  -> (Int, String)
                  -> ([String], [String], [SqlValue])
-        foldTerm (sql, wheres, params) (n, term) =
-            (join n : sql, where_ n term : wheres, toSql term : params)
+        foldTerm (sql, wheres', params') (n, term) =
+            (join n : sql, where_ n term : wheres', toSql term : params')
 
 -- This constructs a string for the output of the search results.
 showSearchResult :: SearchResult -> String

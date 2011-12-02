@@ -17,8 +17,8 @@ import qualified Text.Ribot.Tokenizer as T
 tokenize :: String -> String -> [String]
 tokenize nick input = 
     case T.tokenize nick input of
-        Left _    -> []
-        Right all -> L.filter keep all
+        Left _          -> []
+        Right allTokens -> L.filter keep allTokens
     where
         keep :: String -> Bool
         keep word = T.isWord word && not (T.inStopList word)
@@ -31,8 +31,8 @@ tokenize nick input =
 parseSearch :: String -> [String]
 parseSearch input =
     case tokenizeQuery "<query>" input of
-        Left _    -> []
-        Right all -> map normalize $ L.filter keep all
+        Left _          -> []
+        Right allTokens -> map normalize $ L.filter keep allTokens
     where
         -- This handles interacting with the parser.
         tokenizeQuery :: String -> String -> Either ParseError [String]

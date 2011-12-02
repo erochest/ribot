@@ -15,19 +15,14 @@ module Network.Ribot.Irc
 
 import           Control.Concurrent (forkIO)
 import           Control.Concurrent.Chan
-import           Control.Exception (bracket, bracket_)
-import           Control.Monad (mapM_, forever, liftM)
+import           Control.Exception (bracket)
 import           Control.Monad.Reader
 import           Control.Monad.State
-import           Control.Monad.Trans (lift)
 import           Database.HDBC
 import qualified Data.List as L
-import qualified Data.Maybe as M
 import           Data.Time
 import           Network
-import           System.Exit
 import           System.IO
-import           System.Locale
 import           System.Log.Logger
 import           System.Timeout
 import           Text.Printf
@@ -35,24 +30,20 @@ import           Text.Printf
 -- [Database.Ribot](../../Database/Ribot.html) <br />
 -- [Network.Ribot.Irc.Commands](./Irc/Commands.html) <br />
 -- [Network.Ribot.Types](Types.html) <br />
--- [Network.Ribot.Search](Search.html) <br />
--- [Text.Ribot.Utils](../../Text/Ribot/Utils.html)
 import           Database.Ribot
 import           Network.Ribot.Irc.Commands
 import           Network.Ribot.Types
-import           Network.Ribot.Search (index, search, showSearchResult)
-import           Text.Ribot.Utils (split)
 
 -- This is the maximum time that we can go without hearing from the server. If
 -- this timeout is reached, we re-connect.  Currently, this is set for five
 -- minutes.
 timeoutPeriod :: Int
-timeoutPeriod =  5 * 60 * 10^6
+timeoutPeriod =  5 * 60 * (10 :: Int) ^ (6 :: Int)
 
 -- This takes the ribot and fills in the state by connecting to IRC,
 -- the database, etc.
 connectState :: Ribot -> IO RibotState
-connectState (Ribot server port chan nick dbFile _) = do
+connectState (Ribot server port _ _ dbFile _) = do
     t <- getCurrentTime
     -- First, connect to IRC and set the buffering.
     noticeM "Network.Ribot" $ "Connecting to " ++ server ++ ":" ++ show port
@@ -97,8 +88,8 @@ connect :: String                   -- The IRC server host.
 connect server port chan nick dbFile pasteBinKey = do
     dbFile' <- resolveDbFile dbFile
     let ribot = Ribot server (fromIntegral port) chan nick dbFile' pasteBinKey
-    state <- connectState ribot
-    return (ribot, state)
+    ribotState <- connectState ribot
+    return (ribot, ribotState)
 
 -- Run in `Net`.
 --
@@ -123,20 +114,20 @@ login = do
 -- Because this assumes that it's being run in another thread, possibly another
 -- OS thread, it creates a new database connection.
 evalRibot :: Ribot -> RibotState -> Message -> IO ()
-evalRibot ribot state input =
-    bracket (init state)
+evalRibot ribot ribotState input =
+    bracket (initRibot ribotState)
             finalize
-            (run state)
+            (runR ribotState)
     where
-        init :: RibotState -> IO ConnWrapper
-        init state = do
-            db <- clone $ botDbHandle state
+        initRibot :: RibotState -> IO ConnWrapper
+        initRibot rs = do
+            db <- clone $ botDbHandle rs
             initTempTable db
             return (ConnWrapper db)
 
-        run :: RibotState -> ConnWrapper -> IO ()
-        run state db = runNet (eval input) ribot state'
-            where state' = state { botDbHandle=db }
+        runR :: RibotState -> ConnWrapper -> IO ()
+        runR rs db = runNet (eval input) ribot rs'
+            where rs' = rs { botDbHandle=db }
 
         finalize :: IConnection c => c -> IO ()
         finalize = disconnect
@@ -169,11 +160,11 @@ handleInput s = do
         -- Otherwise, we parse the message, get the configuration and state to
         -- the monad can be recreated in a second thread, and fork the new
         -- thread to evaluate the input.
-        otherwise -> do
+        _ -> do
             msg   <- io (parseMessage s)
             ribot <- ask
-            state <- get
-            _     <- io . forkIO $ evalRibot ribot state msg
+            rs    <- get
+            _     <- io . forkIO $ evalRibot ribot rs msg
             return ()
 
 -- This cleans up a string send by IRC by removing the prefix.

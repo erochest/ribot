@@ -9,7 +9,6 @@ module Network.Ribot.Irc.Commands
     , sendResultsToIrc
     ) where
 
-import           Control.Monad (mapM_, liftM)
 import           Control.Monad.Reader
 import           Control.Monad.State
 import qualified Data.List as L
@@ -73,12 +72,12 @@ eval (Message _ _ _ "!uptime") =
     privmsg =<< uptime
 -- * `!log off` — turn off logging for the user;
 -- * `!log on` — turn on logging for the user;
-eval (Message (Just usr) _ _ log) | "!log " `L.isPrefixOf` log = do
+eval (Message (Just usr) _ _ logLine) | "!log " `L.isPrefixOf` logLine = do
     db <- gets botDbHandle
     io . withTransaction db $ \cxn ->
         setUserLogging cxn usr logFlag
     privmsg $ "Logging turned " ++ logMsg ++ " for " ++ usr ++ "."
-    where logFlag = log == "!log on"
+    where logFlag = logLine == "!log on"
           logMsg  = if logFlag then "on" else "off"
 -- * `!echo NAME` — echo back;
 eval (Message _ _ _ x) | "!echo" `L.isPrefixOf` x =

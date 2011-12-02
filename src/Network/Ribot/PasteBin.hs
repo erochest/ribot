@@ -5,10 +5,9 @@ module Network.Ribot.PasteBin
     ( createPaste
     ) where
 
-import qualified Data.List as L
 import           Data.Maybe
 import           Network.HTTP
-import           Network.URI
+import           Network.URI (nullURI, parseURI, URI(..))
 
 -- This is the base API URL.
 pasteUri :: URI

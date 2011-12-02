@@ -87,10 +87,10 @@ tokenp f = tokenPrim (\l -> "'" ++ show l ++ "'")
 -- This is a single token.
 tokenItem :: GenParser Lex st String
 tokenItem = do
-    token <- tokenword
-    rest  <- many (try tokenItem')
+    token' <- tokenword
+    rest   <- many (try tokenItem')
     trash
-    return . L.concat $ (token : rest)
+    return . L.concat $ (token' : rest)
 
 -- This defines the word part of a token (i.e., the alpha-numeric part).
 tokenword :: GenParser Lex st String
@@ -187,10 +187,4 @@ isWord _                      = False
 -- This removes all punctuation tokens from a list of tokens.
 removePunctuation :: [String] -> [String]
 removePunctuation = L.filter isWord
-
--- This is my re-definition of `C.isPunctuation` so that it includes symbols.
-isPunctuation :: Char -> Bool
-isPunctuation c | C.isPunctuation c = True
-isPunctuation c | C.isSymbol c      = True
-isPunctuation _                     = False
 

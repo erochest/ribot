@@ -42,8 +42,8 @@ mkTextGenerator = TextGenerator . L.foldl' combine M.empty
     where
         -- This handles one step of the fold.
         combine :: Ord a => Model a -> (a, a, a) -> Model a
-        combine hmm (obs1, obs2, next) =
-            M.alter (combine' next) (obs1, obs2) hmm
+        combine hmm (obs1, obs2, nextStep) =
+            M.alter (combine' nextStep) (obs1, obs2) hmm
 
         -- This increments a sequence's `FreqMap`.
         combine' :: Ord a => a -> Maybe (FreqMap a) -> Maybe (FreqMap a)
@@ -58,8 +58,8 @@ mkTextGenerator = TextGenerator . L.foldl' combine M.empty
 -- This returns the continuations for a leading sequence in descending order of
 -- frequency.
 getContinuationList :: Ord a => TextGenerator a -> (a, a) -> Maybe [(a, Int)]
-getContinuationList (TextGenerator hmm) seq =
-    return . L.sortBy (O.comparing key) . M.toList =<< M.lookup seq hmm
+getContinuationList (TextGenerator hmm) leadingSeq =
+    return . L.sortBy (O.comparing key) . M.toList =<< M.lookup leadingSeq hmm
     where
         key :: (a, Int) -> Int
         key (_, i) = -i
@@ -67,15 +67,15 @@ getContinuationList (TextGenerator hmm) seq =
 -- This returns the most likely continuation of the sequence given. If there's
 -- no data for that sequence, `Nothing` is returned.
 mostLikely :: Ord a => TextGenerator a -> (a, a) -> Maybe a
-mostLikely textGen seq =
-    fmap fst . listToMaybe =<< getContinuationList textGen seq
+mostLikely textGen leadingSeq =
+    fmap fst . listToMaybe =<< getContinuationList textGen leadingSeq
 
 -- This returns a continuation for the sequence. It does using a random
 -- selecting weighted by the frequency of each continuation. If there aren't
 -- any continuations, `Nothing` is returned.
 randomContinuation :: Ord a => TextGenerator a -> (a, a) -> IO (Maybe a)
-randomContinuation textGen seq =
-    case getContinuationList textGen seq of
+randomContinuation textGen leadingSeq =
+    case getContinuationList textGen leadingSeq of
         Nothing   -> return Nothing
         Just cont -> liftM (getWeightedChoice cont) randomIO
 
@@ -127,8 +127,8 @@ getWeightedChoice choices cutOff =
 -- This is kind of messy. I'm not very happy with it.
 chain :: Ord a => Show a => TextGenerator a -> a -> Int -> IO [a]
 chain textGen@(TextGenerator tg) start n = do
-    (_, next) <- randomElem nextPairs
-    return . filter (/= start) =<< chain' textGen start start next n
+    (_, nextItem) <- randomElem nextPairs
+    return . filter (/= start) =<< chain' textGen start start nextItem n
     where
         -- This is a list of all the sequences in the model that begin with
         -- `start`.
@@ -154,19 +154,19 @@ chain textGen@(TextGenerator tg) start n = do
         chain' :: Ord e => Show e => Eq e =>
                   TextGenerator e -> e -> e -> e -> Int -> IO [e]
         chain' _ _ _ _ 0 = return []
-        chain' tg@(TextGenerator m) filterOut token1 token2 n = do
-            contMaybe <- randomContinuation tg (token1, token2)
+        chain' tg'@(TextGenerator m) filterOut token1 token2 thisN = do
+            contMaybe <- randomContinuation tg' (token1, token2)
             case contMaybe of
                 Just token3 -> do
-                    rest <- chain' tg filterOut token2 token3 n'
+                    rest <- chain' tg' filterOut token2 token3 n'
                     return (token1 : rest)
                 Nothing     -> do
                     token3 <- randomElem (itemList m)
-                    rest   <- chain' tg filterOut token2 token3 n'
+                    rest   <- chain' tg' filterOut token2 token3 n'
                     return (token1 : rest)
             where n' = if token1 == filterOut
-                        then n
-                        else n - 1
+                        then thisN
+                        else thisN - 1
 
 -- This breaks a list of items into a list of overlapping triples. The first
 -- position is for a boundary marker, so this call,
@@ -188,5 +188,5 @@ mimic inputs n = chain tg "#" n
     where
         tokens = E.rights . map (tokenize "") $ inputs
         trips  = L.concatMap (triples "#") tokens
-        tg@(TextGenerator m) = mkTextGenerator trips
+        tg     = mkTextGenerator trips
 

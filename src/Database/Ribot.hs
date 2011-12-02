@@ -18,15 +18,12 @@ module Database.Ribot
     , getUserMessages
     ) where
 
-import           Control.Monad (forM, forM_, liftM, mapM, mapM_)
+import           Control.Monad (forM_, liftM)
 import           Data.Time.Clock
 import           Database.HDBC
-import           Database.HDBC.Types (IConnection(..), ConnWrapper)
 import           Database.HDBC.Sqlite3 (connectSqlite3)
 import           System.Directory
 import           System.FilePath ((</>))
--- [Network.Ribot.Types](../Network/Ribot/Types.html)
-import           Network.Ribot.Types
 
 
 -- This resolves the database file path based on the value in the

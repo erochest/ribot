@@ -9,7 +9,6 @@ import           Control.Exception (bracket)
 import           Control.Monad (when)
 import qualified Database.HDBC as Db
 import qualified Data.List as L
-import           Data.Time
 import           Network
 import           System.IO
 import           System.Log.Handler.Simple
@@ -38,12 +37,13 @@ main = do
     case mode of
         -- This is the default mode. It listens on IRC. This is the primary
         -- bot mode.
-        Listen server port chan nick dbFile pasteBinKey daemon debug -> do
+        Listen lserver lport lchan lnick ldbFile lpasteBinKey daemon ldebug -> do
             let runBot = withSocketsDo
-                    (bracket (connect server port chan nick dbFile pasteBinKey)
+                    (bracket (connect lserver lport lchan lnick ldbFile
+                                      lpasteBinKey)
                              disconnect
                              (uncurry loop))
-            when debug $
+            when ldebug $
                 updateGlobalLogger rootLoggerName (setLevel DEBUG)
             if daemon
                 then do s <- fileHandler "/tmp/ribot.log" DEBUG
@@ -52,22 +52,22 @@ main = do
                 else runBot
         -- This rebuilds the inverted index of messages without connecting to
         -- IRC.
-        Reindex dbFile -> do
+        Reindex rdbFile -> do
             putStrLn "reindexing database."
-            (msgCount, tknCount) <- bracket (resolveDbFile dbFile >>= connectDb)
+            (msgCount, tknCount) <- bracket (resolveDbFile rdbFile >>= connectDb)
                                             Db.disconnect
                                             reindex
             printf "indexed %d messages; %d tokens.\n" msgCount tknCount
         -- This searches the messages without connecting to IRC.
-        Search dbFile terms ->
-            bracket (resolveDbFile dbFile >>= connectDb)
+        Search sdbFile sterms ->
+            bracket (resolveDbFile sdbFile >>= connectDb)
                     Db.disconnect
-                    (search' terms)
+                    (search' sterms)
         -- This runs the `!mimic` command from the command line.
-        Mimic dbFile nick ->
-            bracket (resolveDbFile dbFile >>= connectDb)
+        Mimic mdbFile mnick ->
+            bracket (resolveDbFile mdbFile >>= connectDb)
                     Db.disconnect
-                    (mimic' nick)
+                    (mimic' mnick)
     where
         -- Compose functions to get the bot's socket and close it.
         disconnect = hClose . botSocket . snd
@@ -83,16 +83,16 @@ main = do
 
         -- This performs a search on the command line.
         search' :: Db.IConnection c => [String] -> c -> IO ()
-        search' terms cxn = do
+        search' sterms cxn = do
             results <- search cxn query
             mapM_ (putStrLn . showSearchResult) results
             printf "Found %d message(s).\n" $ length results
-            where query = L.unwords terms
+            where query = L.unwords sterms
 
         -- This mimics the nick given.
         mimic' :: Db.IConnection c => String -> c -> IO ()
-        mimic' nick cxn = do
-            messages <- return . map snd =<< getUserMessages cxn nick
+        mimic' mnick cxn = do
+            messages <- return . map snd =<< getUserMessages cxn mnick
             tokens   <- mimic messages 12
             putStrLn . ("> " ++) $ L.unwords tokens
 
