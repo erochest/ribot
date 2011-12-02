@@ -130,6 +130,11 @@ namespace :hs do
   task :build do
     sh %{cabal build}
   end
+
+  desc 'This runs hlint.'
+  task :lint do
+    sh %{hlint src}
+  end
 end
 
 namespace :release do
