@@ -34,37 +34,9 @@ task :clean do
   sh %{cabal clean}
 end
 
-# This runs docco on the source file and moves the output into a deeper level
-# than just ./docs.
-def docco(src_file)
-  sh %{docco #{src_file}}
-
-  basename = File.basename(src_file, '.hs') + '.html'
-  tmp = File.join("docs", basename)
-
-  parts = Pathname.new(src_file).each_filename.to_a
-  parts[parts.index('src')] = 'docs'
-  dest = File.join(*parts)[0..-4] + '.html'
-
-  if tmp == dest
-    # If the tmp and dest are the same, then change dest's filename to
-    # index.html and only copy it.
-    dest = File.join(File.dirname(tmp), 'index.html')
-    FileUtils.cp(tmp, dest, :verbose => true)
-  else
-    dirname = File.dirname(dest)
-    FileUtils.mkdir_p(dirname)
-    FileUtils.mv(tmp, dest, :verbose => true)
-    FileUtils.cp('docs/docco.css', File.join(dirname, 'docco.css'),
-                 :verbose => true)
-  end
-end
-
-desc 'Creates docs using docco (must be on path).'
-task :docs do
-  hs_files = File.join('src', '**', '*.hs')
-  Dir.glob(hs_files).each { |filename| docco(filename) }
-end
+require 'zayin/rake/docco'
+desc "This runs docco to create documentation (Zayin)."
+Zayin::Rake::docco :docco, Dir.glob(File.join('src', '**', '*.hs'))
 
 desc 'Creates the docs and commits onto the gh-pages branch.'
 task :ghpages, [:msg] => [:docs] do |t, args|
@@ -125,18 +97,6 @@ task :tags do
   File.open('tags', 'w') { |f| f.write(hs_tags) }
 end
 
-namespace :hs do
-  desc 'This builds the Haskell part of the project.'
-  task :build do
-    sh %{cabal build}
-  end
-
-  desc 'This runs hlint.'
-  task :lint do
-    sh %{hlint src}
-  end
-end
-
 namespace :release do
   desc 'Cleans up everything and configures for release.'
   task :build => [:clean, 'release:config', 'hs:build', 'release:strip']
@@ -148,7 +108,7 @@ namespace :release do
 
   desc 'This strips out extra comments and fluff from the binary.'
   task :strip do
-    sh %{strip -p --strip-unneeded -- remove-section=.comment -o ./ribot ./dist/build/ribot/ribot}
+    sh %{strip -p --strip-unneeded --remove-section=.comment -o ./ribot ./dist/build/ribot/ribot}
   end
 
   desc 'This copies the file to the ~/bin directory.'
@@ -157,4 +117,6 @@ namespace :release do
   end
 end
 
+require 'zayin/rake/haskell'
+Zayin::Rake::HaskellTasks.new
 
