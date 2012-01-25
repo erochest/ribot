@@ -2,3 +2,5 @@
 dist/
 docs/
 *.db
+centos-vm/
+tags
