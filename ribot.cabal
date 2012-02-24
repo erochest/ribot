@@ -9,6 +9,7 @@ Homepage:	     https://github.com/erochest/ribot
 License:	     BSD3
 License-file:	     LICENSE
 Author:		     Eric Rochester
+
 Maintainer:	     erochest@virginia.edu
 -- Copyright:		
 Category:	     Network
@@ -26,7 +27,8 @@ Library
   hs-source-dirs:     lib
   exposed-modules:
   Build-depends:       
-      base >= 4.3 && < 5
+      base >=4.3 && <5
+    , ircbot >=0.3 && <0.4
   if flag(development)
     cpp-options: -DDEVELOPMENT
     ghc-options: -DEVELOPMENT -w
@@ -43,7 +45,7 @@ Executable ribot
   Main-is:	      Ribot.hs
   
   Build-depends:       
-      base >= 4.3 && < 5
+      base >=4.3 && <5
     , ribot
 
   extensions: DeriveDataTypeable
@@ -66,7 +68,7 @@ Test-Suite test-ribot
   hs-source-dirs:  tests
   main-is:	      TestRibot.hs
   build-depends:
-      base >= 4.3 && < 5
+      base >=4.3 && <5
     , test-framework >= 0.3.3 && < 0.5
     , test-framework-quickcheck2 >= 0.2.9 && < 0.3
     , test-framework-hunit >= 0.2.6 && < 0.3
