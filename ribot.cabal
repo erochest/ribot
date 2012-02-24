@@ -47,6 +47,9 @@ Executable ribot
   Build-depends:       
       base >=4.3 && <5
     , ircbot >=0.3 && <0.4
+    , network >=2.3 && <2.4
+    , containers >=0.4 && <0.5
+    , irc >=0.5 && <0.6
 
   extensions: DeriveDataTypeable
 
@@ -54,7 +57,7 @@ Executable ribot
 
   if flag(development)
     cpp-options: -DDEVELOPMENT
-    ghc-options: -DEVELOPMENT -w
+    ghc-options: -w
   else
     if impl(ghc >= 6.12.0)
       ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
