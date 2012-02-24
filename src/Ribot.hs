@@ -54,13 +54,15 @@ ribotNick = "ribtest"
 main :: IO ()
 main = do
     mode <- cmdArgs ribotModes
-    putStrLn $ show mode
-    config <- initConfig
-    parts  <- initParts
-    tids   <- simpleBot config parts
-    (logger config) Important "Press ENTER to quit."
-    getLine
-    mapM_ killThread tids
+    case config mode of
+        Nothing -> putStrLn "You must specify a configuration file."
+        Just cfgFile -> do
+            config <- initConfig
+            parts  <- initParts
+            tids   <- simpleBot config parts
+            (logger config) Important "Press ENTER to quit."
+            getLine
+            mapM_ killThread tids
 
 initParts :: (BotMonad m) => IO [m ()]
 initParts = do
