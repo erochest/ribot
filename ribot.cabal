@@ -50,8 +50,12 @@ Executable ribot
     , network >=2.3 && <2.4
     , containers >=0.4 && <0.5
     , irc >=0.5 && <0.6
+    , cmdargs >=0.9 && <1.0
 
   extensions: DeriveDataTypeable
+
+  other-modules:
+      Paths_ribot
 
   -- Build-tools:	  
 
@@ -84,3 +88,4 @@ source-repository head
   type:      git
   location:  https://github.com/erochest/ribot
   
+-- vim: set sw=2 et:
