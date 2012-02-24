@@ -7,6 +7,7 @@ module Main where
 import           Control.Applicative
 import           Control.Concurrent
 import           Control.Concurrent.Chan
+import           Control.Monad (when)
 import qualified Data.Configurator as C
 import           Data.Configurator.Types (Config)
 import qualified Data.Set as S
@@ -24,6 +25,7 @@ import           Network.IRC.Bot.Part.NickUser
 import           Network.IRC.Bot.Part.Ping
 import           Paths_ribot (version)
 import           System.Console.CmdArgs
+import           System.IO (appendFile)
 
 
 -- Modes for the CLI.
@@ -82,17 +84,18 @@ initConfig config = getHostName >>= initConfig' config
             port   <- C.lookupDefault 6667 config "irc.port"
             nick   <- C.lookup config "irc.nick"
             chan   <- C.lookup config "irc.channel"
-            return $ maybeConfig hostName server port nick chan
+            logger <- getLogger config
+            return $ maybeConfig hostName server port nick chan logger
 
         maybeConfig :: HostName -> Maybe HostName -> Int -> Maybe String
-                    -> Maybe String -> Maybe BotConf
-        maybeConfig host server port nick chan = do
+                    -> Maybe String -> Logger -> Maybe BotConf
+        maybeConfig host server port nick chan logger = do
             server' <- server
             nick'   <- nick
             chan'   <- chan
             return $ BotConf
                 { channelLogger = Just writeMsg
-                , logger        = stdoutLogger Debug
+                , logger        = logger
                 , host          = server'
                 , port          = PortNumber $ fromIntegral port
                 , nick          = nick'
@@ -100,6 +103,26 @@ initConfig config = getHostName >>= initConfig' config
                 , user          = User nick' host server' nick'
                 , channels      = S.singleton chan'
                 }
+
+        getLogger :: Config -> IO Logger
+        getLogger config =
+            pure getLogger' <*> C.lookupDefault 1 config "log.level"
+                            <*> C.lookupDefault "STDOUT" config "log.file"
+
+        getLogger' :: Int -> FilePath -> Logger
+        getLogger' 0 _            = nullLogger
+        getLogger' level "STDOUT" = stdoutLogger (getLevel level)
+        getLogger' level file     = appendLogger (getLevel level) file
+
+        appendLogger :: LogLevel -> FilePath -> Logger
+        appendLogger level file msgLevel msg =
+            when (msgLevel >= level) (appendFile file $ msg ++ "\n")
+
+        getLevel :: Int -> LogLevel
+        getLevel 1 = Important
+        getLevel 2 = Network.IRC.Bot.Log.Normal
+        getLevel _ = Debug
+
 
 writeMsg :: Chan Message -> IO ()
 writeMsg chan = readChan chan >>= putStrLn . ("MESSAGE: " ++) . show
