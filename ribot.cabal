@@ -53,6 +53,7 @@ Executable ribot
     , cmdargs >=0.9 && <1.0
     , configurator >=0.2 && <0.3
     , text >=0.11 && <0.12
+    , hdaemonize >=0.4 && <0.5
 
   extensions: DeriveDataTypeable
 

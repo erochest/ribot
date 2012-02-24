@@ -7,7 +7,7 @@ module Main where
 import           Control.Applicative
 import           Control.Concurrent
 import           Control.Concurrent.Chan
-import           Control.Monad (when)
+import           Control.Monad (forever, when)
 import qualified Data.Configurator as C
 import           Data.Configurator.Types (Config)
 import qualified Data.Set as S
@@ -26,6 +26,7 @@ import           Network.IRC.Bot.Part.Ping
 import           Paths_ribot (version)
 import           System.Console.CmdArgs
 import           System.IO (appendFile)
+import           System.Posix.Daemonize (daemonize)
 
 
 -- Modes for the CLI.
@@ -58,12 +59,27 @@ main = do
 
             case config' of
                 Nothing     -> putStrLn "You must are missing configuration keys."
-                Just config -> do
-                    parts  <- initParts config
-                    tids   <- simpleBot config parts
-                    (logger config) Important "Press ENTER to quit."
-                    getLine
-                    mapM_ killThread tids
+                Just config -> runBot configFile config
+
+runBot :: Config -> BotConf -> IO ()
+runBot config botConfig = do
+    asDaemon <- C.lookupDefault False config "daemonize"
+    if asDaemon
+        then daemonize runDaemon
+        else runConsole
+    where
+        runConsole :: IO ()
+        runConsole = do
+            parts <- initParts botConfig
+            tids  <- simpleBot botConfig parts
+            (logger botConfig) Important "Press ENTER to quit."
+            getLine
+            mapM_ killThread tids
+
+        runDaemon :: IO ()
+        runDaemon =   initParts botConfig
+                  >>= simpleBot botConfig
+                  >>  forever (threadDelay 100000)
 
 initParts :: (BotMonad m) => BotConf -> IO [m ()]
 initParts config = do
