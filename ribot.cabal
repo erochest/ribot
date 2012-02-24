@@ -23,22 +23,22 @@ Flag development
   Default:	False
 
 
-Library
-  hs-source-dirs:     lib
-  exposed-modules:
-  Build-depends:       
-      base >=4.3 && <5
-    , ircbot >=0.3 && <0.4
-  if flag(development)
-    cpp-options: -DDEVELOPMENT
-    ghc-options: -DEVELOPMENT -w
-  else
-    if impl(ghc >= 6.12.0)
-      ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
-                   -fno-warn-orphans -fno-warn-unused-do-bind -static
-    else
-      ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
-                   -fno-warn-orphans -static
+-- Library
+--   hs-source-dirs:     lib
+--   exposed-modules:
+--   Build-depends:       
+--       base >=4.3 && <5
+--     , ircbot >=0.3 && <0.4
+--   if flag(development)
+--     cpp-options: -DDEVELOPMENT
+--     ghc-options: -DEVELOPMENT -w
+--   else
+--     if impl(ghc >= 6.12.0)
+--       ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
+--                    -fno-warn-orphans -fno-warn-unused-do-bind -static
+--     else
+--       ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
+--                    -fno-warn-orphans -static
 
 Executable ribot
   hs-source-dirs:     src
@@ -46,7 +46,7 @@ Executable ribot
   
   Build-depends:       
       base >=4.3 && <5
-    , ribot
+    , ircbot >=0.3 && <0.4
 
   extensions: DeriveDataTypeable
 
@@ -63,19 +63,19 @@ Executable ribot
       ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
                    -fno-warn-orphans -static
 
-Test-Suite test-ribot
-  type:	      exitcode-stdio-1.0
-  hs-source-dirs:  tests
-  main-is:	      TestRibot.hs
-  build-depends:
-      base >=4.3 && <5
-    , test-framework >= 0.3.3 && < 0.5
-    , test-framework-quickcheck2 >= 0.2.9 && < 0.3
-    , test-framework-hunit >= 0.2.6 && < 0.3
-    , QuickCheck >= 2.4.0.1
-    , HUnit >= 1.2 && < 2
-    , ribot
-  ghc-options:		 -Wall -rtsopts
+-- Test-Suite test-ribot
+--   type:	      exitcode-stdio-1.0
+--   hs-source-dirs:  tests
+--   main-is:	      TestRibot.hs
+--   build-depends:
+--       base >=4.3 && <5
+--     , test-framework >= 0.3.3 && < 0.5
+--     , test-framework-quickcheck2 >= 0.2.9 && < 0.3
+--     , test-framework-hunit >= 0.2.6 && < 0.3
+--     , QuickCheck >= 2.4.0.1
+--     , HUnit >= 1.2 && < 2
+--     , ribot
+--   ghc-options:		 -Wall -rtsopts
 
 source-repository head
   type:      git
