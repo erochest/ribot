@@ -5,11 +5,30 @@ This is a toy IRC bot written using Haskell.
 
 The site for this is on [my site](http://www.ericrochester.com/ribot).
 
-# Features
+# Work Plan
 
-* Chat logging;
-* Log searches;
-* Mimicking.
+1. <del>Connect/IRC</del>;
+1. <del>CLI (`cmdargs`)</del>;
+1. <del>Read configuration from a file (`configurator`)</del>;
+1. <del>Daemonize (`hsdaemonzie`)</del> and automatically re-connect;
+1. Run long commands in another thread;
+1. PasteBin;
+1. `!echo`;
+1. Database (`persistent`);
+1. Log messages;
+1. Log topics;
+1. `!log (off|on)`;
+1. `!uptime`;
+1. `!version`;
+1. `!help`;
+1. Tokenize and index messages;
+1. Reindex command;
+1. `!search`;
+1. `!mimic`;
+1. Convert data from old database;
+1. `!stats`;
+1. Notifications and messages;
+1. Browsing site (`yesod`).
 
 # Commands
 
@@ -36,25 +55,9 @@ For example, here are some queries and what they would search for:
 * `youtube video*` — any messages with both the term *youtube* and any terms
   beginning with *video*.
 
-# TODOs
-
-* <del>add a database connection to the monad</del>;
-* <del>figure out how to locate the database</del>;
-* <del>open the database, creating the schema if needed</del>;
-* <del>log to the database</del>;
-* <del>`!log off` and `!log on`</del>;
-* <del>`!search QUERY`</del>;
-* <del>`!mimic NICK`</del>;
-* <del>automatically reconnect after network outages</del>;
-* daemon mode.
-
-# Architecture
-
-This is a chance for me to play with structuring a program using [monads][1].
-
 # IRC
 
-For future reference, the IRC is defined by [RFC 1459][2].
+For future reference, the IRC is defined by [RFC 1459][spec].
 
 # Source Documentation
 
@@ -62,6 +65,5 @@ The annotated source branches off of this page:
 
 * [Ribot](http://www.ericrochester.com/ribot/docs/)
 
-[1]: http://en.wikipedia.org/wiki/Monad_(functional_programming) "Monad (functional programming)"
-[2]: http://tools.ietf.org/html/rfc1459 "RFC 1459"
+[spec]: http://tools.ietf.org/html/rfc1459 "RFC 1459"
 
