@@ -2,6 +2,53 @@
 
 -- This contains functions for reading the configuration file and converting
 -- the `Config` object into a `BotConf` object.
+--
+-- ## Configuration Files
+--
+-- Configuration files for Ribot are plain text files. They have two sections.
+-- Each section has a header and a body, enclosed in curly braces.
+--
+-- ### `irc` Section
+--
+-- This contains information for connecting to IRC. It has these keys.
+--
+-- * `server` -- The address of the IRC server;
+-- * `port` -- The IRC server's port (optional);
+-- * `nick` -- The nickname to use connecting to IRC; and
+-- * `channel` -- The channel to connect to.
+--
+-- ### `log` Section
+--
+-- * `level` -- The level of logging. This ranges from 0 (no logging) to 3
+-- (every message logged);
+-- * `file` -- The file to log to. This can be "STDOUT".
+--
+-- ### Miscellaneous Options
+--
+-- Values here don't need to be in any section.
+--
+-- * `daemonize` -- This is a boolean value (`true`, `false`, or `off`, `on`).
+-- If `true`, this runs Ribot as a daemon.
+--
+-- ### Example
+--
+-- > irc
+-- > {
+-- >   server = "irc.freenode.org"
+-- >   nick   = "ribot"
+-- >   channel = "#testchannel"
+-- > }
+-- > log
+-- > {
+-- >   level = 2
+-- >   file  = STDOUT
+-- > }
+-- > daemonize = off
+--
+-- ### Daemon Mode
+--
+-- If daemon mode is specified, the logging needs to be set anywhere other than
+-- `STDOUT`; otherwise, logging will go no where.
 
 module Data.Ribot.Config
     ( readConfig
