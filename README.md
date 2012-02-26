@@ -11,6 +11,8 @@ The site for this is on [my site](http://www.ericrochester.com/ribot).
 1. <del>CLI (`cmdargs`)</del>;
 1. <del>Read configuration from a file (`configurator`)</del>;
 1. <del>Daemonize (`hsdaemonzie`)</del> and automatically re-connect;
+1. Refactor into modules;
+1. Add documentation on what there is so far;
 1. Run long commands in another thread;
 1. PasteBin;
 1. `!echo`;
@@ -26,6 +28,7 @@ The site for this is on [my site](http://www.ericrochester.com/ribot).
 1. `!search`;
 1. `!mimic`;
 1. Convert data from old database;
+1. Deploy task;
 1. `!stats`;
 1. Notifications and messages;
 1. Browsing site (`yesod`).
