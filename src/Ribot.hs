@@ -10,6 +10,7 @@ import           Control.Concurrent.Chan
 import           Control.Monad (forever, when)
 import qualified Data.Configurator as C
 import           Data.Configurator.Types (Config)
+import           Data.Ribot.Config
 import qualified Data.Set as S
 import qualified Data.Text as T
 import           Data.Version (showVersion)
@@ -51,11 +52,8 @@ main = do
     case config mode of
         Nothing       -> putStrLn "You must specify a configuration file."
         Just fileName -> do
-            configFile <- C.load [ C.Optional "/etc/ribot/ribot.cfg"
-                                 , C.Optional "$(HOME)/.ribot.cfg"
-                                 , C.Required fileName
-                                 ]
-            config' <- initConfig configFile
+            configFile <- readConfig fileName
+            config'    <- createBotConf configFile writeMsg
 
             case config' of
                 Nothing     -> putStrLn "You must are missing configuration keys."
@@ -90,54 +88,6 @@ initParts config = do
            , dicePart
            , helloPart
            ]
-
-initConfig :: Config -> IO (Maybe BotConf)
-initConfig config = getHostName >>= initConfig' config
-    where
-        initConfig' :: Config -> HostName -> IO (Maybe BotConf)
-        initConfig' config hostName = do
-            server <- C.lookup config "irc.server"
-            port   <- C.lookupDefault 6667 config "irc.port"
-            nick   <- C.lookup config "irc.nick"
-            chan   <- C.lookup config "irc.channel"
-            logger <- getLogger config
-            return $ maybeConfig hostName server port nick chan logger
-
-        maybeConfig :: HostName -> Maybe HostName -> Int -> Maybe String
-                    -> Maybe String -> Logger -> Maybe BotConf
-        maybeConfig host server port nick chan logger = do
-            server' <- server
-            nick'   <- nick
-            chan'   <- chan
-            return $ BotConf
-                { channelLogger = Just writeMsg
-                , logger        = logger
-                , host          = server'
-                , port          = PortNumber $ fromIntegral port
-                , nick          = nick'
-                , commandPrefix = "!"
-                , user          = User nick' host server' nick'
-                , channels      = S.singleton chan'
-                }
-
-        getLogger :: Config -> IO Logger
-        getLogger config =
-            pure getLogger' <*> C.lookupDefault 1 config "log.level"
-                            <*> C.lookupDefault "STDOUT" config "log.file"
-
-        getLogger' :: Int -> FilePath -> Logger
-        getLogger' 0 _            = nullLogger
-        getLogger' level "STDOUT" = stdoutLogger (getLevel level)
-        getLogger' level file     = appendLogger (getLevel level) file
-
-        appendLogger :: LogLevel -> FilePath -> Logger
-        appendLogger level file msgLevel msg =
-            when (msgLevel >= level) (appendFile file $ msg ++ "\n")
-
-        getLevel :: Int -> LogLevel
-        getLevel 1 = Important
-        getLevel 2 = Network.IRC.Bot.Log.Normal
-        getLevel _ = Debug
 
 
 writeMsg :: Chan Message -> IO ()
