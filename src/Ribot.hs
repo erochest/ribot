@@ -18,15 +18,9 @@ import           Network
 import           Network.BSD
 import           Network.IRC.Base
 import           Network.IRC.Bot
-import           Network.IRC.Bot.Log
-import           Network.IRC.Bot.Part.Channels
-import           Network.IRC.Bot.Part.Dice
-import           Network.IRC.Bot.Part.Hello
-import           Network.IRC.Bot.Part.NickUser
-import           Network.IRC.Bot.Part.Ping
+import           Network.Ribot.Irc
 import           Paths_ribot (version)
 import           System.Console.CmdArgs
-import           System.IO (appendFile)
 import           System.Posix.Daemonize (daemonize)
 
 
@@ -63,32 +57,8 @@ runBot :: Config -> BotConf -> IO ()
 runBot config botConfig = do
     asDaemon <- C.lookupDefault False config "daemonize"
     if asDaemon
-        then daemonize runDaemon
-        else runConsole
-    where
-        runConsole :: IO ()
-        runConsole = do
-            parts <- initParts botConfig
-            tids  <- simpleBot botConfig parts
-            (logger botConfig) Important "Press ENTER to quit."
-            getLine
-            mapM_ killThread tids
-
-        runDaemon :: IO ()
-        runDaemon =   initParts botConfig
-                  >>= simpleBot botConfig
-                  >>  forever (threadDelay 100000)
-
-initParts :: (BotMonad m) => BotConf -> IO [m ()]
-initParts config = do
-    (_, chanParts) <- initChannelsPart $ channels config
-    return [ pingPart
-           , nickUserPart
-           , chanParts
-           , dicePart
-           , helloPart
-           ]
-
+        then daemonize $ runDaemon botConfig
+        else runConsole botConfig
 
 writeMsg :: Chan Message -> IO ()
 writeMsg chan = readChan chan >>= putStrLn . ("MESSAGE: " ++) . show

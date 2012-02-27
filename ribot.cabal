@@ -62,6 +62,7 @@ Executable ribot
   other-modules:
       Paths_ribot
     , Data.Ribot.Config
+    , Network.Ribot.Irc
 
   -- Build-tools:	  
 
