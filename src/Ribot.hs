@@ -11,33 +11,14 @@ import           Control.Monad (forever, when)
 import qualified Data.Configurator as C
 import           Data.Configurator.Types (Config)
 import           Data.Ribot.Config
-import qualified Data.Set as S
-import qualified Data.Text as T
-import           Data.Version (showVersion)
 import           Network
 import           Network.BSD
 import           Network.IRC.Base
 import           Network.IRC.Bot
 import           Network.Ribot.Irc
-import           Paths_ribot (version)
-import           System.Console.CmdArgs
+import           Ribot.Cli
+import           System.Console.CmdArgs (cmdArgs)
 import           System.Posix.Daemonize (daemonize)
-
-
--- Modes for the CLI.
-data Modes
-    = Listen
-        { config :: Maybe FilePath
-        }
-    deriving (Data, Show, Typeable)
-
-ribotModes :: Modes
-ribotModes = modes
-    [ Listen
-        { config = def &= name "c" &= help "The location of the configuration file."
-        } &= details ["This listens on an IRC channel."] &= auto
-    ] &= summary ("ribot v" ++ showVersion version)
-      &= program "ribot"
 
 
 main :: IO ()
