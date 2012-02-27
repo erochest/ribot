@@ -4,15 +4,10 @@
 
 module Main where
 
-import           Control.Applicative
 import           Control.Concurrent
-import           Control.Concurrent.Chan
-import           Control.Monad (forever, when)
 import qualified Data.Configurator as C
 import           Data.Configurator.Types (Config)
 import           Data.Ribot.Config
-import           Network
-import           Network.BSD
 import           Network.IRC.Base
 import           Network.IRC.Bot
 import           Network.Ribot.Irc
@@ -31,12 +26,12 @@ main = do
             config'    <- createBotConf configFile writeMsg
 
             case config' of
-                Nothing     -> putStrLn "You must are missing configuration keys."
-                Just config -> runBot configFile config
+                Nothing  -> putStrLn "You must are missing configuration keys."
+                Just cfg -> runBot configFile cfg
 
 runBot :: Config -> BotConf -> IO ()
-runBot config botConfig = do
-    asDaemon <- C.lookupDefault False config "daemonize"
+runBot cfg botConfig = do
+    asDaemon <- C.lookupDefault False cfg "daemonize"
     if asDaemon
         then daemonize $ runDaemon botConfig
         else runConsole botConfig

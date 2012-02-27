@@ -55,18 +55,16 @@ module Data.Ribot.Config
     , createBotConf
     ) where
 
-import           Control.Applicative
 import           Data.Configurator
 import           Data.Configurator.Types (Config)
 import qualified Data.Set as S
 import           Control.Applicative
 import           Control.Concurrent.Chan
-import           Control.Monad (forever, when)
+import           Control.Monad (when)
 import           Network
 import           Network.BSD
 import           Network.IRC.Base
 import           Network.IRC.Bot
-import           Network.IRC.Bot.Log
 import           Prelude hiding (lookup)
 import           System.Directory
 import           System.FilePath ((</>))
@@ -85,18 +83,18 @@ readConfig cliConfigPath = do
 -- This takes a `Config` value and converts it to a `BotConf`. If any required
 -- values are missing from the `Config`, `Nothing` is returned.
 createBotConf :: Config -> (Chan Message -> IO ()) -> IO (Maybe BotConf)
-createBotConf config channelLogger = getHostName >>= createConf config
+createBotConf config chanLog = getHostName >>= createConf config
     where
 
         -- This removes the IO context from the parameters, maybe creates a
         -- `BotConf` and re-inserts it into the IO context.
         createConf :: Config -> HostName -> IO (Maybe BotConf)
-        createConf config hostName =
-            maybeConfig hostName <$> lookup config "irc.server"
-                                 <*> lookupDefault 6667 config "irc.port"
-                                 <*> lookup config "irc.nick"
-                                 <*> lookup config "irc.channel"
-                                 <*> getLogger config
+        createConf cfg hName =
+            maybeConfig hName <$> lookup cfg "irc.server"
+                              <*> lookupDefault 6667 cfg "irc.port"
+                              <*> lookup cfg "irc.nick"
+                              <*> lookup cfg "irc.channel"
+                              <*> getLogger cfg
 
         -- This takes the parameters, some maybe not provided, and returns a
         -- `BotConf`. If any of the parameters wrapped in `Maybe` aren't given
@@ -108,27 +106,27 @@ createBotConf config channelLogger = getHostName >>= createConf config
                     -> Maybe String         -- Channel
                     -> Logger               -- logger
                     -> Maybe BotConf        -- Configuration
-        maybeConfig host server port nick chan logger = do
+        maybeConfig hName server portNo nickName chan lg = do
             server' <- server
-            nick'   <- nick
+            nick'   <- nickName
             chan'   <- chan
             return $ BotConf
-                { channelLogger = Just channelLogger
-                , logger        = logger
+                { channelLogger = Just chanLog
+                , logger        = lg
                 , host          = server'
-                , port          = PortNumber $ fromIntegral port
+                , port          = PortNumber $ fromIntegral portNo
                 , nick          = nick'
                 , commandPrefix = "!"
-                , user          = User nick' host server' nick'
+                , user          = User nick' hName server' nick'
                 , channels      = S.singleton chan'
                 }
 
         -- This parses out the configuration options for the logger and returns
         -- it.
         getLogger :: Config -> IO Logger
-        getLogger config =
-            getLogger' <$> lookupDefault 1 config "log.level"
-                       <*> lookupDefault "STDOUT" config "log.file"
+        getLogger cfg =
+            getLogger' <$> lookupDefault 1 cfg "log.level"
+                       <*> lookupDefault "STDOUT" cfg "log.file"
 
         -- This takes the configuration options and turns them into a concrete
         -- `Logger`.
@@ -140,8 +138,8 @@ createBotConf config channelLogger = getHostName >>= createConf config
         -- This `Logger` appends the input line to the file, if its level
         -- matches or is greater than the level this was created with.
         appendLogger :: LogLevel -> FilePath -> Logger
-        appendLogger level file msgLevel msg =
-            when (msgLevel >= level) (appendFile file $ msg ++ "\n")
+        appendLogger level file msgLevel msgText =
+            when (msgLevel >= level) (appendFile file $ msgText ++ "\n")
 
         -- This converts a `log.level` value from the configuration file into a
         -- `LogLevel`.

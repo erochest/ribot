@@ -10,7 +10,6 @@ module Network.Ribot.Irc
 import           Control.Concurrent
 import           Control.Monad (forever)
 import           Network.IRC.Bot
-import           Network.IRC.Bot.Log
 import           Network.IRC.Bot.Part.Channels
 import           Network.IRC.Bot.Part.Dice
 import           Network.IRC.Bot.Part.Hello
