@@ -29,6 +29,7 @@
 --
 -- * `daemonize` -- This is a boolean value (`true`, `false`, or `off`, `on`).
 -- If `true`, this runs Ribot as a daemon.
+-- * `pastebin` -- This is the PasteBin API key.
 --
 -- ### Example
 --
@@ -44,6 +45,7 @@
 -- >   file  = STDOUT
 -- > }
 -- > daemonize = off
+-- > pastebin  = "..."
 --
 -- ### Daemon Mode
 --

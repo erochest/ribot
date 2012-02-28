@@ -10,10 +10,9 @@ The site for this is on [my site](http://www.ericrochester.com/ribot).
 1. <del>Connect/IRC</del>;
 1. <del>CLI (`cmdargs`)</del>;
 1. <del>Read configuration from a file (`configurator`)</del>;
-1. <del>Daemonize (`hsdaemonzie`)</del> and automatically re-connect;
-1. Refactor into modules;
-1. Add documentation on what there is so far;
-1. Run long commands in another thread;
+1. <del>Daemonize (`hsdaemonzie`) and automatically re-connect</del>;
+1. <del>Refactor into modules</del>;
+1. <del>Add documentation on what there is so far</del>;
 1. PasteBin;
 1. `!echo`;
 1. Database (`persistent`);
@@ -24,6 +23,7 @@ The site for this is on [my site](http://www.ericrochester.com/ribot).
 1. `!version`;
 1. `!help`;
 1. Tokenize and index messages;
+1. Run indexing and search commands in another thread;
 1. Reindex command;
 1. `!search`;
 1. `!mimic`;

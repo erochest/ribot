@@ -63,6 +63,7 @@ Executable ribot
       Paths_ribot
     , Data.Ribot.Config
     , Network.Ribot.Irc
+    , Network.Ribot.PasteBin
     , Ribot.Cli
 
   -- Build-tools:	  
