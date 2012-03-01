@@ -13,7 +13,7 @@ The site for this is on [my site](http://www.ericrochester.com/ribot).
 1. <del>Daemonize (`hsdaemonzie`) and automatically re-connect</del>;
 1. <del>Refactor into modules</del>;
 1. <del>Add documentation on what there is so far</del>;
-1. PasteBin;
+1. <del>PasteBin</del>;
 1. `!echo`;
 1. Database (`persistent`);
 1. Log messages;
