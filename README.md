@@ -3,7 +3,7 @@
 
 This is a toy IRC bot written using Haskell.
 
-The site for this is on [my site](http://www.ericrochester.com/ribot).
+The site for this is [here](http://www.ericrochester.com/ribot).
 
 # Work Plan
 
@@ -14,7 +14,8 @@ The site for this is on [my site](http://www.ericrochester.com/ribot).
 1. <del>Refactor into modules</del>;
 1. <del>Add documentation on what there is so far</del>;
 1. <del>PasteBin</del>;
-1. `!echo`;
+1. <del>`!echo`</del>;
+1. Use absolute paths for files specified in config files;
 1. Database (`persistent`);
 1. Log messages;
 1. Log topics;

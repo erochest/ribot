@@ -15,6 +15,7 @@ import           Network.IRC.Bot.Part.Dice
 import           Network.IRC.Bot.Part.Hello
 import           Network.IRC.Bot.Part.NickUser
 import           Network.IRC.Bot.Part.Ping
+import           Network.Ribot.Irc.Part.Echo (echoPart)
 
 -- This initializes the parts (plugins) for the Ribot bot.
 initParts :: (BotMonad m) => BotConf -> IO [m ()]
@@ -25,6 +26,7 @@ initParts config = do
            , chanPart
            , dicePart
            , helloPart
+           , echoPart
            ]
 
 -- This runs the bot on the console.
