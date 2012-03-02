@@ -18,7 +18,7 @@ The site for this is [here](http://www.ericrochester.com/ribot).
 1. <del>Use absolute paths for files specified in config files</del>;
 1. <del>Database (`persistent`)</del>;
 1. <del>Log messages</del>;
-1. Log topics;
+1. <del>Log topics</del>;
 1. `!log (off|on)`;
 1. `!uptime`;
 1. `!version`;

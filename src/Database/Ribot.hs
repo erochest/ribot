@@ -10,6 +10,7 @@ module Database.Ribot
     , initDatabase
     , runDb
     , getOrCreateUser
+    , getOrCreateTopic
     , saveMessage
     ) where
 
@@ -80,7 +81,7 @@ addTempTable = execute sql []
                 \  FOREIGN KEY (\"messageId\") REFERENCES \"Message\"(id) \
                 \ );"
 
--- This looks for a username in the database. If it doesn't exist, it creates
+-- This looks for a username in the database. If it doesn't exist, this creates
 -- it.
 getOrCreateUser :: (ResourceIO m) => T.Text -> SqlPersist m (Entity User)
 getOrCreateUser username = get' 0 username
@@ -96,16 +97,32 @@ getOrCreateUser username = get' 0 username
                     insert $ User name True
                     get' (n-1) name
 
+-- This looks for a topic with a given text from a user. If it doesn't exist,
+-- this creates it.
+getOrCreateTopic :: (ResourceIO m) => UserId -> T.Text -> SqlPersist m (Entity Topic)
+getOrCreateTopic userId text = get' 0
+    where
+        get' 3 = fail "too many attempts"
+        get' n = do
+            exists <- getBy $ UniqueTopic userId text
+            case exists of
+                Just topic -> return topic
+                Nothing    -> do
+                    now <- liftIO getCurrentTime
+                    insert $ Topic userId text now
+                    get' (n-1)
+
 -- This takes a `Message` from IRC and saves it to the database.
-saveMessage :: (ResourceIO m) => B.Message -> SqlPersist m (Maybe MessageId)
-saveMessage m@(B.Message (Just (B.NickName name _ _)) "PRIVMSG" [_, message]) = do
+saveMessage :: (ResourceIO m) => B.Message -> SqlPersist m ()
+saveMessage (B.Message (Just (B.NickName name _ _)) "PRIVMSG" [_, message]) = do
     (Entity userId user) <- getOrCreateUser $ T.pack name
     now <- liftIO getCurrentTime
     messageId <- insert $ Message userId (T.pack message) now
     commit
-    return $ Just messageId
--- saveMessage (B.Message prefix "TOPIC"   params) =
-saveMessage m  = do
-    return Nothing
+saveMessage (B.Message (Just (B.NickName name _ _)) "TOPIC"   [_, topic]) = do
+    (Entity userId user) <- getOrCreateUser $ T.pack name
+    getOrCreateTopic userId $ T.pack topic
+    commit
+saveMessage m  = return ()
 
 

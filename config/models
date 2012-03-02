@@ -9,6 +9,12 @@ Message
     text Text
     posted UTCTime
 
+Topic
+    userId UserId
+    text Text
+    posted UTCTime
+    UniqueTopic userId text
+
 Token
     text Text
     UniqueToken text
