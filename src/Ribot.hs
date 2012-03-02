@@ -8,6 +8,7 @@ import           Control.Concurrent
 import qualified Data.Configurator as C
 import           Data.Configurator.Types (Config)
 import           Data.Ribot.Config
+import           Database.Ribot
 import           Network.IRC.Base
 import           Network.IRC.Bot
 import           Network.Ribot.Irc
@@ -31,6 +32,7 @@ main = do
 
 runBot :: Config -> BotConf -> IO ()
 runBot cfg botConfig = do
+    ribotDbFile cfg >>= initDatabase
     asDaemon <- ribotDaemonize cfg
     if asDaemon
         then daemonize $ runDaemon botConfig

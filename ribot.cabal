@@ -60,12 +60,17 @@ Executable ribot
     , persistent >=0.8 && <0.9
     , persistent-sqlite >=0.8 && <0.9
     , persistent-template >=0.8 && <0.9
+    , transformers >=0.2 && <0.3
+    , time >=1.2 && <1.5
+    , monad-control >=0.3 && <0.4
+    , conduit >=0.2 && <0.3
 
   extensions: DeriveDataTypeable
 
   other-modules:
       Paths_ribot
     , Data.Ribot.Config
+    , Database.Ribot
     , Network.Ribot.Irc
     , Network.Ribot.PasteBin
     , Ribot.Cli

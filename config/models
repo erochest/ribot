@@ -1,0 +1,7 @@
+
+User
+    username Text
+    loggingOn Bool
+    UniqueUser username
+
+-- vim: set sw=4 et:
