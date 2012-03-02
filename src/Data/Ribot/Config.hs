@@ -59,10 +59,20 @@
 module Data.Ribot.Config
     ( readConfig
     , createBotConf
+    , ircServer
+    , ircNick
+    , ircChannel
+    , logLevel
+    , logFile
+    , ribotDaemonize
+    , ribotPasteBin
+    , ribotDbFile
+    , absPath
+    , getLevel
     ) where
 
 import           Data.Configurator
-import           Data.Configurator.Types (Config)
+import           Data.Configurator.Types (Config, Configured, Name)
 import qualified Data.Set as S
 import           Control.Applicative
 import           Control.Concurrent.Chan
@@ -96,10 +106,10 @@ createBotConf config chanLog = getHostName >>= createConf config
         -- `BotConf` and re-inserts it into the IO context.
         createConf :: Config -> HostName -> IO (Maybe BotConf)
         createConf cfg hName =
-            maybeConfig hName <$> lookup cfg "irc.server"
-                              <*> lookupDefault 6667 cfg "irc.port"
-                              <*> lookup cfg "irc.nick"
-                              <*> lookup cfg "irc.channel"
+            maybeConfig hName <$> ircServer cfg
+                              <*> ircPort cfg
+                              <*> ircNick cfg
+                              <*> ircChannel cfg
                               <*> getLogger cfg
 
         -- This takes the parameters, some maybe not provided, and returns a
@@ -131,13 +141,8 @@ createBotConf config chanLog = getHostName >>= createConf config
         -- it.
         getLogger :: Config -> IO Logger
         getLogger cfg =
-            getLogger' <$> lookupDefault 1 cfg "log.level"
-                       <*> (lookupDefault "STDOUT" cfg "log.file" >>= absPath)
-
-        -- This takes a log file path and makes it absolute (canonicalizes it).
-        absPath :: FilePath -> IO FilePath
-        absPath "STDOUT" = return "STDOUT"
-        absPath path     = canonicalizePath path
+            getLogger' <$> logLevel cfg
+                       <*> logFile cfg
 
         -- This takes the configuration options and turns them into a concrete
         -- `Logger`.
@@ -152,11 +157,71 @@ createBotConf config chanLog = getHostName >>= createConf config
         appendLogger level file msgLevel msgText =
             when (msgLevel >= level) (appendFile file $ msgText ++ "\n")
 
-        -- This converts a `log.level` value from the configuration file into a
-        -- `LogLevel`.
-        getLevel :: Int -> LogLevel
-        getLevel 1 = Important
-        getLevel 2 = Normal
-        getLevel _ = Debug
+-- This just defines a swapped version of lookup so I can use pointless style
+-- later on.
+lookup' :: Configured a => Name -> Config -> IO (Maybe a)
+lookup' = flip lookup
 
+-- This just defines a swapped version of lookupDefault so I can use pointless
+-- style later on.
+lookupDefault' :: Configured a => a -> Name -> Config -> IO a
+lookupDefault' def = flip (lookupDefault def)
+
+-- This looks up a file path and returns it. If the default is used, it's
+-- returned as-is; otherwise, the path is canonicalized.
+lookupFilePath :: FilePath -> Name -> Config -> IO FilePath
+lookupFilePath defaultPath name config =
+    lookupDefault' defaultPath name config >>= absPath defaultPath
+
+-- This returns the irc.server setting from the configuration.
+ircServer :: Config -> IO (Maybe String)
+ircServer = lookup' "irc.server"
+
+-- This looks up the irc.port setting from the configuration.
+ircPort :: Config -> IO Int
+ircPort = lookupDefault' 6667 "irc.port"
+
+-- This looks up the irc.nick setting from the configuration.
+ircNick :: Config -> IO (Maybe String)
+ircNick = lookup' "irc.nick"
+
+-- This looks up the irc.channel setting from the configuration.
+ircChannel :: Config -> IO (Maybe String)
+ircChannel = lookup' "irc.channel"
+
+-- This looks up the log.level setting from the configuration, defaulting to 1
+-- (Important).
+logLevel :: Config -> IO Int
+logLevel = lookupDefault' 1 "log.level"
+
+-- This looks up the log.file setting from the configuration, default to
+-- "STDOUT." If a file name is given, it's made absolute.
+logFile :: Config -> IO FilePath
+logFile = lookupFilePath "STDOUT" "log.file"
+
+-- This looks up the ribot.daemonize setting from the configuration, defaulting
+-- to False.
+ribotDaemonize :: Config -> IO Bool
+ribotDaemonize = lookupDefault' False "ribot.daemonize"
+
+-- This looks up the ribot.pastebin setting from the configuration.
+ribotPasteBin :: Config -> IO (Maybe String)
+ribotPasteBin = lookup' "ribot.pastebin"
+
+-- This looks up the ribot.db_file setting from the configuration, defaulting
+-- to ":memory:".
+ribotDbFile :: Config -> IO String
+ribotDbFile = lookupFilePath ":memory:" "ribot.db_file"
+
+-- This takes a log file path and makes it absolute (canonicalizes it).
+absPath :: FilePath -> FilePath -> IO FilePath
+absPath def path | def == path = return path
+                 | otherwise   = canonicalizePath path
+
+-- This converts a `log.level` value from the configuration file into a
+-- `LogLevel`.
+getLevel :: Int -> LogLevel
+getLevel 1 = Important
+getLevel 2 = Normal
+getLevel _ = Debug
 
