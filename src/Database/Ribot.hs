@@ -8,7 +8,9 @@
 module Database.Ribot
     ( User(..)
     , initDatabase
-    -- , runDb
+    , runDb
+    , getOrCreateUser
+    , saveMessage
     ) where
 
 import           Database.Persist
@@ -22,6 +24,7 @@ import           Data.Time
 import           Control.Monad.IO.Class (liftIO, MonadIO)
 import           Control.Monad.Trans.Control (MonadBaseControl)
 import           Control.Monad.Trans.Resource (ResourceIO)
+import qualified Network.IRC.Base as B
 
 -- This creates the model types from their names.
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] $(persistFile "config/models")
@@ -76,4 +79,33 @@ addTempTable = execute sql []
                 \  UNIQUE (\"messageId\", text) ON CONFLICT IGNORE, \
                 \  FOREIGN KEY (\"messageId\") REFERENCES \"Message\"(id) \
                 \ );"
+
+-- This looks for a username in the database. If it doesn't exist, it creates
+-- it.
+getOrCreateUser :: (ResourceIO m) => T.Text -> SqlPersist m (Entity User)
+getOrCreateUser username = get' 0 username
+    where
+        -- This attempts to insert and get the user. If it takes too many
+        -- tries, just fail.
+        get' 3 _ = fail "too many attempts"
+        get' n name = do
+            exists <- getBy $ UniqueUser name
+            case exists of
+                Just user -> return user
+                Nothing   -> do
+                    insert $ User name True
+                    get' (n-1) name
+
+-- This takes a `Message` from IRC and saves it to the database.
+saveMessage :: (ResourceIO m) => B.Message -> SqlPersist m (Maybe MessageId)
+saveMessage m@(B.Message (Just (B.NickName name _ _)) "PRIVMSG" [_, message]) = do
+    (Entity userId user) <- getOrCreateUser $ T.pack name
+    now <- liftIO getCurrentTime
+    messageId <- insert $ Message userId (T.pack message) now
+    commit
+    return $ Just messageId
+-- saveMessage (B.Message prefix "TOPIC"   params) =
+saveMessage m  = do
+    return Nothing
+
 

@@ -5,6 +5,7 @@
 module Main where
 
 import           Control.Concurrent
+import           Control.Monad.IO.Class (liftIO)
 import qualified Data.Configurator as C
 import           Data.Configurator.Types (Config)
 import           Data.Ribot.Config
@@ -24,7 +25,8 @@ main = do
         Nothing       -> putStrLn "You must specify a configuration file."
         Just fileName -> do
             configFile <- readConfig fileName
-            config'    <- createBotConf configFile writeMsg
+            dbFile     <- ribotDbFile configFile
+            config'    <- createBotConf configFile $ writeMsg dbFile
 
             case config' of
                 Nothing  -> putStrLn "You must are missing configuration keys."
@@ -38,6 +40,7 @@ runBot cfg botConfig = do
         then daemonize $ runDaemon botConfig
         else runConsole botConfig
 
-writeMsg :: Chan Message -> IO ()
-writeMsg chan = readChan chan >>= putStrLn . ("MESSAGE: " ++) . show
+writeMsg :: FilePath -> Chan Message -> IO ()
+writeMsg dbFile chan = runDb dbFile $
+    (liftIO $ getChanContents chan) >>= mapM_ saveMessage
 
