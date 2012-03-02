@@ -44,8 +44,12 @@
 -- >   level = 2
 -- >   file  = STDOUT
 -- > }
--- > daemonize = off
--- > pastebin  = "..."
+-- > ribot
+-- > {
+-- >   daemonize = off
+-- >   pastebin  = "..."
+-- >   db_file   = ":memory:"
+-- > }
 --
 -- ### Daemon Mode
 --

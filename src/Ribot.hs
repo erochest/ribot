@@ -31,7 +31,7 @@ main = do
 
 runBot :: Config -> BotConf -> IO ()
 runBot cfg botConfig = do
-    asDaemon <- C.lookupDefault False cfg "daemonize"
+    asDaemon <- C.lookupDefault False cfg "ribot.daemonize"
     if asDaemon
         then daemonize $ runDaemon botConfig
         else runConsole botConfig
