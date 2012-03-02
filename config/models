@@ -4,4 +4,18 @@ User
     loggingOn Bool
     UniqueUser username
 
+Message
+    userId UserId
+    text Text
+    posted UTCTime
+
+Token
+    text Text
+    UniqueToken text
+
+Position
+    tokenId TokenId
+    messageId MessageId
+    UniquePosition tokenId messageId
+
 -- vim: set sw=4 et:

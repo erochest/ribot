@@ -16,7 +16,7 @@ The site for this is [here](http://www.ericrochester.com/ribot).
 1. <del>PasteBin</del>;
 1. <del>`!echo`</del>;
 1. <del>Use absolute paths for files specified in config files</del>;
-1. Database (`persistent`);
+1. <del>Database (`persistent`)</del>;
 1. Log messages;
 1. Log topics;
 1. `!log (off|on)`;
