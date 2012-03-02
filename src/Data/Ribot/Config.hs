@@ -128,7 +128,12 @@ createBotConf config chanLog = getHostName >>= createConf config
         getLogger :: Config -> IO Logger
         getLogger cfg =
             getLogger' <$> lookupDefault 1 cfg "log.level"
-                       <*> lookupDefault "STDOUT" cfg "log.file"
+                       <*> (lookupDefault "STDOUT" cfg "log.file" >>= absPath)
+
+        -- This takes a log file path and makes it absolute (canonicalizes it).
+        absPath :: FilePath -> IO FilePath
+        absPath "STDOUT" = return "STDOUT"
+        absPath path     = canonicalizePath path
 
         -- This takes the configuration options and turns them into a concrete
         -- `Logger`.
