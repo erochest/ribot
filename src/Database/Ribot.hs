@@ -6,12 +6,22 @@
 -- have any database access.
 
 module Database.Ribot
-    ( User(..)
+    ( UserGeneric(..)
+    , User(..)
+    , MessageGeneric(..)
+    , Message(..)
+    , TopicGeneric(..)
+    , Topic(..)
+    , TokenGeneric(..)
+    , Token(..)
+    , PositionGeneric(..)
+    , Position(..)
     , initDatabase
     , runDb
     , getOrCreateUser
     , getOrCreateTopic
     , saveMessage
+    , setUserLogging
     ) where
 
 import           Database.Persist
@@ -114,15 +124,27 @@ getOrCreateTopic userId text = get' 0
 
 -- This takes a `Message` from IRC and saves it to the database.
 saveMessage :: (ResourceIO m) => B.Message -> SqlPersist m ()
+saveMessage (B.Message (Just (B.NickName name _ _)) "PRIVMSG" [_, ""]) =
+    return ()
+saveMessage (B.Message (Just (B.NickName name _ _)) "PRIVMSG" [_, ('!':_)]) =
+    return ()
 saveMessage (B.Message (Just (B.NickName name _ _)) "PRIVMSG" [_, message]) = do
-    (Entity userId user) <- getOrCreateUser $ T.pack name
-    now <- liftIO getCurrentTime
-    messageId <- insert $ Message userId (T.pack message) now
-    commit
+    (Entity userId user) <- (getOrCreateUser $ T.pack name)
+    if (userLoggingOn user)
+        then insertMessage userId message
+        else return ()
+    where insertMessage userId message = do
+            now <- liftIO getCurrentTime
+            insert $ Message userId (T.pack message) now
+            commit
 saveMessage (B.Message (Just (B.NickName name _ _)) "TOPIC"   [_, topic]) = do
     (Entity userId user) <- getOrCreateUser $ T.pack name
     getOrCreateTopic userId $ T.pack topic
     commit
 saveMessage m  = return ()
 
+-- This takes a userId and sets the logging for it.
+setUserLogging :: (ResourceIO m) => UserId -> Bool -> SqlPersist m ()
+setUserLogging userId logging =
+    update userId [UserLoggingOn =. logging] >> commit
 

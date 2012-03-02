@@ -9,7 +9,7 @@ import           Control.Monad.IO.Class (liftIO)
 import qualified Data.Configurator as C
 import           Data.Configurator.Types (Config)
 import           Data.Ribot.Config
-import           Database.Ribot
+import           Database.Ribot hiding (Message)
 import           Network.IRC.Base
 import           Network.IRC.Bot
 import           Network.Ribot.Irc
@@ -34,11 +34,12 @@ main = do
 
 runBot :: Config -> BotConf -> IO ()
 runBot cfg botConfig = do
-    ribotDbFile cfg >>= initDatabase
+    dbFile <- ribotDbFile cfg
+    initDatabase dbFile
     asDaemon <- ribotDaemonize cfg
     if asDaemon
-        then daemonize $ runDaemon botConfig
-        else runConsole botConfig
+        then daemonize $ runDaemon botConfig dbFile
+        else runConsole botConfig dbFile
 
 writeMsg :: FilePath -> Chan Message -> IO ()
 writeMsg dbFile chan = runDb dbFile $
