@@ -83,7 +83,7 @@ import           Network.IRC.Base
 import           Network.IRC.Bot
 import           Prelude hiding (lookup)
 import           System.Directory
-import           System.FilePath ((</>))
+import           System.FilePath ((</>), isAbsolute)
 
 
 -- This takes a file name and reads the configuration file.
@@ -215,8 +215,9 @@ ribotDbFile = lookupFilePath ":memory:" "ribot.db_file"
 
 -- This takes a log file path and makes it absolute (canonicalizes it).
 absPath :: FilePath -> FilePath -> IO FilePath
-absPath def path | def == path = return path
-                 | otherwise   = canonicalizePath path
+absPath def path | def == path     = return path
+                 | isAbsolute path = return path
+                 | otherwise       = (</> path) `fmap` getCurrentDirectory
 
 -- This converts a `log.level` value from the configuration file into a
 -- `LogLevel`.
