@@ -96,6 +96,13 @@ addIndices = mapM_ (execute' []) sql
               ]
 
 -- This creates the temporary table used for building the inverted index.
+--
+-- This might be unsafe in some circumstances. That is, messageId could be
+-- either a messageId or a topicId. This could only be a problem very, very
+-- early in the indexing process, when there are very few messages and very few
+-- topics, and a topic and a message with the same ID are both being indexed at
+-- the same time. If you're re-indexing the entire database, this isn't an
+-- issue, however; because messages and topics aren't indexed at the same time.
 addTempTable :: (ResourceIO m) => SqlPersist m ()
 addTempTable = execute sql []
     where

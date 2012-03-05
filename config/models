@@ -21,7 +21,7 @@ Token
 
 Position
     tokenId TokenId
-    messageId MessageId
-    UniquePosition tokenId messageId
+    topicId TopicId Maybe
+    messageId MessageId Maybe
 
 -- vim: set sw=4 et:

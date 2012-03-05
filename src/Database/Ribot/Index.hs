@@ -4,9 +4,11 @@
 
 module Database.Ribot.Index
     ( indexItem
+    , indexMessage
+    -- , indexTopic
     ) where
 
-import           Control.Applicative ((<$>))
+import           Control.Applicative ((<$>), (<*>))
 import           Control.Exception (onException)
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Trans.Resource (ResourceIO)
@@ -28,66 +30,78 @@ import qualified Data.Conduit.List as CL
 -- database.
 indexItem :: (ResourceIO m) => SavedItem -> SqlPersist m ()
 indexItem NothingSaved       = return ()
-indexItem (SavedTopic _)     = return ()
-indexItem (SavedMessage mId) = index
-    where
-        mId' = toPersistValue mId
+indexItem (SavedTopic tId)   = return ()
+indexItem (SavedMessage mId) = do
+    message' <- get mId
+    case message' of
+        Just message -> indexMessage mId message
+        Nothing      -> return ()
 
-        index = do
-            -- Yucky. Very unsafe. But it should only reach this if the message
-            -- is in the database.
-            msg <- fromJust <$> get mId
-            either (\_ -> return ()) index'
-                   (tokenize "" . T.unpack $ messageText msg)
+-- This tokenizes and indexes a message.
+-- indexMessage :: ResourceIO m => MessageId -> Message -> SqlPersist m ()
+indexMessage mId message =
+    -- Yucky. Very unsafe. But it should only reach this if the message
+    -- is in the database.
+    either (\_ -> return ())
+           (index' (toPersistValue mId) "messageId" . map tokenText)
+           (tokenize "" . T.unpack $ messageText message)
 
-        index' tokens = do
-            addTempTable
-            loadMessageTokens $ map tokenText tokens
-            updateMessageTokenTable
-            updateMessageIds
-            updateMessageIndex
-            cleanUp
-            commit
+-- This actually handles inserting the tokens into the database.
+index' :: ResourceIO m => PersistValue -> T.Text -> [T.Text] -> SqlPersist m ()
+index' id' idCol tokens = do
+    addTempTable
+    loadMessageTokens id' tokens
+    updateMessageTokenTable id'
+    updateMessageIds id'
+    updateMessageIndex id' idCol
+    cleanUp id'
+    commit
 
-        msgTokenCount :: ResourceIO m => SqlPersist m ()
-        msgTokenCount = do
-            liftIO $ putStrLn "msg_token COUNT"
-            C.runResourceT $ withStmt "SELECT COUNT(*) FROM msg_token;" []
-                C.$$ CL.mapM_ $ liftIO . print
-            liftIO $ putStrLn ""
+msgTokenCount :: ResourceIO m => SqlPersist m ()
+msgTokenCount = do
+    liftIO $ putStrLn "msg_token COUNT"
+    C.runResourceT $ withStmt "SELECT COUNT(*) FROM msg_token;" []
+        C.$$ CL.mapM_ $ liftIO . print
+    liftIO $ putStrLn ""
 
-        loadMessageTokens :: ResourceIO m => [T.Text] -> SqlPersist m ()
-        loadMessageTokens tokens = do
-            stmt <- getStmt sql
-            liftIO . mapM_ (execute' stmt) $ [ [mId', PersistText token] | token <- tokens ]
-            where execute' stmt vals = I.execute stmt vals >> I.reset stmt
-                  sql = " INSERT OR IGNORE INTO msg_token \
-                        \ (\"messageId\", text) VALUES (?, ?); "
+loadMessageTokens :: ResourceIO m => PersistValue -> [T.Text] -> SqlPersist m ()
+loadMessageTokens id' tokens = do
+    stmt <- getStmt sql
+    liftIO . mapM_ (execute' stmt) $ [ [id', PersistText token] | token <- tokens ]
+    where execute' stmt vals = I.execute stmt vals >> I.reset stmt
+          sql = " INSERT OR IGNORE INTO msg_token \
+                \ (\"messageId\", text) VALUES (?, ?); "
 
-        updateMessageTokenTable :: ResourceIO m => SqlPersist m ()
-        updateMessageTokenTable = execute sql [mId']
-            where sql = " INSERT OR IGNORE INTO \"Token\" (text) \
-                        \ SELECT text FROM msg_token \
-                        \ WHERE \"messageId\"=?; "
+updateMessageTokenTable :: ResourceIO m => PersistValue -> SqlPersist m ()
+updateMessageTokenTable id' = execute sql [id']
+    where sql = " INSERT OR IGNORE INTO \"Token\" (text) \
+                \ SELECT text FROM msg_token \
+                \ WHERE \"messageId\"=?; "
 
-        updateMessageIds :: ResourceIO m => SqlPersist m ()
-        updateMessageIds = execute sql [mId']
-            where sql = " INSERT OR REPLACE INTO msg_token \
-                        \ (\"tokenId\", \"messageId\", text) \
-                        \ SELECT t.id, mt.\"messageId\", t.text \
-                        \ FROM \"Token\" t \
-                        \ JOIN msg_token mt ON mt.text=t.text \
-                        \ WHERE mt.\"messageId\"=?; "
+updateMessageIds :: ResourceIO m => PersistValue -> SqlPersist m ()
+updateMessageIds id' = execute sql [id']
+    where sql = " INSERT OR REPLACE INTO msg_token \
+                \ (\"tokenId\", \"messageId\", text) \
+                \ SELECT t.id, mt.\"messageId\", t.text \
+                \ FROM \"Token\" t \
+                \ JOIN msg_token mt ON mt.text=t.text \
+                \ WHERE mt.\"messageId\"=?; "
 
-        updateMessageIndex :: ResourceIO m => SqlPersist m ()
-        updateMessageIndex = execute sql [mId']
-            where sql = " INSERT INTO \"Position\" \
-                        \ (\"tokenId\", \"messageId\") \
-                        \ SELECT \"tokenId\", \"messageId\" \
-                        \ FROM msg_token \
-                        \ WHERE \"messageId\"=?; "
+updateMessageIndex :: ResourceIO m => PersistValue -> T.Text -> SqlPersist m ()
+updateMessageIndex id' colName = execute sql [id']
+    where sql = T.concat [ " INSERT INTO \"Position\" \
+                           \ (\"tokenId\", \"", colName, "\", \"", otherColumn colName, "\") \
+                           \ SELECT \"tokenId\", \"messageId\", NULL \
+                           \ FROM msg_token \
+                           \ WHERE \"messageId\"=?; "
+                         ]
 
-        cleanUp :: ResourceIO m => SqlPersist m ()
-        cleanUp = execute sql [mId']
-            where sql = " DELETE FROM msg_token WHERE \"messageId\"=?; "
+cleanUp :: ResourceIO m => PersistValue -> SqlPersist m ()
+cleanUp id' = execute sql [id']
+    where sql = " DELETE FROM msg_token WHERE \"messageId\"=?; "
+
+-- This returns the column for the item type not being indexed.
+otherColumn :: T.Text -> T.Text
+otherColumn "messageId" = "topicId"
+otherColumn "topicId"   = "messageId"
 
