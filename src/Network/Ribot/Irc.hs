@@ -9,6 +9,8 @@ module Network.Ribot.Irc
 
 import           Control.Concurrent
 import           Control.Monad (forever)
+import           Control.Monad.IO.Class (liftIO)
+import           Data.Time
 import           Network.IRC.Bot
 import           Network.IRC.Bot.Part.Channels
 import           Network.IRC.Bot.Part.Dice
@@ -17,11 +19,13 @@ import           Network.IRC.Bot.Part.NickUser
 import           Network.IRC.Bot.Part.Ping
 import           Network.Ribot.Irc.Part.Echo (echoPart)
 import           Network.Ribot.Irc.Part.LogToggle (logTogglePart)
+import           Network.Ribot.Irc.Part.UpTime (uptimePart)
 
 -- This initializes the parts (plugins) for the Ribot bot.
 initParts :: (BotMonad m) => BotConf -> FilePath -> IO [m ()]
 initParts config dbFile = do
     (_, chanPart) <- initChannelsPart $ channels config
+    now <- liftIO getCurrentTime
     return [ pingPart
            , nickUserPart
            , chanPart
@@ -29,6 +33,7 @@ initParts config dbFile = do
            , helloPart
            , echoPart
            , logTogglePart dbFile
+           , uptimePart now
            ]
 
 -- This runs the bot on the console.

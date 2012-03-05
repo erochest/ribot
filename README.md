@@ -20,7 +20,7 @@ The site for this is [here](http://www.ericrochester.com/ribot).
 1. <del>Log messages</del>;
 1. <del>Log topics</del>;
 1. <del>`!log (off|on)`</del>;
-1. `!uptime`;
+1. <del>`!uptime`</del>;
 1. `!version`;
 1. `!help`;
 1. Tokenize and index messages;
