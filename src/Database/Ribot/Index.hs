@@ -5,7 +5,7 @@
 module Database.Ribot.Index
     ( indexItem
     , indexMessage
-    -- , indexTopic
+    , indexTopic
     ) where
 
 import           Control.Applicative ((<$>), (<*>))
@@ -30,7 +30,11 @@ import qualified Data.Conduit.List as CL
 -- database.
 indexItem :: (ResourceIO m) => SavedItem -> SqlPersist m ()
 indexItem NothingSaved       = return ()
-indexItem (SavedTopic tId)   = return ()
+indexItem (SavedTopic tId)   = do
+    topic' <- get tId
+    case topic' of
+        Just topic -> indexTopic tId topic
+        Nothing    -> return ()
 indexItem (SavedMessage mId) = do
     message' <- get mId
     case message' of
@@ -40,22 +44,30 @@ indexItem (SavedMessage mId) = do
 -- This tokenizes and indexes a message.
 -- indexMessage :: ResourceIO m => MessageId -> Message -> SqlPersist m ()
 indexMessage mId message =
+    index' (toPersistValue mId) "messageId" $ messageText message
+
+-- This tokenizes and indexes a topic.
+-- indexTopic :: ResourceIO m => TopicId -> Topic -> SqlPersist m ()
+indexTopic tId topic =
+    index' (toPersistValue tId) "topicId" $ topicText topic
+
+-- This actually handles inserting the tokens into the database.
+index' :: ResourceIO m => PersistValue -> T.Text -> T.Text -> SqlPersist m ()
+index' id' idCol tokens =
     -- Yucky. Very unsafe. But it should only reach this if the message
     -- is in the database.
     either (\_ -> return ())
-           (index' (toPersistValue mId) "messageId" . map tokenText)
-           (tokenize "" . T.unpack $ messageText message)
-
--- This actually handles inserting the tokens into the database.
-index' :: ResourceIO m => PersistValue -> T.Text -> [T.Text] -> SqlPersist m ()
-index' id' idCol tokens = do
-    addTempTable
-    loadMessageTokens id' tokens
-    updateMessageTokenTable id'
-    updateMessageIds id'
-    updateMessageIndex id' idCol
-    cleanUp id'
-    commit
+           (makeIndex . map tokenText)
+           (tokenize "" $ T.unpack tokens)
+    where makeIndex :: ResourceIO m => [T.Text] -> SqlPersist m ()
+          makeIndex tokens = do
+            addTempTable
+            loadMessageTokens id' tokens
+            updateMessageTokenTable id'
+            updateMessageIds id'
+            updateMessageIndex id' idCol
+            cleanUp id'
+            commit
 
 msgTokenCount :: ResourceIO m => SqlPersist m ()
 msgTokenCount = do
