@@ -20,6 +20,7 @@ import           Network.IRC.Bot.Part.Ping
 import           Network.Ribot.Irc.Part.Echo (echoPart)
 import           Network.Ribot.Irc.Part.LogToggle (logTogglePart)
 import           Network.Ribot.Irc.Part.UpTime (uptimePart)
+import           Network.Ribot.Irc.Part.Version (versionPart)
 
 -- This initializes the parts (plugins) for the Ribot bot.
 initParts :: (BotMonad m) => BotConf -> FilePath -> IO [m ()]
@@ -34,6 +35,7 @@ initParts config dbFile = do
            , echoPart
            , logTogglePart dbFile
            , uptimePart now
+           , versionPart
            ]
 
 -- This runs the bot on the console.
