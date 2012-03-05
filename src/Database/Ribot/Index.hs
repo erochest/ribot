@@ -42,12 +42,12 @@ indexItem (SavedMessage mId) = do
         Nothing      -> return ()
 
 -- This tokenizes and indexes a message.
--- indexMessage :: ResourceIO m => MessageId -> Message -> SqlPersist m ()
+indexMessage :: ResourceIO m => MessageId -> Message -> SqlPersist m ()
 indexMessage mId message =
     index' (toPersistValue mId) "messageId" $ messageText message
 
 -- This tokenizes and indexes a topic.
--- indexTopic :: ResourceIO m => TopicId -> Topic -> SqlPersist m ()
+indexTopic :: ResourceIO m => TopicId -> Topic -> SqlPersist m ()
 indexTopic tId topic =
     index' (toPersistValue tId) "topicId" $ topicText topic
 
