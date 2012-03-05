@@ -8,14 +8,19 @@
 module Database.Ribot
     ( UserGeneric(..)
     , User(..)
+    , UserId
     , MessageGeneric(..)
     , Message(..)
+    , MessageId
     , TopicGeneric(..)
     , Topic(..)
+    , TopicId
     , TokenGeneric(..)
     , Token(..)
+    , TokenId
     , PositionGeneric(..)
     , Position(..)
+    , PositionId
     , SavedItem(..)
     , initDatabase
     , addTempTable
