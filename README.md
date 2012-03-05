@@ -22,7 +22,6 @@ The site for this is [here](http://www.ericrochester.com/ribot).
 1. <del>`!log (off|on)`</del>;
 1. <del>`!uptime`</del>;
 1. <del>`!version`</del>;
-1. `!help`;
 1. Tokenize and index messages;
 1. Run indexing and search commands in another thread;
 1. Reindex command;
