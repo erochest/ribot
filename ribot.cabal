@@ -71,6 +71,10 @@ Executable ribot
       Paths_ribot
     , Data.Ribot.Config
     , Database.Ribot
+    , Network.Ribot.Irc.Part.Echo
+    , Network.Ribot.Irc.Part.LogToggle
+    , Network.Ribot.Irc.Part.UpTime
+    , Network.Ribot.Irc.Part.Version
     , Network.Ribot.Irc
     , Network.Ribot.PasteBin
     , Ribot.Cli
