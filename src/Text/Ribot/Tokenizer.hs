@@ -58,6 +58,6 @@ inStopList = flip S.member stopList
 
 -- This is a simple enumeratee that filters any stop-listed words.
 stopListFilter :: Monad m => E.Enumeratee Token Token m b
-stopListFilter = EL.filter (inStopList . tokenText)
+stopListFilter = EL.filter (not . inStopList . tokenText)
 
 

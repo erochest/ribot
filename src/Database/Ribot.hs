@@ -16,8 +16,11 @@ module Database.Ribot
     , Token(..)
     , PositionGeneric(..)
     , Position(..)
+    , SavedItem(..)
     , initDatabase
+    , addTempTable
     , runDb
+    , runPool
     , getOrCreateUser
     , getOrCreateTopic
     , saveMessage
@@ -27,7 +30,7 @@ module Database.Ribot
 import           Database.Persist
 import           Database.Persist.GenericSql.Raw (execute)
 import           Database.Persist.Sqlite
-import           Database.Persist.Store
+import           Database.Persist.Store hiding (runPool)
 import           Database.Persist.TH
 import           Data.Text (Text)
 import qualified Data.Text as T
@@ -40,6 +43,13 @@ import qualified Network.IRC.Base as B
 -- This creates the model types from their names.
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] $(persistFile "config/models")
 
+-- This is for the output of `saveMessage`. This lets me wrap up the its that
+-- was saved so I can retrieve it later. This could probably be a newtype for
+-- `Maybe (Either Topic Message)`, but this seems more extensible.
+data SavedItem = NothingSaved
+               | SavedTopic TopicId
+               | SavedMessage MessageId
+
 -- This initializes the database by opening the connection and migrating.
 initDatabase :: FilePath -> IO ()
 initDatabase dbFile = runDb dbFile $ do
@@ -51,6 +61,12 @@ initDatabase dbFile = runDb dbFile $ do
 -- This takes a function and runs it in the context of a SQLite database.
 runDb :: (ResourceIO m) => FilePath -> SqlPersist m a -> m a
 runDb sqliteFile = withSqliteConn (T.pack sqliteFile) . runSqlConn
+
+-- This takes a function and runs it in the context of a pool of SQLite
+-- database connections.
+runPool :: (ResourceIO m) => FilePath -> Int -> SqlPersist m a -> m a
+runPool sqliteFile poolSize =
+    withSqlitePool (T.pack sqliteFile) poolSize . runSqlPool
 
 -- This executes some raw SQL. This function can be passed to `runDb`.
 execSql :: FilePath -> String -> [PersistValue] -> IO ()
@@ -123,25 +139,27 @@ getOrCreateTopic userId text = get' 0
                     get' (n-1)
 
 -- This takes a `Message` from IRC and saves it to the database.
-saveMessage :: (ResourceIO m) => B.Message -> SqlPersist m ()
+saveMessage :: (ResourceIO m) => B.Message -> SqlPersist m SavedItem
 saveMessage (B.Message (Just (B.NickName name _ _)) "PRIVMSG" [_, ""]) =
-    return ()
+    return NothingSaved
 saveMessage (B.Message (Just (B.NickName name _ _)) "PRIVMSG" [_, ('!':_)]) =
-    return ()
+    return NothingSaved
 saveMessage (B.Message (Just (B.NickName name _ _)) "PRIVMSG" [_, message]) = do
     (Entity userId user) <- (getOrCreateUser $ T.pack name)
     if (userLoggingOn user)
         then insertMessage userId message
-        else return ()
+        else return NothingSaved
     where insertMessage userId message = do
             now <- liftIO getCurrentTime
-            insert $ Message userId (T.pack message) now
+            mid <- insert $ Message userId (T.pack message) now
             commit
+            return $ SavedMessage mid
 saveMessage (B.Message (Just (B.NickName name _ _)) "TOPIC"   [_, topic]) = do
     (Entity userId user) <- getOrCreateUser $ T.pack name
-    getOrCreateTopic userId $ T.pack topic
+    (Entity topicId _)   <- getOrCreateTopic userId $ T.pack topic
     commit
-saveMessage m  = return ()
+    return $ SavedTopic topicId
+saveMessage m  = return NothingSaved
 
 -- This takes a userId and sets the logging for it.
 setUserLogging :: (ResourceIO m) => UserId -> Bool -> SqlPersist m ()
