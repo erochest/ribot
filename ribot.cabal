@@ -64,6 +64,8 @@ Executable ribot
     , time >=1.2 && <1.5
     , monad-control >=0.3 && <0.4
     , conduit >=0.2 && <0.3
+    , bakers12
+    , enumerator >=0.4 && <0.5
 
   extensions: DeriveDataTypeable
 
@@ -78,6 +80,7 @@ Executable ribot
     , Network.Ribot.Irc
     , Network.Ribot.PasteBin
     , Ribot.Cli
+    , Text.Ribot.Tokenizer
 
   -- Build-tools:	  
 
