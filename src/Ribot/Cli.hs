@@ -28,7 +28,7 @@ ribotModes = modes
         } &= details ["This listens on an IRC channel."] &= auto
     , Reindex
         { config = def &= name "c" &= help "The location of the configuration file."
-        } &= details ["This reindexes the messages and topics currently in the database."] &= auto
+        } &= details ["This reindexes the messages and topics currently in the database."]
     ] &= summary ("ribot v" ++ showVersion version)
       &= program "ribot"
 
