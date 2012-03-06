@@ -21,8 +21,8 @@ import qualified Text.Bakers12.Tokenizer as B12
 import           Text.Bakers12.Tokenizer.Types hiding (append, concat)
 
 -- This tokenizes a string into a list of tokens.
-tokenize :: Channel -> String -> Either SomeException [Token]
-tokenize channel input = E.runLists [[T.pack input]] process
+tokenize :: Channel -> T.Text -> Either SomeException [Token]
+tokenize channel input = E.runLists [[input]] process
     where process =      B12.tokenizeStream channel 0
                     E.=$ alphaNumFilter
                     E.=$ stopListFilter
