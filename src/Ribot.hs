@@ -12,7 +12,7 @@ import           Data.Configurator.Types (Config)
 import           Data.Ribot.Config
 import           Database.Persist.Sqlite
 import           Database.Ribot hiding (Message)
-import           Database.Ribot.Index (indexItem)
+import           Database.Ribot.Index (indexItem, reindex)
 import           Network.IRC.Base
 import           Network.IRC.Bot
 import           Network.Ribot.Irc
@@ -24,17 +24,30 @@ import           System.Posix.Daemonize (daemonize)
 main :: IO ()
 main = do
     mode <- cmdArgs ribotModes
-    case config mode of
-        Nothing       -> putStrLn "You must specify a configuration file."
-        Just fileName -> do
+    case mode of
+        Listen (Just fileName)  -> listen fileName
+        Listen Nothing          -> putStrLn "You must specify a configuration file."
+        Reindex (Just fileName) -> reindex' fileName
+        Reindex Nothing         -> putStrLn "You must specify a configuration file."
+
+    where
+        -- This reads the configuration and runs the bot.
+        listen fileName = do
             configFile <- readConfig fileName
             dbFile     <- ribotDbFile configFile
             config'    <- createBotConf configFile $ writeMsg dbFile
-
             case config' of
-                Nothing  -> putStrLn "You must are missing configuration keys."
                 Just cfg -> runBot configFile cfg
+                Nothing  -> putStrLn "You are missing configuration keys."
 
+        -- This reads the configuration and reindexes the file.
+        reindex' fileName = do
+            configFile <- readConfig fileName
+            dbFile     <- ribotDbFile configFile
+            runPool dbFile 4 reindex
+
+-- This initializes the database and runs the bot either as a daemon or a
+-- console program.
 runBot :: Config -> BotConf -> IO ()
 runBot cfg botConfig = do
     dbFile <- ribotDbFile cfg
@@ -44,6 +57,7 @@ runBot cfg botConfig = do
         then daemonize $ runDaemon botConfig dbFile
         else runConsole botConfig dbFile
 
+-- This processes the messages by logging and indexing them.
 writeMsg :: FilePath -> Chan Message -> IO ()
 writeMsg dbFile chan = runPool dbFile 4 $
     (liftIO $ getChanContents chan) >>= mapM_ process

@@ -6,6 +6,10 @@ module Database.Ribot.Index
     ( indexItem
     , indexMessage
     , indexTopic
+    , reindex
+    , reindexMessages
+    , reindexTopics
+    , clearIndex
     ) where
 
 import           Control.Applicative ((<$>), (<*>))
@@ -116,4 +120,17 @@ cleanUp id' = execute sql [id']
 otherColumn :: T.Text -> T.Text
 otherColumn "messageId" = "topicId"
 otherColumn "topicId"   = "messageId"
+
+-- This reindexes everything.
+reindex :: ResourceIO m => SqlPersist m ()
+reindex = clearIndex >> reindexMessages >> reindexTopics
+
+clearIndex :: ResourceIO m => SqlPersist m ()
+clearIndex = return ()
+
+reindexMessages :: ResourceIO m => SqlPersist m ()
+reindexMessages = return ()
+
+reindexTopics :: ResourceIO m => SqlPersist m ()
+reindexTopics = return ()
 

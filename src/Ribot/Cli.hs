@@ -16,6 +16,9 @@ data Modes
     = Listen
         { config :: Maybe FilePath
         }
+    | Reindex
+        { config :: Maybe FilePath
+        }
     deriving (Data, Show, Typeable)
 
 ribotModes :: Modes
@@ -23,6 +26,9 @@ ribotModes = modes
     [ Listen
         { config = def &= name "c" &= help "The location of the configuration file."
         } &= details ["This listens on an IRC channel."] &= auto
+    , Reindex
+        { config = def &= name "c" &= help "The location of the configuration file."
+        } &= details ["This reindexes the messages and topics currently in the database."] &= auto
     ] &= summary ("ribot v" ++ showVersion version)
       &= program "ribot"
 
