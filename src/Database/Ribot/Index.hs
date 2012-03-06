@@ -17,6 +17,7 @@ import           Control.Exception (onException)
 import           Control.Monad (forM_)
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Trans.Resource (ResourceIO)
+import qualified Data.List as L
 import           Data.Maybe
 import qualified Data.Text as T
 import           Database.Persist
@@ -49,26 +50,29 @@ indexItem (SavedMessage mId) = do
 -- This tokenizes and indexes a message.
 indexMessage :: ResourceIO m => MessageId -> Message -> SqlPersist m ()
 indexMessage mId message =
-    index' (toPersistValue mId) "messageId" $ messageText message
+    index' mId "messageId" message messageText
 
 -- This tokenizes and indexes a topic.
 indexTopic :: ResourceIO m => TopicId -> Topic -> SqlPersist m ()
 indexTopic tId topic =
-    index' (toPersistValue tId) "topicId" $ topicText topic
+    index' tId "topicId" topic topicText
 
 -- This actually handles inserting the tokens into the database.
-index' :: ResourceIO m => PersistValue -> T.Text -> T.Text -> SqlPersist m ()
-index' id' idCol tokens =
-    -- Yucky. Very unsafe. But it should only reach this if the message
-    -- is in the database.
-    either (\_ -> return ())
-           (makeIndex . map tokenText)
-           (tokenize "" $ T.unpack tokens)
+index' :: (PersistEntity val, ResourceIO m)
+       => Key b val             -- the database ID
+       -> T.Text                -- the ID column
+       -> val                   -- the database item
+       -> (val -> T.Text)       -- the text getter function
+       -> SqlPersist m ()
+index' id idCol item getText =
+    makeIndex $ tokenizeItem (id, item) getText
     where makeIndex :: ResourceIO m => [T.Text] -> SqlPersist m ()
           makeIndex tokens = do
             addTempTable
             loadMessageTokens id' tokens
             forM_ sqls $ \sql -> execute sql [id']
+
+          id' = toPersistValue id
 
           sqls :: [T.Text]
           sqls = [ " INSERT OR IGNORE INTO \"Token\" (text) \
@@ -109,16 +113,38 @@ otherColumn :: T.Text -> T.Text
 otherColumn "messageId" = "topicId"
 otherColumn "topicId"   = "messageId"
 
+-- A more generic tokenizing function.
+tokenizeItem :: PersistEntity val => (Key b val, val) -> (val -> T.Text) -> [T.Text]
+tokenizeItem (id', item) getText =
+    -- Yucky. Very unsafe. But it should only reach this if the message
+    -- is in the database.
+    either (const [])
+           (map tokenText)
+           (tokenize (show id') $ getText item)
+
 -- This reindexes everything.
 reindex :: ResourceIO m => SqlPersist m ()
-reindex = clearIndex >> reindexMessages >> reindexTopics
+reindex =  addTempTable
+        >> clearIndex
+        >> reindexMessages
+        >> reindexTopics
 
 clearIndex :: ResourceIO m => SqlPersist m ()
-clearIndex = return ()
+clearIndex = do
+    deleteWhere ([] :: [Filter Position])
+    deleteWhere ([] :: [Filter Database.Ribot.Token])
+    clearWorkingTable
+
+clearWorkingTable :: ResourceIO m => SqlPersist m ()
+clearWorkingTable = execute "DELETE FROM msg_token;" []
 
 reindexMessages :: ResourceIO m => SqlPersist m ()
-reindexMessages = return ()
+reindexMessages = do
+    messages <- selectList ([] :: [Filter Message]) []
+    forM_ messages $ \(Entity mId message) -> index' mId "messageId" message messageText
 
 reindexTopics :: ResourceIO m => SqlPersist m ()
-reindexTopics = return ()
+reindexTopics = do
+    topics <- selectList ([] :: [Filter Topic]) []
+    forM_ topics $ \(Entity tId topic) -> index' tId "topicId" topic topicText
 
