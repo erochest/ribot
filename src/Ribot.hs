@@ -45,6 +45,7 @@ main = do
             configFile <- readConfig fileName
             dbFile     <- ribotDbFile configFile
             runPool dbFile 4 reindex
+            putStrLn "done"
 
 -- This initializes the database and runs the bot either as a daemon or a
 -- console program.
