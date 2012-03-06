@@ -24,29 +24,27 @@ import           System.Posix.Daemonize (daemonize)
 main :: IO ()
 main = do
     mode <- cmdArgs ribotModes
-    case mode of
-        Listen (Just fileName)  -> listen fileName
-        Listen Nothing          -> putStrLn "You must specify a configuration file."
+    case config mode of
+        Just fileName -> do
+            config <- readConfig fileName
+            dbFile <- ribotDbFile config
+            handleMode mode config dbFile
+        Nothing       -> putStrLn "You must specify a configuration file."
 
-        Reindex (Just fileName) -> reindex' fileName
-        Reindex Nothing         -> putStrLn "You must specify a configuration file."
-
-    where
-        -- This reads the configuration and runs the bot.
-        listen fileName = do
-            configFile <- readConfig fileName
-            dbFile     <- ribotDbFile configFile
-            config'    <- createBotConf configFile $ writeMsg dbFile
-            case config' of
-                Just cfg -> runBot configFile cfg
-                Nothing  -> putStrLn "You are missing configuration keys."
-
-        -- This reads the configuration and reindexes the file.
-        reindex' fileName = do
-            configFile <- readConfig fileName
-            dbFile     <- ribotDbFile configFile
-            runPool dbFile 4 reindex
-            putStrLn "done"
+-- This handles dispatching to the modes.
+handleMode :: Modes -> Config -> String -> IO ()
+handleMode (Listen _) config dbFile = do
+    config' <- createBotConf config $ writeMsg dbFile
+    case config' of
+        Just cfg -> runBot config cfg
+        Nothing  -> putStrLn "You are missing configuration keys."
+handleMode (Search _ terms) config dbFile = do
+    return ()
+handleMode (Ribot.Cli.Topic _ terms) config dbFile = do
+    return ()
+handleMode (Reindex _) config dbFile = do
+    runPool dbFile 4 reindex
+    putStrLn "done"
 
 -- This initializes the database and runs the bot either as a daemon or a
 -- console program.
