@@ -23,7 +23,7 @@ The site for this is [here](http://www.ericrochester.com/ribot).
 1. <del>`!uptime`</del>;
 1. <del>`!version`</del>;
 1. <del>Tokenize and index messages</del>;
-1. Reindex command;
+1. <del>Reindex command</del>;
 1. `!search`;
 1. Run indexing and search commands in another thread;
 1. `!mimic`;
