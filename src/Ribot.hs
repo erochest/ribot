@@ -27,6 +27,7 @@ main = do
     case mode of
         Listen (Just fileName)  -> listen fileName
         Listen Nothing          -> putStrLn "You must specify a configuration file."
+
         Reindex (Just fileName) -> reindex' fileName
         Reindex Nothing         -> putStrLn "You must specify a configuration file."
 

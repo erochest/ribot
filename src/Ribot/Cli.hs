@@ -16,6 +16,14 @@ data Modes
     = Listen
         { config :: Maybe FilePath
         }
+    | Search
+        { config :: Maybe FilePath
+        , terms  :: [String]
+        }
+    | Topic
+        { config :: Maybe FilePath
+        , terms  :: [String]
+        }
     | Reindex
         { config :: Maybe FilePath
         }
@@ -26,6 +34,14 @@ ribotModes = modes
     [ Listen
         { config = def &= name "c" &= help "The location of the configuration file."
         } &= details ["This listens on an IRC channel."] &= auto
+    , Search
+        { config = def &= name "c" &= help "The location of the configuration file."
+        , terms = def &= args &= typ "SEARCH-TERMS"
+        } &= details ["This searches the messages."]
+    , Topic
+        { config = def &= name "c" &= help "The location of the configuration file."
+        , terms = def &= args &= typ "SEARCH-TERMS"
+        } &= details ["This searches the topics."]
     , Reindex
         { config = def &= name "c" &= help "The location of the configuration file."
         } &= details ["This reindexes the messages and topics currently in the database."]
