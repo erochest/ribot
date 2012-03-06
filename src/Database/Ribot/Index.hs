@@ -14,6 +14,7 @@ module Database.Ribot.Index
 
 import           Control.Applicative ((<$>), (<*>))
 import           Control.Exception (onException)
+import           Control.Monad (forM_)
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Trans.Resource (ResourceIO)
 import           Data.Maybe
@@ -67,11 +68,26 @@ index' id' idCol tokens =
           makeIndex tokens = do
             addTempTable
             loadMessageTokens id' tokens
-            updateMessageTokenTable id'
-            updateMessageIds id'
-            updateMessageIndex id' idCol
-            cleanUp id'
-            commit
+            forM_ sqls $ \sql -> execute sql [id']
+
+          sqls :: [T.Text]
+          sqls = [ " INSERT OR IGNORE INTO \"Token\" (text) \
+                   \ SELECT text FROM msg_token \
+                   \ WHERE \"messageId\"=?; "
+                 , " INSERT OR REPLACE INTO msg_token \
+                   \ (\"tokenId\", \"messageId\", text) \
+                   \ SELECT t.id, mt.\"messageId\", t.text \
+                   \ FROM \"Token\" t \
+                   \ JOIN msg_token mt ON mt.text=t.text \
+                   \ WHERE mt.\"messageId\"=?; "
+                , T.concat [ " INSERT INTO \"Position\" \
+                             \ (\"tokenId\", \"", idCol, "\", \"", otherColumn idCol, "\") \
+                             \ SELECT \"tokenId\", \"messageId\", NULL \
+                             \ FROM msg_token \
+                             \ WHERE \"messageId\"=?; "
+                           ]
+                , " DELETE FROM msg_token WHERE \"messageId\"=?; "
+                ]
 
 msgTokenCount :: ResourceIO m => SqlPersist m ()
 msgTokenCount = do
@@ -87,34 +103,6 @@ loadMessageTokens id' tokens = do
     where execute' stmt vals = I.execute stmt vals >> I.reset stmt
           sql = " INSERT OR IGNORE INTO msg_token \
                 \ (\"messageId\", text) VALUES (?, ?); "
-
-updateMessageTokenTable :: ResourceIO m => PersistValue -> SqlPersist m ()
-updateMessageTokenTable id' = execute sql [id']
-    where sql = " INSERT OR IGNORE INTO \"Token\" (text) \
-                \ SELECT text FROM msg_token \
-                \ WHERE \"messageId\"=?; "
-
-updateMessageIds :: ResourceIO m => PersistValue -> SqlPersist m ()
-updateMessageIds id' = execute sql [id']
-    where sql = " INSERT OR REPLACE INTO msg_token \
-                \ (\"tokenId\", \"messageId\", text) \
-                \ SELECT t.id, mt.\"messageId\", t.text \
-                \ FROM \"Token\" t \
-                \ JOIN msg_token mt ON mt.text=t.text \
-                \ WHERE mt.\"messageId\"=?; "
-
-updateMessageIndex :: ResourceIO m => PersistValue -> T.Text -> SqlPersist m ()
-updateMessageIndex id' colName = execute sql [id']
-    where sql = T.concat [ " INSERT INTO \"Position\" \
-                           \ (\"tokenId\", \"", colName, "\", \"", otherColumn colName, "\") \
-                           \ SELECT \"tokenId\", \"messageId\", NULL \
-                           \ FROM msg_token \
-                           \ WHERE \"messageId\"=?; "
-                         ]
-
-cleanUp :: ResourceIO m => PersistValue -> SqlPersist m ()
-cleanUp id' = execute sql [id']
-    where sql = " DELETE FROM msg_token WHERE \"messageId\"=?; "
 
 -- This returns the column for the item type not being indexed.
 otherColumn :: T.Text -> T.Text
