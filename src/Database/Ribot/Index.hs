@@ -27,7 +27,7 @@ import           Database.Persist.Sqlite
 import           Database.Persist.Store
 import           Database.Ribot hiding (tokenText)
 import           Text.Bakers12.Tokenizer.Types (Token(..))
-import           Text.Ribot.Tokenizer (tokenize)
+import           Text.Ribot.Tokenizer (tokenize, getTokenText)
 
 import qualified Data.Conduit as C
 import qualified Data.Conduit.List as CL
@@ -116,11 +116,7 @@ otherColumn "topicId"   = "messageId"
 -- A more generic tokenizing function.
 tokenizeItem :: PersistEntity val => (Key b val, val) -> (val -> T.Text) -> [T.Text]
 tokenizeItem (id', item) getText =
-    -- Yucky. Very unsafe. But it should only reach this if the message
-    -- is in the database.
-    either (const [])
-           (map tokenText)
-           (tokenize (show id') $ getText item)
+    getTokenText . tokenize (show id') $ getText item
 
 -- This reindexes everything.
 reindex :: ResourceIO m => SqlPersist m ()

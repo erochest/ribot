@@ -5,6 +5,8 @@
 
 module Text.Ribot.Tokenizer
     ( tokenize
+    , tokenizeQuery
+    , getTokenText
     , alphaNumFilter
     , stopList
     , inStopList
@@ -27,6 +29,17 @@ tokenize channel input = E.runLists [[input]] process
                     E.=$ alphaNumFilter
                     E.=$ stopListFilter
                     E.=$ EL.consume
+
+-- This tokenizes a search query by concatenating wildcards in with the
+-- adjacent word or number.
+tokenizeQuery :: Channel -> T.Text -> Either SomeException [Token]
+tokenizeQuery _ _ = Right []
+
+-- This converts the output of a tokenize* function into a list of `Text`.
+-- Exceptions are silently turned into empty lists.
+getTokenText :: Either SomeException [Token] -> [T.Text]
+getTokenText (Left _)       = []
+getTokenText (Right tokens) = map tokenText tokens
 
 -- This filters out anything that's not alphnumeric.
 alphaNumFilter :: Monad m => E.Enumeratee Token Token m b
