@@ -26,6 +26,7 @@ The site for this is [here](http://www.ericrochester.com/ribot).
 1. <del>Reindex command</del>;
 1. `!search`;
 1. Run indexing and search commands in another thread;
+1. `!random`;
 1. `!mimic`;
 1. Convert data from old database;
 1. Deploy task;
