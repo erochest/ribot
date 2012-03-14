@@ -71,6 +71,7 @@ index' id idCol item getText =
             addTempTable
             loadMessageTokens id' tokens
             forM_ sqls $ \sql -> execute sql [id']
+            commit
 
           id' = toPersistValue id
 
@@ -124,6 +125,7 @@ reindex =  addTempTable
         >> clearIndex
         >> reindexMessages
         >> reindexTopics
+        >> commit
 
 clearIndex :: ResourceIO m => SqlPersist m ()
 clearIndex = do
