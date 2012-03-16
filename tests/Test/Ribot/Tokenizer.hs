@@ -59,11 +59,11 @@ assertTokenMultiple = assertTokenTests "assertTokenMultiple" tests
                   , ("H\tJ\nK", ["h", "j", "k"])
                   , ("abc DeF gHi", ["abc", "def", "ghi"])
                   , ("1 2 3", ["1", "2", "3"])
-                  , ("abc 123 4H5", ["abc", "123", "4", "h", "5"])
+                  , ("abc 123 4H5", ["abc", "123", "4h5"])
                   , ("abc%1234!!fdjs", ["abc", "1234", "fdjs"])
                   , ("can't won't haven't Bobby's", ["won", "haven", "bobby"])
                   , ("high-five low-five ice-cream", ["high", "five", "low", "five", "ice", "cream"])
-                  , ("a1b2 ab12cd34", ["1", "b", "2", "ab", "12", "cd", "34"])
+                  , ("a1b2 ab12cd34", ["a1b2", "ab12cd34"])
                   ]
 
 assertTokenStopListed :: Assertion

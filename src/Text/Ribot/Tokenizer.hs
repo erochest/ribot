@@ -14,18 +14,22 @@ module Text.Ribot.Tokenizer
     ) where
 
 import           Control.Exception (SomeException)
+import           Control.Monad.Trans (lift)
 import qualified Data.Enumerator as E
 import qualified Data.Enumerator.List as EL
+import           Data.Maybe (isJust, isNothing)
 import qualified Data.Set as S
 import qualified Data.Text as T
 import           Network.IRC.Commands (Channel)
 import qualified Text.Bakers12.Tokenizer as B12
 import           Text.Bakers12.Tokenizer.Types hiding (append, concat)
+import qualified Text.Bakers12.Tokenizer.Types as BT12
 
 -- This tokenizes a string into a list of tokens.
 tokenize :: Channel -> T.Text -> Either SomeException [Token]
 tokenize channel input = E.runLists [[input]] process
     where process =      B12.tokenizeStream channel 0
+                    E.=$ (combineRuns isAlphaNum)
                     E.=$ alphaNumFilter
                     E.=$ stopListFilter
                     E.=$ EL.consume
@@ -43,8 +47,13 @@ getTokenText (Right tokens) = map tokenText tokens
 
 -- This filters out anything that's not alphnumeric.
 alphaNumFilter :: Monad m => E.Enumeratee Token Token m b
-alphaNumFilter = EL.filter (predicate . tokenType)
-    where predicate ttype = ttype == AlphaToken || ttype == NumberToken
+alphaNumFilter = EL.filter isAlphaNum
+
+-- This is the alphanumeric predicate.
+isAlphaNum :: Token -> Bool
+isAlphaNum (Token _ _ _ AlphaToken  _ _) = True
+isAlphaNum (Token _ _ _ NumberToken _ _) = True
+isAlphaNum _                             = False
 
 -- This is an English stop list taken from the [Natural Language
 -- Toolkit](http://www.nltk.org/).
@@ -73,4 +82,87 @@ inStopList = flip S.member stopList
 stopListFilter :: Monad m => E.Enumeratee Token Token m b
 stopListFilter = EL.filter (not . inStopList . tokenText)
 
+-- This combines runs of tokens that satisfy a predicate.
+combineRuns :: Monad m => (Token -> Bool) -> E.Enumeratee Token Token m b
+combineRuns predicate (E.Continue k) = do
+    toCombine' <- EL.takeWhile predicate
+    case toCombine' of
+        [] -> do
+            next' <- EL.head
+            case next' of
+                Nothing -> return $ E.Continue k
+                Just next  -> do
+                    newStep <- lift $ E.runIteratee $ k $ E.Chunks [next]
+                    combineRuns predicate newStep
+        toCombine -> do
+            newStep <- lift $ E.runIteratee $ k $ E.Chunks [BT12.concat toCombine]
+            combineRuns predicate newStep
+combineRuns _ step = return step
+
+-- This is the state used to combine tokens. It has to track the last seen
+-- token and the tokens seen for the base, connector, and tail.
+data CombineState = CombineState
+    { tokenBase      :: [Token]
+    , tokenConnector :: Maybe Token
+    , tokenTail      :: Maybe Token
+    }
+
+nullCombine :: CombineState
+nullCombine = CombineState [] Nothing Nothing
+
+-- This pushes token onto some part of the state to produce the next state.
+pushBase :: CombineState -> Token -> CombineState
+pushBase state token = state { tokenBase = (token:tokenBase state) }
+
+pushConnector :: CombineState -> Token -> CombineState
+pushConnector state token = state { tokenConnector = Just token }
+
+pushTail :: CombineState -> Token -> CombineState
+pushTail state token = state { tokenTail = Just token }
+
+-- This is an enumeratee that combines the input tokens that need to be
+-- combined into one token.
+--
+-- * Contractions (ALPHA - SINGLE QUOTE - ALPHA)
+combineTokenParts :: Monad m => E.Enumeratee Token Token m b
+combineTokenParts = EL.concatMapAccum combine nullCombine
+
+-- This is the function that handles each input token and accumulates it with
+-- the existing state, optionally producing output.
+combine :: CombineState -> Token -> (CombineState, [Token])
+combine state@(CombineState base connector tail) token
+    -- Trash
+    | tokenType token == SeparatorToken = (nullCombine, combineOutput state)
+    | tokenType token == SymbolToken    = (nullCombine, combineOutput state)
+    | tokenType token == MarkToken      = (nullCombine, combineOutput state)
+    | tokenType token == UnknownToken   = (nullCombine, combineOutput state)
+
+    -- Numbers (flush buffer, output current token, and start over)
+    | tokenType token == NumberToken    =
+        (nullCombine, combineOutput state ++ [token])
+
+    -- Letters
+    | tokenType token == AlphaToken && isNothing connector =
+        (pushBase state token, [])
+    | tokenType token == AlphaToken && isJust connector    =
+        (nullCombine, combineOutput $ pushTail state token)
+
+    -- Punctuation (some of it's trash)
+    | tokenType token == PunctuationToken && tokenText token == "\'" && isNothing connector =
+        (pushConnector state token, [])
+    | tokenType token == PunctuationToken && tokenText token == "\'" && isJust connector =
+        (nullCombine, combineOutput state)
+    | tokenType token == PunctuationToken =
+        (nullCombine, combineOutput state)
+        
+
+-- This takes the combine state and produces output.
+combineOutput :: CombineState -> [Token]
+combineOutput (CombineState []   _        _       ) = []
+combineOutput (CombineState base Nothing  _       ) =
+    [BT12.concat $ reverse base]
+combineOutput (CombineState base _        Nothing ) =
+    [BT12.concat $ reverse base]
+combineOutput (CombineState base (Just c) (Just t)) =
+    [BT12.concat . reverse $ (t:c:base)]
 
