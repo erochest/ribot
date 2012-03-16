@@ -62,7 +62,8 @@ assertTokenMultiple = assertTokenTests "assertTokenMultiple" tests
                   , ("abc 123 4H5", ["abc", "123", "4h5"])
                   , ("abc%1234!!fdjs", ["abc", "1234", "fdjs"])
                   , ("can't won't haven't Bobby's", ["can't", "won't", "haven't", "bobby's"])
-                  , ("high-five low-five ice-cream", ["high", "five", "low", "five", "ice", "cream"])
+                  , ("high-five low-five ice-cream", ["high-five", "low-five", "ice-cream"])
+                  , ("what--dash more---dashing!", ["what--dash", "more---dashing"])
                   , ("a1b2 ab12cd34", ["a1b2", "ab12cd34"])
                   ]
 

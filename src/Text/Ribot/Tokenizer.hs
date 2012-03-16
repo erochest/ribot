@@ -30,7 +30,9 @@ tokenize :: Channel -> T.Text -> Either SomeException [Token]
 tokenize channel input = E.runLists [[input]] process
     where process =      B12.tokenizeStream channel 0
                     E.=$ (combineRuns isAlphaNum)
+                    E.=$ (combineRuns isDash)
                     E.=$ (join isAlphaNum isSingleQuote)
+                    E.=$ (join isAlphaNum isDash)
                     E.=$ alphaNumFilter
                     E.=$ stopListFilter
                     E.=$ EL.consume
@@ -60,6 +62,16 @@ isAlphaNum _                             = False
 isSingleQuote :: Token -> Bool
 isSingleQuote (Token "'" _ _ PunctuationToken _ _) = True
 isSingleQuote _                                    = False
+
+-- This tests for a dash character.
+isDash :: Token -> Bool
+isDash (Token text _ _ PunctuationToken _ _)
+    | T.null text        = False
+    | T.head text == '-' = True
+    | T.head text == '–' = True
+    | T.head text == '—' = True
+    | otherwise          = False
+isDash _                 = False
 
 -- This is an English stop list taken from the [Natural Language
 -- Toolkit](http://www.nltk.org/).
