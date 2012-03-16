@@ -17,7 +17,7 @@ import           Control.Exception (SomeException)
 import           Control.Monad.Trans (lift)
 import qualified Data.Enumerator as E
 import qualified Data.Enumerator.List as EL
-import           Data.Maybe (isJust, isNothing)
+import qualified Data.List as L
 import qualified Data.Set as S
 import qualified Data.Text as T
 import           Network.IRC.Commands (Channel)
@@ -40,7 +40,16 @@ tokenize channel input = E.runLists [[input]] process
 -- This tokenizes a search query by concatenating wildcards in with the
 -- adjacent word or number.
 tokenizeQuery :: Channel -> T.Text -> Either SomeException [Token]
-tokenizeQuery _ _ = Right []
+tokenizeQuery channel input = E.runLists [[input]] process
+    where process =      B12.tokenizeStream channel 0
+                    E.=$ (combineRuns isAlphaNum)
+                    E.=$ (combineRuns isDash)
+                    E.=$ (join isAlphaNum isSingleQuote)
+                    E.=$ (join isAlphaNum isDash)
+                    E.=$ (groupBy (\t -> isAlphaNum t || isWildcard t))
+                    E.=$ wildAlphaNumFilter
+                    E.=$ stopListFilter
+                    E.=$ EL.consume
 
 -- This converts the output of a tokenize* function into a list of `Text`.
 -- Exceptions are silently turned into empty lists.
@@ -48,15 +57,23 @@ getTokenText :: Either SomeException [Token] -> [T.Text]
 getTokenText (Left _)       = []
 getTokenText (Right tokens) = map tokenText tokens
 
--- This filters out anything that's not alphnumeric.
+-- This filters out anything that's not alphanumeric.
 alphaNumFilter :: Monad m => E.Enumeratee Token Token m b
 alphaNumFilter = EL.filter isAlphaNum
+
+-- This filters out anything that's not alphanumeric or a wildcard.
+wildAlphaNumFilter :: Monad m => E.Enumeratee Token Token m b
+wildAlphaNumFilter = EL.filter isWildAlphaNum
 
 -- This is the alphanumeric predicate.
 isAlphaNum :: Token -> Bool
 isAlphaNum (Token _ _ _ AlphaToken  _ _) = True
 isAlphaNum (Token _ _ _ NumberToken _ _) = True
 isAlphaNum _                             = False
+
+-- This is the alphanumeric or wildcard predicate.
+isWildAlphaNum :: Token -> Bool
+isWildAlphaNum t = isAlphaNum t || isWildcard t
 
 -- This tests for a single quote.
 isSingleQuote :: Token -> Bool
@@ -72,6 +89,13 @@ isDash (Token text _ _ PunctuationToken _ _)
     | T.head text == '—' = True
     | otherwise          = False
 isDash _                 = False
+
+-- This tests for a wildcard character.
+isWildcard :: Token -> Bool
+isWildcard (Token text _ _ PunctuationToken _ _)
+    | T.head text == '*' = True
+    | otherwise          = False
+isWildcard _                                    = False
 
 -- This is an English stop list taken from the [Natural Language
 -- Toolkit](http://www.nltk.org/).
@@ -90,7 +114,7 @@ stopList = S.fromList [ "i", "me", "my", "myself", "we", "our", "ours",
     "where", "why", "how", "all", "any", "both", "each", "few", "more", "most",
     "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so",
     "than", "too", "very", "s", "t", "can", "will", "just", "don", "should",
-    "now" ]
+    "now", "*" ]
 
 -- This is a simple predicate testing whether a string is in the stop list.
 inStopList :: T.Text -> Bool
@@ -139,4 +163,21 @@ join itemp conjp (E.Continue k) =
                              then onTrue item
                              else onFalse item
 join _ _ step = return step
+
+-- This groups and concatenates all tokens matching a predicate.
+groupBy :: Monad m => (Token -> Bool) -> E.Enumeratee Token Token m b
+groupBy predicate (E.Continue k) = do
+    matching <- EL.takeWhile predicate
+    if L.null matching
+        then do
+            next' <- EL.head
+            case next' of
+                Nothing   -> return $ E.Continue k
+                Just next -> do
+                    step <- lift $ E.runIteratee $ k $ E.Chunks [next]
+                    groupBy predicate step
+        else do
+            step <- lift $ E.runIteratee $ k $ E.Chunks [BT12.concat matching]
+            groupBy predicate step
+groupBy _ step = return step
 
