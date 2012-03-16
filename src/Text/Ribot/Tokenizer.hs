@@ -30,6 +30,7 @@ tokenize :: Channel -> T.Text -> Either SomeException [Token]
 tokenize channel input = E.runLists [[input]] process
     where process =      B12.tokenizeStream channel 0
                     E.=$ (combineRuns isAlphaNum)
+                    E.=$ (join isAlphaNum isSingleQuote)
                     E.=$ alphaNumFilter
                     E.=$ stopListFilter
                     E.=$ EL.consume
@@ -54,6 +55,11 @@ isAlphaNum :: Token -> Bool
 isAlphaNum (Token _ _ _ AlphaToken  _ _) = True
 isAlphaNum (Token _ _ _ NumberToken _ _) = True
 isAlphaNum _                             = False
+
+-- This tests for a single quote.
+isSingleQuote :: Token -> Bool
+isSingleQuote (Token "'" _ _ PunctuationToken _ _) = True
+isSingleQuote _                                    = False
 
 -- This is an English stop list taken from the [Natural Language
 -- Toolkit](http://www.nltk.org/).
@@ -98,6 +104,29 @@ combineRuns predicate (E.Continue k) = do
             newStep <- lift $ E.runIteratee $ k $ E.Chunks [BT12.concat toCombine]
             combineRuns predicate newStep
 combineRuns _ step = return step
+
+-- This joins triples of tokens where the first and last match the initial
+-- predicate and the joiner matches the second.
+join :: Monad m => (Token -> Bool) -> (Token -> Bool) -> E.Enumeratee Token Token m b
+join itemp conjp (E.Continue k) =
+    step itemp (return $ E.Continue k) (\t0 -> next [t0]) $ \t0 ->
+        step conjp (next [t0]) (\t1 -> next [t0, t1]) $ \t1 ->
+            step itemp (next [t0, t1]) (\t2 -> next [t0, t1, t2]) $ \t2 ->
+                next [BT12.concat [t0, t1, t2]]
+
+    where
+        next chunk = do
+            next' <- lift $ E.runIteratee $ k $ E.Chunks chunk
+            join itemp conjp next'
+
+        step predicate onNothing onFalse onTrue = do
+            item' <- EL.head
+            case item' of
+                Nothing   -> onNothing
+                Just item -> if predicate item
+                             then onTrue item
+                             else onFalse item
+join _ _ step = return step
 
 -- This is the state used to combine tokens. It has to track the last seen
 -- token and the tokens seen for the base, connector, and tail.
