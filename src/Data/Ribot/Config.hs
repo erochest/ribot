@@ -23,13 +23,14 @@
 -- (every message logged);
 -- * `file` -- The file to log to. This can be "STDOUT".
 --
--- ### Miscellaneous Options
---
--- Values here don't need to be in any section.
+-- ### `ribot` Section
 --
 -- * `daemonize` -- This is a boolean value (`true`, `false`, or `off`, `on`).
 -- If `true`, this runs Ribot as a daemon.
--- * `pastebin` -- This is the PasteBin API key.
+-- * `db_file` -- This is the location of the database file.
+-- * `pastebin` -- This is the optional PasteBin API key.
+-- * `search_max` -- The maximum number of search results to include. This
+-- defaults to 10000.
 --
 -- ### Example
 --
@@ -46,9 +47,10 @@
 -- > }
 -- > ribot
 -- > {
--- >   daemonize = off
--- >   pastebin  = "..."
--- >   db_file   = ":memory:"
+-- >   daemonize  = off
+-- >   pastebin   = "..."
+-- >   db_file    = ":memory:"
+-- >   search_max = 1000
 -- > }
 --
 -- ### Daemon Mode
@@ -67,6 +69,7 @@ module Data.Ribot.Config
     , ribotDaemonize
     , ribotPasteBin
     , ribotDbFile
+    , ribotSearchMax
     , absPath
     , getLevel
     ) where
@@ -212,6 +215,11 @@ ribotPasteBin = lookup' "ribot.pastebin"
 -- to ":memory:".
 ribotDbFile :: Config -> IO String
 ribotDbFile = lookupFilePath ":memory:" "ribot.db_file"
+
+-- This looks up the maximum number of search results to return. This defaults
+-- to 10,000.
+ribotSearchMax :: Config -> IO Int
+ribotSearchMax = lookupDefault' 10000 "ribot.search_max"
 
 -- This takes a log file path and makes it absolute (canonicalizes it).
 absPath :: FilePath -> FilePath -> IO FilePath
