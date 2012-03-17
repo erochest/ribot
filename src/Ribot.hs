@@ -5,6 +5,7 @@
 module Main where
 
 import           Control.Concurrent
+import           Control.Monad (forM_)
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Trans.Resource (ResourceIO)
 import qualified Data.Configurator as C
@@ -13,6 +14,7 @@ import           Data.Ribot.Config
 import           Database.Persist.Sqlite
 import           Database.Ribot hiding (Message)
 import           Database.Ribot.Index (indexItem, reindex)
+import           Database.Ribot.Search (search)
 import           Network.IRC.Base
 import           Network.IRC.Bot
 import           Network.Ribot.Irc
@@ -39,7 +41,12 @@ handleMode (Listen _) config dbFile = do
         Just cfg -> runBot config cfg
         Nothing  -> putStrLn "You are missing configuration keys."
 handleMode (Search _ terms) config dbFile = do
-    return ()
+    searchMax <- ribotSearchMax config
+    replies   <- search dbFile searchMax terms'
+    putStrLn $ "SEARCH: " ++ terms'
+    putStrLn $ (show (length replies)) ++ " results."
+    forM_ replies (putStrLn . show)
+    where terms' = unwords terms
 handleMode (Ribot.Cli.Topic _ terms) config dbFile = do
     return ()
 handleMode (Reindex _) config dbFile = do
@@ -54,8 +61,8 @@ runBot cfg botConfig = do
     initDatabase dbFile
     asDaemon <- ribotDaemonize cfg
     if asDaemon
-        then daemonize $ runDaemon botConfig dbFile
-        else runConsole botConfig dbFile
+        then daemonize $ runDaemon botConfig cfg
+        else runConsole botConfig cfg
 
 -- This processes the messages by logging and indexing them.
 writeMsg :: FilePath -> Chan Message -> IO ()
