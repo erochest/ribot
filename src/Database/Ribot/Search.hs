@@ -108,8 +108,9 @@ instance Show SearchResult where
         T.unpack $ T.concat [ userUsername user
                             , " at "
                             , T.pack . formatTime defaultTimeLocale "%c" $ messagePosted message
-                            , ": "
+                            , ": \""
                             , messageText message
+                            , "\""
                             ]
 
 
