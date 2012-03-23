@@ -29,6 +29,7 @@ import           Network.Ribot.Irc.Part.Version (versionPart)
 initParts :: (BotMonad m) => BotConf -> Config -> IO [m ()]
 initParts config ribotConfig = do
     dbFile        <- ribotDbFile ribotConfig
+    pbKey         <- ribotPasteBin ribotConfig
     searchMax     <- ribotSearchMax ribotConfig
     (_, chanPart) <- initChannelsPart $ channels config
     now <- liftIO getCurrentTime
@@ -39,7 +40,7 @@ initParts config ribotConfig = do
            , helloPart
            , echoPart
            , logTogglePart dbFile
-           , searchPart dbFile searchMax
+           , searchPart dbFile pbKey searchMax
            , uptimePart now
            , versionPart
            ]

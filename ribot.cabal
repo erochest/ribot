@@ -68,6 +68,7 @@ Executable ribot
     , enumerator >=0.4 && <0.5
     , mtl >=2.0 && <3.0
     , old-locale >=1.0 && <2.0
+    , HTTP >=4000.1 && <4000.2
 
   extensions: DeriveDataTypeable
 
@@ -147,6 +148,7 @@ Test-Suite test-ribot
     , enumerator >=0.4 && <0.5
     , mtl >=2.0 && <3.0
     , old-locale >=1.0 && <2.0
+    , HTTP >=4000.1 && <4000.2
   ghc-options:		 -Wall -rtsopts
 
 source-repository head
