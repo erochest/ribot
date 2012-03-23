@@ -36,7 +36,13 @@ searchCommand dbFile searchMax = search <|> return ()
             logM Debug . ("!search " ++) $ show terms
             replies <- liftIO $ S.search dbFile searchMax terms
             logM Debug . ("!search => " ++) $ show (length replies)
+            let send       = sendCommand . PrivMsg Nothing [target]
+                replyCount = length replies
+            send $ nick ++ ", " ++ (show replyCount) ++ plural replyCount " result"
             -- PasteBin
-            forM_ replies $ \r ->
-                sendCommand . PrivMsg Nothing [target] $ nick ++ ", " ++ show r
+            forM_ replies (send . show)
+
+        plural :: Int -> String -> String
+        plural 1 s = s
+        plural _ s = s ++ "s"
 
