@@ -5,26 +5,29 @@
 module Database.Ribot.Search
     ( search
     , replaceWildCard
-    , SearchResult
+    , SearchResult(..)
     ) where
 
+import           Control.Applicative ((<$>))
 import           Data.Maybe (isJust)
 import           Data.Monoid (mempty, Monoid)
 import qualified Data.List as L
 import qualified Data.Text as T
+import           Data.Time.Format (formatTime)
 import           Database.Persist
 import qualified Database.Persist.GenericSql.Internal as I
 import           Database.Persist.GenericSql.Raw (execute, getStmt, withStmt)
 import           Database.Persist.Sqlite
 import           Database.Persist.Store
 import           Database.Ribot hiding (tokenText)
+import           System.Locale (defaultTimeLocale)
 import           Text.Bakers12.Tokenizer.Types (Token(..))
-import           Text.Ribot.Tokenizer (tokenizeQuery, )
+import           Text.Ribot.Tokenizer (tokenizeQuery)
 
 -- This is the basic search result.
-type UserEntity = Entity User
+type UserEntity    = Entity User
 type MessageEntity = Entity Message
-type SearchResult = ( UserEntity, MessageEntity )
+data SearchResult  = SearchResult UserEntity MessageEntity
 
 
 -- This returns the empty monoid value for Left Either values.
@@ -35,7 +38,7 @@ onlyRight (Right val) = val
 
 search :: FilePath -> Int -> String -> IO [SearchResult]
 search dbFile searchMax queryString = withSqliteConn (T.pack dbFile) $ runSqlConn $ do
-    rawSql query params
+    map (uncurry SearchResult) <$> rawSql query params
     where queryTerms = map (T.map replaceWildCard . tokenText)
                      . onlyRight
                      . tokenizeQuery ""
@@ -98,5 +101,15 @@ buildQuery terms limit =
                  -> ([T.Text], [T.Text], [PersistValue])
         foldTerm (sql, wheres', params') (n, term) =
             (join n : sql, where_ n term : wheres', toPersistValue term : params')
+
+instance Show SearchResult where
+
+    show (SearchResult (Entity _ user) (Entity _ message)) =
+        T.unpack $ T.concat [ userUsername user
+                            , " at "
+                            , T.pack . formatTime defaultTimeLocale "%c" $ messagePosted message
+                            , ": "
+                            , messageText message
+                            ]
 
 
