@@ -4,8 +4,10 @@
 
 module Database.Ribot.Search
     ( search
+    , topic
     , replaceWildCard
     , SearchResult(..)
+    , TopicResult(..)
     ) where
 
 import           Control.Applicative ((<$>))
@@ -27,7 +29,9 @@ import           Text.Ribot.Tokenizer (tokenizeQuery)
 -- This is the basic search result.
 type UserEntity    = Entity User
 type MessageEntity = Entity Message
+type TopicEntity   = Entity Topic
 data SearchResult  = SearchResult UserEntity MessageEntity
+data TopicResult   = TopicResult UserEntity TopicEntity
 
 
 -- This returns the empty monoid value for Left Either values.
@@ -44,7 +48,17 @@ search dbFile searchMax queryString = withSqliteConn (T.pack dbFile) $ runSqlCon
                      . tokenizeQuery ""
                      . T.pack
                      $ queryString
-          (query, params) = buildQuery queryTerms searchMax
+          (query, params) = buildQuery "Message" queryTerms searchMax
+
+topic :: FilePath -> Int -> String -> IO [TopicResult]
+topic dbFile searchMax queryString = withSqliteConn (T.pack dbFile) $ runSqlConn $ do
+    map (uncurry TopicResult) <$> rawSql query params
+    where queryTerms = map (T.map replaceWildCard . tokenText)
+                     . onlyRight
+                     . tokenizeQuery ""
+                     . T.pack
+                     $ queryString
+          (query, params) = buildQuery "Topic" queryTerms searchMax
 
 -- This replaces the wildcard characters to SQL wildcards. Other characters
 -- remain untouched.
@@ -53,25 +67,28 @@ replaceWildCard '*' = '%'
 replaceWildCard c   = c
 
 -- This takes a list of query terms and builds the query.
-buildQuery :: [T.Text] -> Int -> (T.Text, [PersistValue])
-buildQuery terms limit =
+buildQuery :: T.Text -> [T.Text] -> Int -> (T.Text, [PersistValue])
+buildQuery target terms limit =
     (T.concat . L.reverse . (suffix:) $ wheres ++ sqlList, L.reverse params)
     where
+        ltarget = T.toLower target
+
         foldInit = ([prefix], [], [])
 
         (sqlList, wheres, params) =
             L.foldl' foldTerm foldInit . zip [0..] $ terms
 
-        prefix = " SELECT DISTINCT ??, ?? \
-                 \ FROM \"Message\" \
-                 \ JOIN \"User\" on \"User\".id=\"Message\".userId "
-        suffix = T.concat [ " ORDER BY \"Message\".posted DESC"
+        prefix = T.concat [ " SELECT DISTINCT ??, ?? "
+                          , " FROM \"", target, "\""
+                          , " JOIN \"User\" on \"User\".id=\"", target, "\".userId "
+                          ]
+        suffix = T.concat [ " ORDER BY \"", target, "\".posted DESC"
                           , " LIMIT ", T.pack $ show limit
                           ]
 
         join :: Int -> T.Text
         join n = T.concat [ " JOIN \"Position\" p", n'
-                          , " ON p", n', ".messageId=\"Message\".id"
+                          , " ON p", n', ".", ltarget, "Id=\"", target, "\".id"
                           , " JOIN \"Token\" t", n'
                           , " ON t", n', ".id=p", n', ".tokenId "
                           ]
@@ -110,6 +127,17 @@ instance Show SearchResult where
                             , T.pack . formatTime defaultTimeLocale "%c" $ messagePosted message
                             , ": \""
                             , messageText message
+                            , "\""
+                            ]
+
+instance Show TopicResult where
+
+    show (TopicResult (Entity _ user) (Entity _ topic)) =
+        T.unpack $ T.concat [ userUsername user
+                            , " at "
+                            , T.pack . formatTime defaultTimeLocale "%c" $ topicPosted topic
+                            , ": \""
+                            , topicText topic
                             , "\""
                             ]
 
