@@ -16,8 +16,8 @@ import           Network.IRC.Bot.Commands (PrivMsg(..), askSenderNickName,
 import           Network.IRC.Bot.Log (LogLevel(Debug))
 import           Network.IRC.Bot.Parsec (botPrefix, parsecPart)
 import           Network.Ribot.PasteBin (PasteBinApiKey, bulkPrivMsg)
-import           Text.Parsec (ParsecT, (<|>), anyChar, many, many1, optionMaybe,
-                              space, string, try)
+import           Text.Parsec (ParsecT, (<|>), anyChar, many, many1, option,
+                              optionMaybe, space, string, try)
 
 -- This is the part to integrate into Ribot.
 topicPart :: BotMonad m => FilePath -> Maybe PasteBinApiKey -> Int -> m ()
@@ -36,7 +36,7 @@ topicCommand dbFile pbKey searchMax = topic <|> return ()
         topic = try $ do
             botPrefix
             string "topic"
-            terms   <- space >> many anyChar
+            terms   <- option "" (space >> many anyChar)
             target  <- maybeZero =<< replyTo
             nick    <- maybeZero =<< askSenderNickName
             logM Debug . ("!topic " ++) $ show terms
