@@ -27,6 +27,10 @@ data Modes
     | Reindex
         { config :: Maybe FilePath
         }
+    | Mimic
+        { config :: Maybe FilePath
+        , user   :: String
+        }
     deriving (Data, Show, Typeable)
 
 ribotModes :: Modes
@@ -45,6 +49,10 @@ ribotModes = modes
     , Reindex
         { config = def &= name "c" &= help "The location of the configuration file."
         } &= details ["This reindexes the messages and topics currently in the database."]
+    , Mimic
+        { config = def &= name "c" &= help "The location of the configuration file."
+        , user = def &= args &= typ "USERNICK"
+        } &= details ["Mimic a given user."]
     ] &= summary ("ribot v" ++ showVersion version)
       &= program "ribot"
 

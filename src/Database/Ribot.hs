@@ -30,6 +30,7 @@ module Database.Ribot
     , getOrCreateTopic
     , saveMessage
     , setUserLogging
+    , getUserMessages
     ) where
 
 import           Database.Persist
@@ -177,4 +178,13 @@ saveMessage m  = return NothingSaved
 setUserLogging :: (ResourceIO m) => UserId -> Bool -> SqlPersist m ()
 setUserLogging userId logging =
     update userId [UserLoggingOn =. logging] >> commit
+
+-- This returns all the messages for the user with a given user name.
+getUserMessages :: (ResourceIO m) => T.Text -> SqlPersist m (Maybe [Entity Message])
+getUserMessages userName = do
+    user' <- getBy $ UniqueUser userName
+    case user' of
+        Nothing   -> return $ Nothing
+        Just (Entity userId _) -> do
+            Just `fmap` selectList [MessageUserId ==. userId] []
 

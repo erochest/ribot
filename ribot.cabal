@@ -80,6 +80,7 @@ Executable ribot
     , Database.Ribot.Search
     , Network.Ribot.Irc.Part.Echo
     , Network.Ribot.Irc.Part.LogToggle
+    , Network.Ribot.Irc.Part.Mimic
     , Network.Ribot.Irc.Part.Search
     , Network.Ribot.Irc.Part.Topic
     , Network.Ribot.Irc.Part.UpTime
@@ -88,6 +89,7 @@ Executable ribot
     , Network.Ribot.PasteBin
     , Ribot.Cli
     , Text.Ribot.Tokenizer
+    , Text.Ribot.Mimic
 
   -- Build-tools:	  
 

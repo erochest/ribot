@@ -21,6 +21,7 @@ import           Network.IRC.Bot.Part.NickUser
 import           Network.IRC.Bot.Part.Ping
 import           Network.Ribot.Irc.Part.Echo (echoPart)
 import           Network.Ribot.Irc.Part.LogToggle (logTogglePart)
+import           Network.Ribot.Irc.Part.Mimic (mimicPart)
 import           Network.Ribot.Irc.Part.Search (searchPart)
 import           Network.Ribot.Irc.Part.Topic (topicPart)
 import           Network.Ribot.Irc.Part.UpTime (uptimePart)
@@ -41,6 +42,7 @@ initParts config ribotConfig = do
            , helloPart
            , echoPart
            , logTogglePart dbFile
+           , mimicPart dbFile
            , searchPart dbFile pbKey searchMax
            , topicPart dbFile pbKey searchMax
            , uptimePart now

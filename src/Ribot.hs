@@ -11,8 +11,10 @@ import           Control.Monad.Trans.Resource (ResourceIO)
 import qualified Data.Configurator as C
 import           Data.Configurator.Types (Config)
 import           Data.Ribot.Config
+import qualified Data.Text as T
 import           Database.Persist.Sqlite
 import           Database.Ribot hiding (Message)
+import qualified Database.Ribot as D
 import           Database.Ribot.Index (indexItem, reindex)
 import           Database.Ribot.Search (search)
 import           Network.IRC.Base
@@ -21,6 +23,7 @@ import           Network.Ribot.Irc
 import           Ribot.Cli
 import           System.Console.CmdArgs (cmdArgs)
 import           System.Posix.Daemonize (daemonize)
+import qualified Text.Ribot.Mimic as M
 
 
 main :: IO ()
@@ -52,6 +55,25 @@ handleMode (Ribot.Cli.Topic _ terms) config dbFile = do
 handleMode (Reindex _) config dbFile = do
     runPool dbFile 4 reindex
     putStrLn "done"
+handleMode (Mimic _ userName) config dbFile =
+    runDb dbFile $ do
+        msgs'  <- getUserMessages userName'
+        output <- case msgs' of
+            Nothing -> return $ T.concat [ "I haven't heard "
+                                         , userName'
+                                         , " say anthying."
+                                         ]
+            Just [] -> return $ T.concat [ userName'
+                                         , " hasn't said anything."
+                                         ]
+            Just msgs -> do
+                let messages = map messageObj msgs
+                liftIO $ T.unwords `fmap` M.mimic messages
+        liftIO . putStrLn $ T.unpack output
+    where
+        userName' = T.pack userName
+        messageObj :: Entity D.Message -> D.Message
+        messageObj (Entity _ m) = m
 
 -- This initializes the database and runs the bot either as a daemon or a
 -- console program.
