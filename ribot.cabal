@@ -69,6 +69,7 @@ Executable ribot
     , mtl >=2.0 && <3.0
     , old-locale >=1.0 && <2.0
     , HTTP >=4000.1 && <4000.2
+    , random >=1.0 && <1.1
 
   extensions: DeriveDataTypeable
 
@@ -152,6 +153,7 @@ Test-Suite test-ribot
     , mtl >=2.0 && <3.0
     , old-locale >=1.0 && <2.0
     , HTTP >=4000.1 && <4000.2
+    , random >=1.0 && <1.1
   ghc-options:		 -Wall -rtsopts
 
 source-repository head

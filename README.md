@@ -29,7 +29,7 @@ The site for this is [here](http://www.ericrochester.com/ribot).
 1. <del>Convert data from old database</del>;
 1. Deploy task;
 1. `!random`;
-1. `!mimic`;
+1. <del>`!mimic`</del>;
 1. `!stats`;
 1. Notifications and messages;
 1. Browsing site (`yesod`).
