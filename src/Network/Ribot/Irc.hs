@@ -20,6 +20,7 @@ import           Network.IRC.Bot.Part.Hello
 import           Network.IRC.Bot.Part.NickUser
 import           Network.IRC.Bot.Part.Ping
 import           Network.Ribot.Irc.Part.Echo (echoPart)
+import           Network.Ribot.Irc.Part.Knitter (knitterPart)
 import           Network.Ribot.Irc.Part.LogToggle (logTogglePart)
 import           Network.Ribot.Irc.Part.Mimic (mimicPart)
 import           Network.Ribot.Irc.Part.Search (searchPart)
@@ -47,6 +48,7 @@ initParts config ribotConfig = do
            , topicPart dbFile pbKey searchMax
            , uptimePart now
            , versionPart
+           , knitterPart dbFile
            ]
 
 -- This runs the bot on the console.

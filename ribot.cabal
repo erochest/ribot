@@ -80,6 +80,7 @@ Executable ribot
     , Database.Ribot.Index
     , Database.Ribot.Search
     , Network.Ribot.Irc.Part.Echo
+    , Network.Ribot.Irc.Part.Knitter
     , Network.Ribot.Irc.Part.LogToggle
     , Network.Ribot.Irc.Part.Mimic
     , Network.Ribot.Irc.Part.Search

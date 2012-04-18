@@ -9,6 +9,7 @@ module Database.Ribot
     ( UserGeneric(..)
     , User(..)
     , UserId
+    , Unique(..)
     , MessageGeneric(..)
     , Message(..)
     , MessageId
