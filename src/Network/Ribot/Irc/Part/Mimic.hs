@@ -8,19 +8,16 @@ module Network.Ribot.Irc.Part.Mimic
     , mimicCommand
     ) where
 
-import           Control.Monad.Trans (lift)
 import           Control.Monad.IO.Class (liftIO)
 import qualified Data.Text as T
 import           Database.Persist
 import           Database.Persist.Sqlite
-import           Database.Ribot (runDb, getUserMessages, Message)
+import           Database.Ribot (getUserMessages, Message)
 import           Network.IRC.Bot.BotMonad (BotMonad(..), maybeZero)
-import           Network.IRC.Bot.Commands (PrivMsg(..), askSenderNickName,
-                                           replyTo, sendCommand)
+import           Network.IRC.Bot.Commands (PrivMsg(..), replyTo, sendCommand)
 import           Network.IRC.Bot.Log (LogLevel(Debug))
 import           Network.IRC.Bot.Parsec (botPrefix, parsecPart)
-import           Text.Parsec (ParsecT, (<|>), anyChar, many, many1, optionMaybe,
-                              space, string, try)
+import           Text.Parsec (ParsecT, (<|>), anyChar, many, space, string, try)
 import qualified Text.Ribot.Mimic as M
 
 mimicPart :: BotMonad m => FilePath -> m ()
@@ -36,7 +33,6 @@ mimicCommand dbFile = mimic <|> return ()
             user     <- space >> many anyChar
 
             target   <- maybeZero =<< replyTo
-            nick     <- maybeZero =<< askSenderNickName
 
             output <- liftIO $ T.unpack `fmap` getMimic (T.pack dbFile) (T.pack user)
             logM Debug $ "!mimic " ++ user ++ " => " ++ output
@@ -46,9 +42,9 @@ mimicCommand dbFile = mimic <|> return ()
         messageObj (Entity _ m) = m
 
         getMimic :: T.Text -> T.Text -> IO T.Text
-        getMimic dbFile userName = do
-            msgs'  <- getUserMessages' dbFile userName
-            output <- case msgs' of
+        getMimic dbFile' userName = do
+            msgs'  <- getUserMessages' dbFile' userName
+            case msgs' of
                 Nothing -> return $ T.concat [ "I haven't heard "
                                              , userName
                                              , " say anthying."
@@ -59,9 +55,8 @@ mimicCommand dbFile = mimic <|> return ()
                 Just msgs -> do
                     let messages = map messageObj msgs
                     liftIO $ T.unwords `fmap` M.mimic messages
-            return output
 
         getUserMessages' :: T.Text -> T.Text -> IO (Maybe [Entity Message])
-        getUserMessages' dbFile userName =
-            withSqliteConn dbFile $ runSqlConn $ getUserMessages userName
+        getUserMessages' dbFile' userName =
+            withSqliteConn dbFile' $ runSqlConn $ getUserMessages userName
 

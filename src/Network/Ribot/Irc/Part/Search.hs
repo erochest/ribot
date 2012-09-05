@@ -7,17 +7,14 @@ module Network.Ribot.Irc.Part.Search
     , searchCommand
     ) where
 
-import           Control.Monad (forM_)
 import           Control.Monad.IO.Class (liftIO)
 import qualified Database.Ribot.Search as S
 import           Network.IRC.Bot.BotMonad (BotMonad(..), maybeZero)
-import           Network.IRC.Bot.Commands (PrivMsg(..), askSenderNickName,
-                                           replyTo, sendCommand)
+import           Network.IRC.Bot.Commands (askSenderNickName, replyTo)
 import           Network.IRC.Bot.Log (LogLevel(Debug))
 import           Network.IRC.Bot.Parsec (botPrefix, parsecPart)
 import           Network.Ribot.PasteBin (PasteBinApiKey, bulkPrivMsg)
-import           Text.Parsec (ParsecT, (<|>), anyChar, many, many1, optionMaybe,
-                              space, string, try)
+import           Text.Parsec (ParsecT, (<|>), anyChar, many, space, string, try)
 
 -- This is the part to integrate into Ribot.
 searchPart :: BotMonad m => FilePath -> Maybe PasteBinApiKey -> Int -> m ()
@@ -43,7 +40,7 @@ searchCommand dbFile pbKey searchMax = search <|> return ()
             replies <- liftIO $ S.search dbFile searchMax terms
             logM Debug . ("!search => " ++) $ show (length replies)
             let rc     = length replies
-                header = nick ++ ", " ++ (show rc) ++ plural rc " result"
+                header = nick ++ ", " ++ show rc ++ plural rc " result"
             bulkPrivMsg pbKey target header $ map show replies
 
         plural :: Int -> String -> String

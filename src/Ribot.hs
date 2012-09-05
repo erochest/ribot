@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 -- This is the entry point for Ribot.
 
@@ -6,11 +7,11 @@ module Main where
 
 import           Control.Concurrent
 import           Control.Monad (forM_)
-import           Control.Monad.IO.Class (liftIO)
-import qualified Data.Configurator as C
+import           Control.Monad.IO.Class
 import           Data.Configurator.Types (Config)
 import           Data.Ribot.Config
 import qualified Data.Text as T
+import           Database.Persist
 import           Database.Persist.Sqlite
 import           Database.Ribot hiding (Message)
 import qualified Database.Ribot as D
@@ -30,31 +31,31 @@ main = do
     mode <- cmdArgs ribotModes
     case config mode of
         Just fileName -> do
-            config <- readConfig fileName
-            dbFile <- ribotDbFile config
-            handleMode mode config dbFile
+            ircConfig <- readConfig fileName
+            dbFile    <- ribotDbFile ircConfig
+            handleMode mode ircConfig dbFile
         Nothing       -> putStrLn "You must specify a configuration file."
 
 -- This handles dispatching to the modes.
 handleMode :: Modes -> Config -> String -> IO ()
-handleMode (Listen _) config dbFile = do
-    config' <- createBotConf config $ writeMsg dbFile
+handleMode (Listen _) ircConfig dbFile = do
+    config' <- createBotConf ircConfig $ writeMsg dbFile
     case config' of
-        Just cfg -> runBot config cfg
+        Just cfg -> runBot ircConfig cfg
         Nothing  -> putStrLn "You are missing configuration keys."
-handleMode (Search _ terms) config dbFile = do
-    searchMax <- ribotSearchMax config
+handleMode (Search _ searchTerms) ircConfig dbFile = do
+    searchMax <- ribotSearchMax ircConfig
     replies   <- search dbFile searchMax terms'
     putStrLn $ "SEARCH: " ++ terms'
-    putStrLn $ (show (length replies)) ++ " results."
-    forM_ replies (putStrLn . show)
-    where terms' = unwords terms
-handleMode (Ribot.Cli.Topic _ terms) config dbFile = do
+    putStrLn $ show (length replies) ++ " results."
+    forM_ replies print
+    where terms' = unwords searchTerms
+handleMode (Ribot.Cli.Topic _ _) _ _ =
     return ()
-handleMode (Reindex _) config dbFile = do
+handleMode (Reindex _) _ dbFile = do
     runPool dbFile 4 reindex
     putStrLn "done"
-handleMode (Mimic _ userName) config dbFile =
+handleMode (Mimic _ userName) _ dbFile =
     runDb dbFile $ do
         msgs'  <- getUserMessages userName'
         output <- case msgs' of
@@ -88,7 +89,8 @@ runBot cfg botConfig = do
 -- This processes the messages by logging and indexing them.
 writeMsg :: FilePath -> Chan Message -> IO ()
 writeMsg dbFile chan = runPool dbFile 4 $
-    (liftIO $ getChanContents chan) >>= mapM_ process
+    liftIO $ getChanContents chan >>= mapM_ process
     where
-        process msg = saveMessage msg >>= indexItem
+        process msg' = withSqliteConn (T.pack dbFile) $ runSqlConn $
+            saveMessage msg' >>= indexItem
 

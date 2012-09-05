@@ -8,20 +8,20 @@
 
 module Database.Ribot
     ( UserGeneric(..)
-    , User(..)
+    , User
     , UserId
     , Unique(..)
     , MessageGeneric(..)
-    , Message(..)
+    , Message
     , MessageId
     , TopicGeneric(..)
-    , Topic(..)
+    , Topic
     , TopicId
     , TokenGeneric(..)
-    , Token(..)
+    , Token
     , TokenId
     , PositionGeneric(..)
-    , Position(..)
+    , Position
     , PositionId
     , SavedItem(..)
     , initDatabase
@@ -38,14 +38,12 @@ module Database.Ribot
 import           Database.Persist
 import           Database.Persist.GenericSql.Raw (execute)
 import           Database.Persist.Sqlite
-import           Database.Persist.Store hiding (runPool)
 import           Database.Persist.TH
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Time
 import           Control.Monad.Logger (MonadLogger)
 import           Control.Monad.IO.Class (liftIO, MonadIO)
-import           Control.Monad.Trans.Control (MonadBaseControl)
 import           Control.Monad.Trans.Resource
 import qualified Network.IRC.Base as B
 
@@ -78,18 +76,6 @@ runPool :: (MonadIO m, MonadBaseControl IO m)
         => FilePath -> Int -> SqlPersist m a -> m a
 runPool sqliteFile poolSize =
     withSqlitePool (T.pack sqliteFile) poolSize . runSqlPool
-
--- This executes some raw SQL. This function can be passed to `runDb`.
-execSql :: FilePath -> String -> [PersistValue] -> IO ()
-execSql sqliteFile sql params =
-    runDb sqliteFile $ execute (T.pack sql) params
-
--- This executes a list of SQL commands, none of which take parameters.
-execSqlScripts :: FilePath -> [String] -> IO ()
-execSqlScripts sqliteFile sqls =
-    runDb sqliteFile $ mapM_ (execute' []) sqls'
-    where execute' = flip execute
-          sqls'    = map T.pack sqls
 
 -- This takes a database and executes the SQL to create the database's
 -- indices. These include "IF NOT EXISTS" phrases, so this can safely be
@@ -135,7 +121,7 @@ getOrCreateUser :: ( MonadIO m
                    , MonadBaseControl IO m
                    )
                 => T.Text -> SqlPersist m (Entity User)
-getOrCreateUser username = get' 0 username
+getOrCreateUser = get' (0 :: Int)
     where
         -- This attempts to insert and get the user. If it takes too many
         -- tries, just fail.
@@ -157,7 +143,7 @@ getOrCreateTopic :: ( MonadIO m
                     , MonadBaseControl IO m
                     )
                  => UserId -> T.Text -> SqlPersist m (Entity Topic)
-getOrCreateTopic userId text = get' 0
+getOrCreateTopic userId text = get' (0 :: Int)
     where
         get' 3 = fail "too many attempts"
         get' n = do
@@ -177,26 +163,26 @@ saveMessage :: ( MonadIO m
                , MonadBaseControl IO m
                )
             => B.Message -> SqlPersist m SavedItem
-saveMessage (B.Message (Just (B.NickName name _ _)) "PRIVMSG" [_, ""]) =
+saveMessage (B.Message (Just (B.NickName _    _ _)) "PRIVMSG" [_, ""]) =
     return NothingSaved
-saveMessage (B.Message (Just (B.NickName name _ _)) "PRIVMSG" [_, ('!':_)]) =
+saveMessage (B.Message (Just (B.NickName _    _ _)) "PRIVMSG" [_, ('!':_)]) =
     return NothingSaved
 saveMessage (B.Message (Just (B.NickName name _ _)) "PRIVMSG" [_, message]) = do
     (Entity userId user) <- (getOrCreateUser $ T.pack name)
-    if (userLoggingOn user)
+    if userLoggingOn user
         then insertMessage userId message
         else return NothingSaved
-    where insertMessage userId message = do
+    where insertMessage userId msg = do
             now <- liftIO getCurrentTime
-            mid <- insert $ Message userId (T.pack message) now
+            mid <- insert $ Message userId (T.pack msg) now
             commit
             return $ SavedMessage mid
 saveMessage (B.Message (Just (B.NickName name _ _)) "TOPIC"   [_, topic]) = do
-    (Entity userId user) <- getOrCreateUser $ T.pack name
-    (Entity topicId _)   <- getOrCreateTopic userId $ T.pack topic
+    (Entity userId  _) <- getOrCreateUser $ T.pack name
+    (Entity topicId _) <- getOrCreateTopic userId $ T.pack topic
     commit
     return $ SavedTopic topicId
-saveMessage m  = return NothingSaved
+saveMessage _  = return NothingSaved
 
 -- This takes a userId and sets the logging for it.
 setUserLogging :: ( MonadIO m
@@ -221,7 +207,7 @@ getUserMessages :: ( MonadIO m
 getUserMessages userName = do
     user' <- getBy $ UniqueUser userName
     case user' of
-        Nothing   -> return $ Nothing
-        Just (Entity userId _) -> do
+        Nothing   -> return Nothing
+        Just (Entity userId _) ->
             Just `fmap` selectList [MessageUserId ==. userId] []
 

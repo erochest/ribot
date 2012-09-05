@@ -8,8 +8,6 @@ module Network.Ribot.Irc.Part.LogToggle
     ) where
 
 import           Control.Monad.IO.Class (liftIO, MonadIO)
-import           Control.Monad.Trans.Class (lift)
-import           Control.Monad.Trans.Resource
 import qualified Data.Text as T
 import           Database.Ribot
 import           Database.Persist (Entity(..))
@@ -18,8 +16,7 @@ import           Network.IRC.Bot.Commands (PrivMsg(..), askSenderNickName,
                                            replyTo, sendCommand)
 import           Network.IRC.Bot.Log (LogLevel(Debug))
 import           Network.IRC.Bot.Parsec (botPrefix, parsecPart)
-import           Text.Parsec (ParsecT, (<|>), anyChar, many1, optionMaybe,
-                              space, string, try)
+import           Text.Parsec (ParsecT, (<|>), optionMaybe, space, string, try)
 
 -- This is the part to integrate into Ribot.
 logTogglePart :: BotMonad m => FilePath -> m ()
@@ -27,10 +24,10 @@ logTogglePart dbFile = parsecPart (logToggleCommand dbFile)
 
 -- This parses and handles the `!log` command.
 logToggleCommand :: BotMonad m => FilePath -> ParsecT String () m ()
-logToggleCommand dbFile = log <|> return ()
+logToggleCommand dbFile = log' <|> return ()
     where
-        log :: BotMonad m => ParsecT String () m ()
-        log = try $ do
+        log' :: BotMonad m => ParsecT String () m ()
+        log' = try $ do
             botPrefix
             string "log"
             setting <- optionMaybe $ space >> bool
@@ -42,11 +39,11 @@ logToggleCommand dbFile = log <|> return ()
 
 saveLogging :: FilePath -> T.Text -> Maybe Bool -> IO String
 saveLogging dbFile userName (Just logging) = runDb dbFile $ do
-    (Entity userId user) <- getOrCreateUser userName
+    (Entity userId _) <- getOrCreateUser userName
     setUserLogging userId logging
     return $ logMessage logging
 saveLogging dbFile userName Nothing = runDb dbFile $ do
-    (Entity userId user) <- getOrCreateUser userName
+    (Entity _ user) <- getOrCreateUser userName
     return . logMessage $ userLoggingOn user
 
 logMessage :: Bool -> String
@@ -54,7 +51,7 @@ logMessage True  = "logging is turned on."
 logMessage False = "logging is turned off."
 
 bool :: BotMonad m => ParsecT String () m Bool
-bool = do
+bool =
         (try (string "true")  >> return True)
     <|> (try (string "yes")   >> return True)
     <|> (try (string "on")    >> return True)

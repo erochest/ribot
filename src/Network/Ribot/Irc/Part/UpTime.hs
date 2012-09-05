@@ -17,8 +17,7 @@ import           Network.IRC.Bot.Commands (PrivMsg(..), askSenderNickName,
                                            replyTo, sendCommand)
 import           Network.IRC.Bot.Log (LogLevel(Debug))
 import           Network.IRC.Bot.Parsec (botPrefix, parsecPart)
-import           Text.Parsec (ParsecT, (<|>), anyChar, many1, optionMaybe,
-                              space, string, try)
+import           Text.Parsec (ParsecT, (<|>), string, try)
 
 -- This integrates this part into Ribot.
 uptimePart :: BotMonad m => UTCTime -> m ()
@@ -57,8 +56,8 @@ showElapsed = L.intercalate ", " . L.reverse . show' units
         show' :: [(Int, String)] -> Int -> [String]
         show' [] _ = []
         show' _  0 = []
-        show' ((n, units):us) elapsed | m == 0    = show' us d
-                                      | otherwise = m' : show' us d
+        show' ((n, units'):us) elapsed | m == 0    = show' us d
+                                       | otherwise = m' : show' us d
                 where (d, m) = elapsed `divMod` n
-                      m'     = show m ++ " " ++ units
+                      m'     = show m ++ " " ++ units'
 

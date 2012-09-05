@@ -13,26 +13,19 @@ module Database.Ribot.Index
     , clearIndex
     ) where
 
-import           Control.Applicative ((<$>), (<*>))
-import           Control.Exception (onException)
 import           Control.Monad (forM_)
 import           Control.Monad.Logger
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Resource
-import qualified Data.List as L
-import           Data.Maybe
 import qualified Data.Text as T
 import           Database.Persist
 import qualified Database.Persist.GenericSql.Internal as I
-import           Database.Persist.GenericSql.Raw (execute, getStmt, withStmt)
+import           Database.Persist.GenericSql.Raw (execute, getStmt)
 import           Database.Persist.Sqlite
 import           Database.Persist.Store
 import           Database.Ribot hiding (tokenText)
-import           Text.Bakers12.Tokenizer.Types (Token(..))
 import           Text.Ribot.Tokenizer (tokenize, getTokenText)
 
-import qualified Data.Conduit as C
-import qualified Data.Conduit.List as CL
 
 -- This takes a Message, breaks it apart, and adds the indexes into the
 -- database.
@@ -74,15 +67,15 @@ index' :: (PersistEntity val, MonadIO m, MonadLogger m)
        -> val                   -- the database item
        -> (val -> T.Text)       -- the text getter function
        -> SqlPersist m ()
-index' id idCol item getText =
-    makeIndex $ tokenizeItem (id, item) getText
+index' dbId idCol item getText =
+    makeIndex $ tokenizeItem (dbId, item) getText
     where makeIndex tokens = do
             addTempTable
             loadMessageTokens id' tokens
             forM_ sqls $ \sql -> execute sql [id']
             commit
 
-          id' = toPersistValue id
+          id' = toPersistValue dbId
 
           sqls :: [T.Text]
           sqls = [ " INSERT OR IGNORE INTO \"Token\" (text) \
@@ -103,19 +96,6 @@ index' id idCol item getText =
                 , " DELETE FROM msg_token WHERE \"messageId\"=?; "
                 ]
 
-msgTokenCount :: ( MonadIO m
-                 , MonadUnsafeIO m
-                 , MonadThrow m
-                 , MonadLogger m
-                 , MonadBaseControl IO m
-                 )
-              => SqlPersist m ()
-msgTokenCount = do
-    liftIO $ putStrLn "msg_token COUNT"
-    C.runResourceT $ withStmt "SELECT COUNT(*) FROM msg_token;" []
-        C.$$ CL.mapM_ $ liftIO . print
-    liftIO $ putStrLn ""
-
 loadMessageTokens :: ( MonadIO m
                      , MonadLogger m
                      )
@@ -131,6 +111,7 @@ loadMessageTokens id' tokens = do
 otherColumn :: T.Text -> T.Text
 otherColumn "messageId" = "topicId"
 otherColumn "topicId"   = "messageId"
+otherColumn x           = x
 
 -- A more generic tokenizing function.
 tokenizeItem :: PersistEntity val => (Key b val, val) -> (val -> T.Text) -> [T.Text]

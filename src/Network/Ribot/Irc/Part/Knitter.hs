@@ -10,10 +10,7 @@ import           Control.Applicative ((<$>))
 import           Control.Concurrent
 import           Control.Monad
 import           Control.Monad.IO.Class (liftIO, MonadIO)
-import           Control.Monad.Trans.Resource
-import qualified Data.List as L
 import           Data.Maybe
-import           Data.Time
 import qualified Data.Text as T
 import           Database.Persist
 import           Database.Persist.Sqlite
@@ -23,11 +20,10 @@ import           Network.IRC.Bot.BotMonad (BotMonad(..), maybeZero, BotEnv,
 import           Network.IRC.Bot.Commands (PrivMsg(..), askSenderNickName,
                                            replyTo, sendCommand)
 import           Network.IRC.Bot.Log (LogLevel(Debug))
-import           Network.IRC.Bot.Parsec (botPrefix, parsecPart)
+import           Network.IRC.Bot.Parsec (parsecPart)
 import           System.Random
-import           Text.Parsec (ParsecT, (<|>), anyChar, many1, optionMaybe,
-                              space, string, try, skipMany, noneOf, char,
-                              alphaNum)
+import           Text.Parsec (ParsecT, (<|>), many1, try, skipMany, noneOf
+                             , char, alphaNum)
 
 knitterPart :: BotMonad m => FilePath -> m ()
 knitterPart dbFile = parsecPart (knitterCommand dbFile)
@@ -59,7 +55,7 @@ knitterCommand dbFile = knitter <|> return ()
         isUser userName =
             withSqliteConn (T.pack dbFile) $ runSqlConn $ isUser' userName
 
-        isUser' userName = isJust <$> (getBy $ UniqueUser userName)
+        isUser' userName = isJust <$> getBy (UniqueUser userName)
 
         mutter :: BotEnv -> String -> IO ()
         mutter env target = do
