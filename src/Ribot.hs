@@ -7,7 +7,6 @@ module Main where
 import           Control.Concurrent
 import           Control.Monad (forM_)
 import           Control.Monad.IO.Class (liftIO)
-import           Control.Monad.Trans.Resource (ResourceIO)
 import qualified Data.Configurator as C
 import           Data.Configurator.Types (Config)
 import           Data.Ribot.Config
@@ -91,6 +90,5 @@ writeMsg :: FilePath -> Chan Message -> IO ()
 writeMsg dbFile chan = runPool dbFile 4 $
     (liftIO $ getChanContents chan) >>= mapM_ process
     where
-        process :: ResourceIO m => Message -> SqlPersist m ()
         process msg = saveMessage msg >>= indexItem
 

@@ -9,7 +9,7 @@ module Network.Ribot.Irc.Part.LogToggle
 
 import           Control.Monad.IO.Class (liftIO, MonadIO)
 import           Control.Monad.Trans.Class (lift)
-import           Control.Monad.Trans.Resource (ResourceIO)
+import           Control.Monad.Trans.Resource
 import qualified Data.Text as T
 import           Database.Ribot
 import           Database.Persist (Entity(..))

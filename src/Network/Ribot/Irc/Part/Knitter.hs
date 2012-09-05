@@ -10,7 +10,7 @@ import           Control.Applicative ((<$>))
 import           Control.Concurrent
 import           Control.Monad
 import           Control.Monad.IO.Class (liftIO, MonadIO)
-import           Control.Monad.Trans.Resource (ResourceIO)
+import           Control.Monad.Trans.Resource
 import qualified Data.List as L
 import           Data.Maybe
 import           Data.Time
@@ -59,7 +59,6 @@ knitterCommand dbFile = knitter <|> return ()
         isUser userName =
             withSqliteConn (T.pack dbFile) $ runSqlConn $ isUser' userName
 
-        isUser' :: ResourceIO m => T.Text -> SqlPersist m Bool
         isUser' userName = isJust <$> (getBy $ UniqueUser userName)
 
         mutter :: BotEnv -> String -> IO ()

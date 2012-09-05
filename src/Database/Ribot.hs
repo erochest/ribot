@@ -1,5 +1,6 @@
 {-# LANGUAGE QuasiQuotes, TypeFamilies, GeneralizedNewtypeDeriving, TemplateHaskell,
              OverloadedStrings, GADTs, FlexibleContexts #-}
+{-# LANGUAGE EmptyDataDecls #-}
 
 -- This handles the database interface for Ribot. This defines the schema and
 -- the interface types, and it defines the "model" functions, i.e., those that
@@ -42,9 +43,10 @@ import           Database.Persist.TH
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Time
+import           Control.Monad.Logger (MonadLogger)
 import           Control.Monad.IO.Class (liftIO, MonadIO)
 import           Control.Monad.Trans.Control (MonadBaseControl)
-import           Control.Monad.Trans.Resource (ResourceIO)
+import           Control.Monad.Trans.Resource
 import qualified Network.IRC.Base as B
 
 -- This creates the model types from their names.
@@ -66,12 +68,14 @@ initDatabase dbFile = runDb dbFile $ do
     return ()
 
 -- This takes a function and runs it in the context of a SQLite database.
-runDb :: (ResourceIO m) => FilePath -> SqlPersist m a -> m a
+runDb :: (MonadIO m, MonadBaseControl IO m)
+      => FilePath -> SqlPersist m a -> m a
 runDb sqliteFile = withSqliteConn (T.pack sqliteFile) . runSqlConn
 
 -- This takes a function and runs it in the context of a pool of SQLite
 -- database connections.
-runPool :: (ResourceIO m) => FilePath -> Int -> SqlPersist m a -> m a
+runPool :: (MonadIO m, MonadBaseControl IO m)
+        => FilePath -> Int -> SqlPersist m a -> m a
 runPool sqliteFile poolSize =
     withSqlitePool (T.pack sqliteFile) poolSize . runSqlPool
 
@@ -90,7 +94,7 @@ execSqlScripts sqliteFile sqls =
 -- This takes a database and executes the SQL to create the database's
 -- indices. These include "IF NOT EXISTS" phrases, so this can safely be
 -- executed more than once on the same database.
-addIndices :: (ResourceIO m) => SqlPersist m ()
+addIndices :: (MonadIO m, MonadLogger m) => SqlPersist m ()
 addIndices = mapM_ (execute' []) sql
     where
         execute' = flip execute
@@ -110,7 +114,8 @@ addIndices = mapM_ (execute' []) sql
 -- topics, and a topic and a message with the same ID are both being indexed at
 -- the same time. If you're re-indexing the entire database, this isn't an
 -- issue, however; because messages and topics aren't indexed at the same time.
-addTempTable :: (ResourceIO m) => SqlPersist m ()
+addTempTable :: (MonadIO m, MonadLogger m)
+             => SqlPersist m ()
 addTempTable = execute sql []
     where
         sql = " CREATE TEMPORARY TABLE IF NOT EXISTS msg_token \
@@ -123,7 +128,13 @@ addTempTable = execute sql []
 
 -- This looks for a username in the database. If it doesn't exist, this creates
 -- it.
-getOrCreateUser :: (ResourceIO m) => T.Text -> SqlPersist m (Entity User)
+getOrCreateUser :: ( MonadIO m
+                   , MonadUnsafeIO m
+                   , MonadThrow m
+                   , MonadLogger m
+                   , MonadBaseControl IO m
+                   )
+                => T.Text -> SqlPersist m (Entity User)
 getOrCreateUser username = get' 0 username
     where
         -- This attempts to insert and get the user. If it takes too many
@@ -139,7 +150,13 @@ getOrCreateUser username = get' 0 username
 
 -- This looks for a topic with a given text from a user. If it doesn't exist,
 -- this creates it.
-getOrCreateTopic :: (ResourceIO m) => UserId -> T.Text -> SqlPersist m (Entity Topic)
+getOrCreateTopic :: ( MonadIO m
+                    , MonadUnsafeIO m
+                    , MonadThrow m
+                    , MonadLogger m
+                    , MonadBaseControl IO m
+                    )
+                 => UserId -> T.Text -> SqlPersist m (Entity Topic)
 getOrCreateTopic userId text = get' 0
     where
         get' 3 = fail "too many attempts"
@@ -153,7 +170,13 @@ getOrCreateTopic userId text = get' 0
                     get' (n-1)
 
 -- This takes a `Message` from IRC and saves it to the database.
-saveMessage :: (ResourceIO m) => B.Message -> SqlPersist m SavedItem
+saveMessage :: ( MonadIO m
+               , MonadUnsafeIO m
+               , MonadThrow m
+               , MonadLogger m
+               , MonadBaseControl IO m
+               )
+            => B.Message -> SqlPersist m SavedItem
 saveMessage (B.Message (Just (B.NickName name _ _)) "PRIVMSG" [_, ""]) =
     return NothingSaved
 saveMessage (B.Message (Just (B.NickName name _ _)) "PRIVMSG" [_, ('!':_)]) =
@@ -176,12 +199,25 @@ saveMessage (B.Message (Just (B.NickName name _ _)) "TOPIC"   [_, topic]) = do
 saveMessage m  = return NothingSaved
 
 -- This takes a userId and sets the logging for it.
-setUserLogging :: (ResourceIO m) => UserId -> Bool -> SqlPersist m ()
+setUserLogging :: ( MonadIO m
+                  , MonadUnsafeIO m
+                  , MonadThrow m
+                  , MonadLogger m
+                  , MonadBaseControl IO m
+                  )
+               => UserId -> Bool -> SqlPersist m ()
 setUserLogging userId logging =
     update userId [UserLoggingOn =. logging] >> commit
 
 -- This returns all the messages for the user with a given user name.
-getUserMessages :: (ResourceIO m) => T.Text -> SqlPersist m (Maybe [Entity Message])
+getUserMessages :: ( MonadIO m
+                   , MonadUnsafeIO m
+                   , MonadThrow m
+                   , MonadBaseControl IO m
+                   , MonadLogger m
+                   )
+                => T.Text
+                -> SqlPersist m (Maybe [Entity Message])
 getUserMessages userName = do
     user' <- getBy $ UniqueUser userName
     case user' of

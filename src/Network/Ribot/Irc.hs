@@ -54,8 +54,8 @@ initParts config ribotConfig = do
 -- This runs the bot on the console.
 runConsole :: BotConf -> Config -> IO ()
 runConsole config ribotConfig = do
-    parts <- initParts config ribotConfig
-    tids  <- simpleBot config parts
+    parts     <- initParts config ribotConfig
+    (tids, _) <- simpleBot config parts
     (logger config) Important "Press ENTER to quit."
     getLine
     mapM_ killThread tids
