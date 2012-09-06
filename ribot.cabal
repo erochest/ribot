@@ -81,6 +81,7 @@ Executable ribot
     , Database.Ribot
     , Database.Ribot.Index
     , Database.Ribot.Search
+    , Network.Ribot.Irc.Part.Bingo
     , Network.Ribot.Irc.Part.Echo
     , Network.Ribot.Irc.Part.Knitter
     , Network.Ribot.Irc.Part.LogToggle
@@ -90,8 +91,10 @@ Executable ribot
     , Network.Ribot.Irc.Part.UpTime
     , Network.Ribot.Irc.Part.Version
     , Network.Ribot.Irc
+    , Network.Ribot.Irc.Utils
     , Network.Ribot.PasteBin
     , Ribot.Cli
+    , Text.Ribot.Bingo
     , Text.Ribot.Tokenizer
     , Text.Ribot.Mimic
 

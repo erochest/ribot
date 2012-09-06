@@ -6,15 +6,8 @@
 
 module Text.Ribot.Mimic
     ( mimic
-    {-
-     - ( TextGenerator
-     - , mkTextGenerator
-     - , mostLikely
-     - , randomContinuation
-     - , chain
-     - , triples
-     - , mimic
-     -}
+    , FreqMap
+    , getWeightedChoice
     ) where
 
 import           Control.Monad (liftM)
