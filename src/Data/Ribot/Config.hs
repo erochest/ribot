@@ -129,7 +129,7 @@ createBotConf config chanLog = getHostName >>= createConf config
             server' <- server
             nick'   <- nickName
             chan'   <- chan
-            return $ BotConf
+            return BotConf
                 { channelLogger = Just chanLog
                 , logger        = lg
                 , host          = server'
@@ -138,6 +138,7 @@ createBotConf config chanLog = getHostName >>= createConf config
                 , commandPrefix = "!"
                 , user          = User nick' hName server' nick'
                 , channels      = S.singleton chan'
+                , limits        = Nothing
                 }
 
         -- This parses out the configuration options for the logger and returns

@@ -26,24 +26,24 @@ onlyRight (Right val) = val
 assertToken :: String -> T.Text -> [T.Text] -> Assertion
 assertToken descr input expected =
     -- putStrLn . ("!!! " ++) . show $ tokenize "assert" input
-    assertBool (descr ++ ": " ++ (show input) ++ " => " ++ (show tokens))
+    assertBool (descr ++ ": " ++ show input ++ " => " ++ show tokens)
                (expected == tokens)
     where tokens = map tokenText . onlyRight . tokenize "assert" $ input
 
 -- This tests a TestPairSuite list.
 assertTokenTests :: String -> TestPairSuite -> Assertion
-assertTokenTests descr suite = mapM_ (uncurry (assertToken descr)) suite
+assertTokenTests descr = mapM_ (uncurry (assertToken descr))
 
 -- Test tests one TestPair against the query tokenizer.
 assertQuery :: String -> T.Text -> [T.Text] -> Assertion
 assertQuery descr input expected =
-    assertBool (descr ++ ": " ++ (show input) ++ " => " ++ (show tokens))
+    assertBool (descr ++ ": " ++ show input ++ " => " ++ show tokens)
                (expected == tokens)
     where tokens = map tokenText . onlyRight . tokenizeQuery "assert" $ input
 
 -- This tests a TestPairSuite against the query tokenizer.
 assertQueryTests :: String -> TestPairSuite -> Assertion
-assertQueryTests descr suite = mapM_ (uncurry (assertQuery descr)) suite
+assertQueryTests descr = mapM_ (uncurry (assertQuery descr))
 
 
 -- Now, for actual tests.

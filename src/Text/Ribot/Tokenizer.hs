@@ -29,10 +29,10 @@ import qualified Text.Bakers12.Tokenizer.Types as BT12
 tokenize :: Channel -> T.Text -> Either SomeException [Token]
 tokenize channel input = E.runLists [[input]] process
     where process =      B12.tokenizeStream channel 0
-                    E.=$ (combineRuns isAlphaNum)
-                    E.=$ (combineRuns isDash)
-                    E.=$ (join isAlphaNum isSingleQuote)
-                    E.=$ (join isAlphaNum isDash)
+                    E.=$ combineRuns isAlphaNum
+                    E.=$ combineRuns isDash
+                    E.=$ join isAlphaNum isSingleQuote
+                    E.=$ join isAlphaNum isDash
                     E.=$ alphaNumFilter
                     E.=$ stopListFilter
                     E.=$ EL.consume
@@ -42,11 +42,11 @@ tokenize channel input = E.runLists [[input]] process
 tokenizeQuery :: Channel -> T.Text -> Either SomeException [Token]
 tokenizeQuery channel input = E.runLists [[input]] process
     where process =      B12.tokenizeStream channel 0
-                    E.=$ (combineRuns isAlphaNum)
-                    E.=$ (combineRuns isDash)
-                    E.=$ (join isAlphaNum isSingleQuote)
-                    E.=$ (join isAlphaNum isDash)
-                    E.=$ (groupBy (\t -> isAlphaNum t || isWildcard t))
+                    E.=$ combineRuns isAlphaNum
+                    E.=$ combineRuns isDash
+                    E.=$ join isAlphaNum isSingleQuote
+                    E.=$ join isAlphaNum isDash
+                    E.=$ groupBy (\t -> isAlphaNum t || isWildcard t)
                     E.=$ wildAlphaNumFilter
                     E.=$ stopListFilter
                     E.=$ EL.consume
