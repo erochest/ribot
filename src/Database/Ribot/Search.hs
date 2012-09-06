@@ -17,8 +17,6 @@ import qualified Data.List as L
 import qualified Data.Text as T
 import           Data.Time.Format (formatTime)
 import           Database.Persist
-import qualified Database.Persist.GenericSql.Internal as I
-import           Database.Persist.GenericSql.Raw (execute, getStmt, withStmt)
 import           Database.Persist.Sqlite
 import           Database.Persist.Store
 import           Database.Ribot hiding (tokenText)
@@ -41,7 +39,7 @@ onlyRight (Right val) = val
 
 
 search :: FilePath -> Int -> String -> IO [SearchResult]
-search dbFile searchMax queryString = withSqliteConn (T.pack dbFile) $ runSqlConn $ do
+search dbFile searchMax queryString = withSqliteConn (T.pack dbFile) $ runSqlConn $
     map (uncurry SearchResult) <$> rawSql query params
     where queryTerms = map (T.map replaceWildCard . tokenText)
                      . onlyRight
@@ -51,7 +49,7 @@ search dbFile searchMax queryString = withSqliteConn (T.pack dbFile) $ runSqlCon
           (query, params) = buildQuery "Message" queryTerms searchMax
 
 topic :: FilePath -> Int -> String -> IO [TopicResult]
-topic dbFile searchMax queryString = withSqliteConn (T.pack dbFile) $ runSqlConn $ do
+topic dbFile searchMax queryString = withSqliteConn (T.pack dbFile) $ runSqlConn $
     map (uncurry TopicResult) <$> rawSql query params
     where queryTerms = map (T.map replaceWildCard . tokenText)
                      . onlyRight
@@ -132,12 +130,12 @@ instance Show SearchResult where
 
 instance Show TopicResult where
 
-    show (TopicResult (Entity _ user) (Entity _ topic)) =
+    show (TopicResult (Entity _ user) (Entity _ tpc)) =
         T.unpack $ T.concat [ userUsername user
                             , " at "
-                            , T.pack . formatTime defaultTimeLocale "%c" $ topicPosted topic
+                            , T.pack . formatTime defaultTimeLocale "%c" $ topicPosted tpc
                             , ": \""
-                            , topicText topic
+                            , topicText tpc
                             , "\""
                             ]
 

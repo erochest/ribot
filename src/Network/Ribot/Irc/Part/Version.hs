@@ -13,8 +13,7 @@ import           Network.IRC.Bot.Commands (PrivMsg(..), askSenderNickName,
 import           Network.IRC.Bot.Log (LogLevel(Debug))
 import           Network.IRC.Bot.Parsec (botPrefix, parsecPart)
 import           Paths_ribot (version)
-import           Text.Parsec (ParsecT, (<|>), anyChar, many1, optionMaybe,
-                              space, string, try)
+import           Text.Parsec (ParsecT, (<|>), string, try)
 
 -- This integrates this part into the bot.
 versionPart :: BotMonad m => m ()
