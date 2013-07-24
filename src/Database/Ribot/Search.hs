@@ -11,6 +11,8 @@ module Database.Ribot.Search
     ) where
 
 import           Control.Applicative ((<$>))
+import           Control.Monad.Logger
+import           Control.Monad.Trans.Resource
 import           Data.Maybe (isJust)
 import           Data.Monoid (mempty, Monoid)
 import qualified Data.List as L
@@ -18,7 +20,7 @@ import qualified Data.Text as T
 import           Data.Time.Format (formatTime)
 import           Database.Persist
 import           Database.Persist.Sqlite
-import           Database.Persist.Store
+-- import           Database.Persist.Store
 import           Database.Ribot hiding (tokenText)
 import           System.Locale (defaultTimeLocale)
 import           Text.Bakers12.Tokenizer.Types (Token(..))
@@ -37,9 +39,8 @@ onlyRight :: Monoid b => Either a b -> b
 onlyRight (Left _)    = mempty
 onlyRight (Right val) = val
 
-
 search :: FilePath -> Int -> String -> IO [SearchResult]
-search dbFile searchMax queryString = withSqliteConn (T.pack dbFile) $ runSqlConn $
+search dbFile searchMax queryString = withResourceLogger $ withSqliteConn (T.pack dbFile) $ runSqlConn $
     map (uncurry SearchResult) <$> rawSql query params
     where queryTerms = map (T.map replaceWildCard . tokenText)
                      . onlyRight
@@ -49,7 +50,7 @@ search dbFile searchMax queryString = withSqliteConn (T.pack dbFile) $ runSqlCon
           (query, params) = buildQuery "Message" queryTerms searchMax
 
 topic :: FilePath -> Int -> String -> IO [TopicResult]
-topic dbFile searchMax queryString = withSqliteConn (T.pack dbFile) $ runSqlConn $
+topic dbFile searchMax queryString = withResourceLogger $ withSqliteConn (T.pack dbFile) $ runSqlConn $
     map (uncurry TopicResult) <$> rawSql query params
     where queryTerms = map (T.map replaceWildCard . tokenText)
                      . onlyRight

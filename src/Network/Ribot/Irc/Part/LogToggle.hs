@@ -38,11 +38,11 @@ logToggleCommand dbFile = log' <|> return ()
             sendCommand . PrivMsg Nothing [target] $ nick ++ ", " ++ reply
 
 saveLogging :: FilePath -> T.Text -> Maybe Bool -> IO String
-saveLogging dbFile userName (Just logging) = runDb dbFile $ do
+saveLogging dbFile userName (Just logging) = withResourceLogger . runDb dbFile $ do
     (Entity userId _) <- getOrCreateUser userName
     setUserLogging userId logging
     return $ logMessage logging
-saveLogging dbFile userName Nothing = runDb dbFile $ do
+saveLogging dbFile userName Nothing = withResourceLogger . runDb dbFile $ do
     (Entity _ user) <- getOrCreateUser userName
     return . logMessage $ userLoggingOn user
 

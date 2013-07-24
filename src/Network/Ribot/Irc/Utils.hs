@@ -8,7 +8,7 @@ import           Control.Monad.IO.Class (liftIO)
 import qualified Data.Text as T
 import           Database.Persist
 import           Database.Persist.Sqlite
-import           Database.Ribot (getUserMessages, Message)
+import           Database.Ribot (getUserMessages, Message, withResourceLogger)
 import           Network.IRC.Bot.BotMonad (BotMonad(..), maybeZero)
 import           Network.IRC.Bot.Commands (PrivMsg(..), replyTo, sendCommand)
 import           Network.IRC.Bot.Log (LogLevel(Debug))
@@ -58,5 +58,5 @@ messageCommand name f dbFile = command <|> return ()
 
         getUserMessages' :: T.Text -> IO (Maybe [Entity Message])
         getUserMessages' userName =
-            withSqliteConn (T.pack dbFile) $ runSqlConn $ getUserMessages userName
+            withResourceLogger . withSqliteConn (T.pack dbFile) $ runSqlConn $ getUserMessages userName
 

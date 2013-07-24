@@ -53,7 +53,7 @@ knitterCommand dbFile = knitter <|> return ()
 
         isUser :: T.Text -> IO Bool
         isUser userName =
-            withSqliteConn (T.pack dbFile) $ runSqlConn $ isUser' userName
+            withResourceLogger . withSqliteConn (T.pack dbFile) $ runSqlConn $ isUser' userName
 
         isUser' userName = isJust <$> getBy (UniqueUser userName)
 

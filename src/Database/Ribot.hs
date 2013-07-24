@@ -33,22 +33,27 @@ module Database.Ribot
     , saveMessage
     , setUserLogging
     , getUserMessages
+    , withResourceLogger
     ) where
 
-import           Database.Persist
-import           Database.Persist.GenericSql.Raw (execute)
-import           Database.Persist.Sqlite
+import           Control.Monad.Logger
+import           Control.Monad.Trans.Resource
+import           Database.Persist hiding (runPool)
+import           Database.Persist.Sql (rawExecute, rawExecuteCount, rawQuery)
+import           Database.Persist.Sqlite hiding (runPool)
+import           Database.Persist.Quasi
 import           Database.Persist.TH
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Time
-import           Control.Monad.Logger (MonadLogger)
+import           Control.Monad.Logger (MonadLogger, runStderrLoggingT)
 import           Control.Monad.IO.Class (liftIO, MonadIO)
 import           Control.Monad.Trans.Resource
 import qualified Network.IRC.Base as B
 
 -- This creates the model types from their names.
-share [mkPersist sqlSettings, mkMigrate "migrateAll"] $(persistFile "config/models")
+share [mkPersist sqlSettings, mkMigrate "migrateAll"]
+      $(persistFileWith lowerCaseSettings "config/models")
 
 -- This is for the output of `saveMessage`. This lets me wrap up the its that
 -- was saved so I can retrieve it later. This could probably be a newtype for
@@ -59,7 +64,7 @@ data SavedItem = NothingSaved
 
 -- This initializes the database by opening the connection and migrating.
 initDatabase :: FilePath -> IO ()
-initDatabase dbFile = runDb dbFile $ do
+initDatabase dbFile = runStderrLoggingT $ runDb dbFile $ do
     runMigrationSilent migrateAll
     addIndices
     addTempTable
@@ -83,7 +88,7 @@ runPool sqliteFile poolSize =
 addIndices :: (MonadIO m, MonadLogger m) => SqlPersist m ()
 addIndices = mapM_ (execute' []) sql
     where
-        execute' = flip execute
+        execute' = flip rawExecute
         sql = [ " CREATE INDEX IF NOT EXISTS idx_message ON \"Message\" \
                     \ (id, \"userId\", posted);"
               , " CREATE INDEX IF NOT EXISTS idx_token ON \"Token\" \
@@ -102,7 +107,7 @@ addIndices = mapM_ (execute' []) sql
 -- issue, however; because messages and topics aren't indexed at the same time.
 addTempTable :: (MonadIO m, MonadLogger m)
              => SqlPersist m ()
-addTempTable = execute sql []
+addTempTable = rawExecute sql []
     where
         sql = " CREATE TEMPORARY TABLE IF NOT EXISTS msg_token \
                 \ (\"tokenId\" INTEGER DEFAULT NULL, \
@@ -119,6 +124,7 @@ getOrCreateUser :: ( MonadIO m
                    , MonadThrow m
                    , MonadLogger m
                    , MonadBaseControl IO m
+                   , MonadResource m
                    )
                 => T.Text -> SqlPersist m (Entity User)
 getOrCreateUser = get' (0 :: Int)
@@ -141,6 +147,7 @@ getOrCreateTopic :: ( MonadIO m
                     , MonadThrow m
                     , MonadLogger m
                     , MonadBaseControl IO m
+                    , MonadResource m
                     )
                  => UserId -> T.Text -> SqlPersist m (Entity Topic)
 getOrCreateTopic userId text = get' (0 :: Int)
@@ -161,6 +168,7 @@ saveMessage :: ( MonadIO m
                , MonadThrow m
                , MonadLogger m
                , MonadBaseControl IO m
+               , MonadResource m
                )
             => B.Message -> SqlPersist m SavedItem
 saveMessage (B.Message (Just (B.NickName _    _ _)) "PRIVMSG" [_, ""]) =
@@ -175,12 +183,12 @@ saveMessage (B.Message (Just (B.NickName name _ _)) "PRIVMSG" [_, message]) = do
     where insertMessage userId msg = do
             now <- liftIO getCurrentTime
             mid <- insert $ Message userId (T.pack msg) now
-            commit
+            transactionSave
             return $ SavedMessage mid
 saveMessage (B.Message (Just (B.NickName name _ _)) "TOPIC"   [_, topic]) = do
     (Entity userId  _) <- getOrCreateUser $ T.pack name
     (Entity topicId _) <- getOrCreateTopic userId $ T.pack topic
-    commit
+    transactionSave
     return $ SavedTopic topicId
 saveMessage _  = return NothingSaved
 
@@ -190,10 +198,11 @@ setUserLogging :: ( MonadIO m
                   , MonadThrow m
                   , MonadLogger m
                   , MonadBaseControl IO m
+                  , MonadResource m
                   )
                => UserId -> Bool -> SqlPersist m ()
 setUserLogging userId logging =
-    update userId [UserLoggingOn =. logging] >> commit
+    update userId [UserLoggingOn =. logging] >> transactionSave
 
 -- This returns all the messages for the user with a given user name.
 getUserMessages :: ( MonadIO m
@@ -201,6 +210,7 @@ getUserMessages :: ( MonadIO m
                    , MonadThrow m
                    , MonadBaseControl IO m
                    , MonadLogger m
+                   , MonadResource m
                    )
                 => T.Text
                 -> SqlPersist m (Maybe [Entity Message])
@@ -210,4 +220,7 @@ getUserMessages userName = do
         Nothing   -> return Nothing
         Just (Entity userId _) ->
             Just `fmap` selectList [MessageUserId ==. userId] []
+
+withResourceLogger :: LoggingT (ResourceT IO) a -> IO a
+withResourceLogger = runResourceT . runStderrLoggingT
 
