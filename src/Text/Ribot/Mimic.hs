@@ -81,11 +81,13 @@ getContinuationList (TextGenerator hmm) leadingSeq =
         key :: (a, Int) -> Int
         key (_, i) = -i
 
+{- Defined but not used
 -- This returns the most likely continuation of the sequence given. If there's
 -- no data for that sequence, `Nothing` is returned.
 mostLikely :: Ord a => TextGenerator a -> (a, a) -> Maybe a
 mostLikely textGen leadingSeq =
     fmap fst . listToMaybe =<< getContinuationList textGen leadingSeq
+    -}
 
 -- This returns a continuation for the sequence. It does using a random
 -- selecting weighted by the frequency of each continuation. If there aren't

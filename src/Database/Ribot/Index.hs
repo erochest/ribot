@@ -13,16 +13,13 @@ module Database.Ribot.Index
     , clearIndex
     ) where
 
-import           Control.Monad (forM_)
 import           Control.Monad.Logger
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 import           Control.Monad.Trans.Resource
 import qualified Data.Text as T
 import           Database.Persist
-import           Database.Persist.Sql (rawExecute, stmtReset)
 import           Database.Persist.Sqlite
--- import           Database.Persist.Store
 import           Database.Ribot hiding (tokenText)
 import           Text.Ribot.Tokenizer (tokenize, getTokenText)
 
@@ -89,8 +86,8 @@ index' dbId idCol item getText =
                 ]
 
 loadMessageTokens :: PersistValue -> [T.Text] -> SqlPersistM ()
-loadMessageTokens id' tokens = do
-    mapM_ (rawExecute sql) $ [ [id', PersistText token] | token <- tokens ]
+loadMessageTokens id' tokens =
+    mapM_ (rawExecute sql) [ [id', PersistText token] | token <- tokens ]
     where sql = " INSERT OR IGNORE INTO msg_token \
                 \ (\"messageId\", text) VALUES (?, ?); "
 

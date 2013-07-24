@@ -32,7 +32,7 @@ searchCommand dbFile pbKey searchMax = search <|> return ()
         search :: BotMonad m => ParsecT String () m ()
         search = try $ do
             botPrefix
-            string "search"
+            _       <- string "search"
             terms   <- space >> many anyChar
             target  <- maybeZero =<< replyTo
             nick    <- maybeZero =<< askSenderNickName

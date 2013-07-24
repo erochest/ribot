@@ -11,8 +11,6 @@ module Database.Ribot.Search
     ) where
 
 import           Control.Applicative ((<$>))
-import           Control.Monad.Logger
-import           Control.Monad.Trans.Resource
 import           Data.Maybe (isJust)
 import           Data.Monoid (mempty, Monoid)
 import qualified Data.List as L
