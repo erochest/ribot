@@ -49,7 +49,7 @@ initParts config ribotConfig = do
            , topicPart dbFile pbKey searchMax
            , uptimePart now
            , versionPart
-           , knitterPart dbFile
+           -- , knitterPart dbFile
            , bingoPart dbFile
            ]
 
