@@ -51,7 +51,7 @@ import qualified Network.IRC.Base as B
 
 -- This creates the model types from their names.
 share [mkPersist sqlSettings, mkMigrate "migrateAll"]
-      $(persistFileWith lowerCaseSettings "config/models")
+      $(persistFileWith upperCaseSettings "config/models")
 
 -- This is for the output of `saveMessage`. This lets me wrap up the its that
 -- was saved so I can retrieve it later. This could probably be a newtype for
@@ -63,7 +63,7 @@ data SavedItem = NothingSaved
 -- This initializes the database by opening the connection and migrating.
 initDatabase :: FilePath -> IO ()
 initDatabase dbFile = withResourceNoLogger . runDb dbFile $ do
-    _ <- runMigrationSilent migrateAll
+    runMigration migrateAll
     addIndices
     addTempTable
     return ()
