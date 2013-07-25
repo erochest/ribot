@@ -7,7 +7,9 @@ module Main where
 
 import           Control.Concurrent
 import           Control.Monad (forM_)
+import           Control.Monad.Logger
 import           Control.Monad.IO.Class
+import           Control.Monad.Trans.Resource
 import           Data.Configurator.Types (Config)
 import           Data.Ribot.Config
 import qualified Data.Text as T
@@ -53,10 +55,10 @@ handleMode (Search _ searchTerms) ircConfig dbFile = do
 handleMode (Ribot.Cli.Topic _ _) _ _ =
     return ()
 handleMode (Reindex _) _ dbFile = do
-    runPool dbFile 4 reindex
+    withResourceNoLogger $ D.runPool dbFile 4 reindex
     putStrLn "done"
 handleMode (Mimic _ userName) _ dbFile =
-    runDb dbFile $ do
+    withResourceNoLogger . runDb dbFile $ do
         msgs'  <- getUserMessages userName'
         output <- case msgs' of
             Nothing -> return $ T.concat [ "I haven't heard "
@@ -88,9 +90,9 @@ runBot cfg botConfig = do
 
 -- This processes the messages by logging and indexing them.
 writeMsg :: FilePath -> Chan Message -> IO ()
-writeMsg dbFile chan = runPool dbFile 4 $
+writeMsg dbFile chan = D.runPool dbFile 4 $
     liftIO $ getChanContents chan >>= mapM_ process
     where
-        process msg' = withSqliteConn (T.pack dbFile) $ runSqlConn $
+        process msg' = withResourceNoLogger . withSqliteConn (T.pack dbFile) $ runSqlConn $
             saveMessage msg' >>= indexItem
 

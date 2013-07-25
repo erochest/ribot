@@ -34,7 +34,7 @@ knitterCommand dbFile = knitter <|> return ()
         knitter :: BotMonad m => ParsecT String () m ()
         knitter = try $ do
             skipMany $ noneOf "@"
-            char '@'
+            _      <- char '@'
             name   <- many1 (alphaNum <|> char '-')
 
             exists <- liftIO . isUser $ T.pack name
@@ -47,13 +47,13 @@ knitterCommand dbFile = knitter <|> return ()
                 sendCommand $ PrivMsg Nothing [target] $ nick ++ ", THIS ISN'T TWITTER!"
 
                 env <- askBotEnv
-                liftIO . forkIO $ mutter env target
+                _   <- liftIO . forkIO $ mutter env target
 
                 return ()
 
         isUser :: T.Text -> IO Bool
         isUser userName =
-            withSqliteConn (T.pack dbFile) $ runSqlConn $ isUser' userName
+            withResourceLogger . withSqliteConn (T.pack dbFile) $ runSqlConn $ isUser' userName
 
         isUser' userName = isJust <$> getBy (UniqueUser userName)
 
