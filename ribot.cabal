@@ -64,7 +64,6 @@ Executable ribot
     , time                >= 1.2
     , monad-control       >= 0.3
     , conduit             >= 0.2
-    , bakers12
     , enumerator          >= 0.4
     , mtl                 >= 2.0
     , old-locale          >= 1.0
@@ -154,7 +153,6 @@ Test-Suite test-ribot
     , time                       >= 1.2
     , monad-control              >= 0.3
     , conduit                    >= 0.2
-    , bakers12
     , enumerator                 >= 0.4
     , mtl                        >= 2.0
     , old-locale                 >= 1.0
