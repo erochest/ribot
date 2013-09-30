@@ -7,9 +7,7 @@ module Main where
 
 import           Control.Concurrent
 import           Control.Monad (forM_)
-import           Control.Monad.Logger
 import           Control.Monad.IO.Class
-import           Control.Monad.Trans.Resource
 import           Data.Configurator.Types (Config)
 import           Data.Ribot.Config
 import qualified Data.Text as T
